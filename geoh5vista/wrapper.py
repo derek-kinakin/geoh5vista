@@ -64,7 +64,6 @@ def project_to_vtk(project, load_textures=False):
     data = pyvista.MultiBlock()
     textures = {}
     origin = np.array([0,0,0])
-    #for e in project.elements:
     for e in project:
         key = e.__class__.__name__
         if key in SKIP:
