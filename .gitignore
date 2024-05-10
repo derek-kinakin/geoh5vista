@@ -1,0 +1,13 @@
+**/.DS_Store
+**/*.pyc
+**/__pycache__/
+.coverage
+coverage.xml
+build/
+dist/
+docs/build/
+docs/_build/
+docs/source/content
+docs/source/examples
+docs/source/index.rst
+.ipynb_checkpoints
