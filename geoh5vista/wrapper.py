@@ -30,25 +30,11 @@ from geoh5vista.group import group_to_vtk
 
 
 def wrap(data, origin=(0.0, 0.0, 0.0)):
-    """Wraps the OMF data object/project as a VTK data object. This is the
+    """Wraps the GEOH5 data object/project as a VTK data object. This is the
     primary function that an end user will harness.
 
     Args:
-        data: any OMF data object
-
-    Example:
-        >>> import geoh5py
-        >>> import geoh5vista
-
-        >>> # Read all elements
-        >>> reader = geoh5py.OMFReader('test_file.omf')
-        >>> project = reader.get_project()
-
-        >>> # Iterate over the elements and add converted VTK objects to dictionary:
-        >>> data = dict()
-        >>> for e in project.elements:
-        >>>     d = geoh5vista.wrap(e)
-        >>>     data[e.name] = d
+        data: any GEOH5 data object
 
     """
     # Allow recursion
