@@ -12,11 +12,6 @@ from geoh5py.data.float_data import FloatData
 import numpy as np
 import pyvista
 
-try:
-    from pyvista import is_pyvista_obj as is_pyvista_dataset
-except ImportError:
-    from pyvista import is_pyvista_dataset
-
 
 def check_orientation(axis_u, axis_v, axis_w):
     """This will check if the given ``axis_*`` vectors are the typical
@@ -45,14 +40,6 @@ def check_orthogonal(axis_u, axis_v, axis_w):
 
 def add_data(output, entity, index=None):
     """Adds data arrays to an output VTK data object"""
-    #if getattr(entity, "centroids", None) is not None:
-    #    locs = entity.vertices
-    #elif getattr(entity, "vertices", None) is not None:
-    #    locs = entity.vertices
-    
-    #if index is None:
-    #    index = np.arange(locs.shape[0])
-
     fields = [i.name for i in entity.children]
     if "Visual Parameters" in fields:
         fields.remove("Visual Parameters")

@@ -40,7 +40,6 @@ def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
 
     # Now add point data:
     add_data(output, trisurf)
-    #add_texture_coordinates(output, trisurf.textures, trisurf.name)
 
     return output
 

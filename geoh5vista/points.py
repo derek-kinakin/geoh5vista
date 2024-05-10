@@ -29,8 +29,6 @@ def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
     # Now add point data:
     add_data(output, pts)
 
-    #add_texture_coordinates(output, pts.textures, pts.name)
-
     output.points += np.array(origin)
     return output
 

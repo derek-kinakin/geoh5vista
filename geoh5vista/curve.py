@@ -22,8 +22,6 @@ def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
     Return:
         :class:`pyvista.PolyData`
     """
-    #ids = crv.parts
-    #lines = np.c_[np.full(len(ids), 2, dtype=np.int_), ids]
     ids = crv.cells
     lines = np.c_[np.full(len(ids), 2, dtype=np.int_), ids]
 
