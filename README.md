@@ -5,7 +5,7 @@ A PyVista (and VTK) interface for the `Geoh5 package` (``geoh5``)
 providing Python 3D visualization and useable mesh data structures for
 processing datasets in the geoh5 specification.
 
-The structure and interfaces of this project are heavily inspired by the 'omfvista' package, which provides a similar interface for the 'omf' format.
+The structure and interfaces of this project are heavily inspired by (and borrowed from) the 'omfvista' package, which provides a similar interface for the 'omf' format.
 
 omfvista package: https://github.com/OpenGeoVis/omfvista
 
