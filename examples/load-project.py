@@ -8,11 +8,12 @@ Load and visualize an GEOH5 project file
 import sys
 import pyvista as pv
 from pathlib import Path
+import geoh5vista
 
 path_root = Path(__file__).parents[1]
-sys.path.append(str(path_root))
+#sys.path.append(str(path_root))
 
-import geoh5vista
+
 
 ###############################################################################
 # Load the project into an :class:`pyvista.MultiBlock` dataset
