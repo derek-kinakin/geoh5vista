@@ -36,7 +36,7 @@ project = geoh5vista.load_project('test_file.geoh5')
 project
 ```
 
-Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``omfvista``, then
+Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``, then
 that object can be directly used for interactive 3D visualization from PyVista_:
 
 ```python
