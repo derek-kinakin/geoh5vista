@@ -68,6 +68,6 @@ p.add_mesh(dacite, color='yellow', opacity=0.6)
 p.add_mesh_threshold(vol)
 # Add the bounds axis
 p.show_bounds()
-# Redner the scene in a pop out window
-p.show()
+# Render the scene in a pop out window
+p.shdow()
 ```
