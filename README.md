@@ -16,8 +16,9 @@ Documentation is hosted at https://github.com/derek-kinakin/geoh5vista
 
 Installation
 ------------
-
-TBD
+'''python
+pip install git+https://github.com/derek-kinakin/geoh5vista.git
+'''
 
 Questions & Support
 -------------------
