@@ -4,7 +4,7 @@ Load Project
 
 Load and visualize an GEOH5 project file
 """
-# sphinx_gallery_thumbnail_number = 3
+
 import sys
 import pyvista as pv
 from pathlib import Path
@@ -75,4 +75,5 @@ p.add_mesh(thresh_vol, cmap="coolwarm", clim=vol.get_data_range())
 # Add the assay logs: use a tube filter that varius the radius by an attribute
 p.add_mesh(assay.tube(radius=3), cmap="viridis")
 
+#p.export_html("geoh5vista.html")
 p.show()

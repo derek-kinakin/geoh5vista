@@ -112,6 +112,7 @@ WRAPPERS = {
 
 SKIP = [
     "ReferencedData",
+    "VisualParameters",
     "TextData",
     "FloatData",
     "IntegerData",
