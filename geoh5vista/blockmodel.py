@@ -11,7 +11,7 @@ __displayname__ = "Blockmodel"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data
+from geoh5vista.utilities import add_data_to_vtk_grid
 
 
 def get_blockmodel_shape(bm):
@@ -19,7 +19,16 @@ def get_blockmodel_shape(bm):
     return (bm.shape[0], bm.shape[1], bm.shape[2])
 
 
-def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0.0, 0.0, 0.0)):
+def create_blockmodel_rot_matrix(blkmdl):
+    rotation = np.radians(blkmdl.rotation)
+    # create a rotation matrix from angle in radians
+    rotation_mtx = np.array([[np.cos(rotation), -np.sin(rotation), 0],
+                             [np.sin(rotation), np.cos(rotation), 0],
+                             [0, 0, 1]])
+    return rotation_mtx 
+
+
+def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
     """Convert the block model to a :class:`pyvista.StructuredGrid`
     object containing the 3D grid.
 
@@ -28,35 +37,33 @@ def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0.0, 0.0, 0.0)):
             to convert
     """
 
-    ox, oy, oz = blkmdl.origin.tolist()
- 
-    # Make coordinates along each axis
-    xc = ox + np.cumsum(blkmdl.u_cells)
-    xc = np.insert(xc, 0, ox)
-    yc = oy + np.cumsum(blkmdl.v_cells)
-    yc = np.insert(yc, 0, oy)
-    zc = oz + np.cumsum(blkmdl.z_cells)
-    zc = np.insert(zc, 0, oz)
+    origin = np.array(origin, dtype=np.float32)
+    # Handle rotation matrix - ensure it's float64 and valid
+    #if rotation_matrix is None:
+    #    rotation_matrix = np.eye(3, dtype=np.float64)
+    #else:
+    #    rotation_matrix = np.array(rotation_matrix, dtype=np.float64)
     
+    xc = blkmdl.u_cell_delimiters
+    yc = blkmdl.v_cell_delimiters
+    zc = blkmdl.z_cell_delimiters
+
     # Use a vtkStructuredGrid
     # Build out all nodes in the mesh
     xx, yy, zz = np.meshgrid(xc, yc, zc, indexing='ij')
     points = np.c_[xx.ravel("F"), yy.ravel("F"), zz.ravel("F")]
-  
+    #output = pyvista.StructuredGrid(xx, yy, zz)
+
+    #points = points.dot(rotation_matrix)
+
     output = pyvista.StructuredGrid()
     output.points = points
-    output.dimensions = xc.shape[0],yc.shape[0],zc.shape[0]
-  
-    # TODO: Add rotation check and calculation
-    # Rotate the points based on the axis orientations
-    #rotation_mtx = np.array([blkmdl.axis_u, blkmdl.axis_v, blkmdl.axis_w])
-    #points = points.dot(rotation_mtx)
-
-    output.points += np.array(origin)
+    output.dimensions = xc.shape[0], yc.shape[0], zc.shape[0] 
+    output.points += origin
     return output
 
 
-def blockmodel_to_vtk(blkmdl, origin=(0.0, 0.0, 0.0)):
+def blockmodel_to_vtk(blkmdl, origin=(0,0,0)):
     """Convert the block model to a VTK data object.
 
     Args:
@@ -64,20 +71,10 @@ def blockmodel_to_vtk(blkmdl, origin=(0.0, 0.0, 0.0)):
         to convert
 
     """
-    output = blockmodel_grid_geom_to_vtk(blkmdl, origin=origin)
-
-    # Add data to output
-    fields = [i.name for i in blkmdl.children]
-    if "Visual Parameters" in fields:
-        fields.remove("Visual Parameters")
-    if "UserComments" in fields:
-        fields.remove("UserComments")
-    arr = pyvista.PolyData(blkmdl.centroids)
-    
-    for f in fields:
-        arr[f] = blkmdl.get_data(f)[0].values
-    
-    output = output.interpolate(arr, n_points=1, strategy="closest_point", null_value=-9999)
+    origin = np.array([blkmdl.origin[0], blkmdl.origin[1], blkmdl.origin[2]], "float32")
+    rotation_mtx = create_blockmodel_rot_matrix(blkmdl)
+    output = blockmodel_grid_geom_to_vtk(blkmdl, origin=origin, rotation_matrix=rotation_mtx)
+    output = add_data_to_vtk_grid(output, blkmdl, index=None)
     
     return output
 
