@@ -3,13 +3,11 @@
 **/__pycache__/
 .coverage
 coverage.xml
+assets/
 build/
 dist/
-docs/build/
-docs/_build/
-docs/source/content
-docs/source/examples
-docs/source/index.rst
-.ipynb_checkpoints
+docs/
+examples/
+tests/
 # pixi environments
 .pixi
