@@ -1,7 +1,8 @@
 __all__ = [
     "check_orientation",
     "check_orthogonal",
-    "add_data",
+    "add_data_to_vtk",
+    "add_data_to_vtk_grid",
     "add_texture_coordinates",
 ]
 
@@ -11,6 +12,15 @@ from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.data.float_data import FloatData
 import numpy as np
 import pyvista
+import geoh5py
+#import xml.etree.ElementTree as et
+
+print("geoh5py version:", geoh5py.__version__)
+
+try:
+    from pyvista import is_pyvista_obj as is_pyvista_dataset
+except ImportError:
+    from pyvista import is_pyvista_dataset
 
 
 def check_orientation(axis_u, axis_v, axis_w):
@@ -38,8 +48,10 @@ def check_orthogonal(axis_u, axis_v, axis_w):
     return True
 
 
-def add_data(output, entity, index=None):
-    """Adds data arrays to an output VTK data object"""
+def add_data_to_vtk(output, entity, index=None):
+    """Adds data arrays to an output VTK data object. Assigns data to cells or points
+    based on number of data values compared to number of cells or points."""
+
     fields = [i.name for i in entity.children]
     if "Visual Parameters" in fields:
         fields.remove("Visual Parameters")
@@ -49,13 +61,54 @@ def add_data(output, entity, index=None):
     for f in fields:
         data = entity.get_data(f)[0]
         if isinstance(data, ReferencedData):
-            data_value_map = data.value_map.map
+            data_value_map = data.value_map
             output[f] = data.values
-            output[f] = np.vectorize(data_value_map.get)(output[f])
+            output[f"{f}_names"] = data_value_map.map_values(output[f])
         elif isinstance(data, FloatData):
             output[f] = data.values
         else:
             pass
+    
+    return output
+
+
+def add_data_to_vtk_grid(output, entity, index=None):
+    """Adds data arrays to an output VTK data object. Assigns data to cells or points
+    based on number of data values compared to number of cells or points."""
+    
+    fields = [i.name for i in entity.children]
+    if "Visual Parameters" in fields:
+        fields.remove("Visual Parameters")
+    if "UserComments" in fields:
+        fields.remove("UserComments")
+    
+    for f in fields:
+        data = entity.get_data(f)[0]
+        values = data.values
+        
+        # For block models, we need to reshape to match the grid structure
+        # geoh5 uses (n_u, n_v, n_z) ordering, but we need to match PyVista's cell ordering
+        n_u, n_v, n_z = entity.shape
+        
+        # Reshape values to 3D array with proper dimensions
+        # This order seems to be the inverse of what one might expect
+        # but it works to get the correct orientation in PyVista when
+        # combined with the transpose below
+        values_3d = values.reshape((n_v, n_u, n_z), order='C')
+        
+        # PyVista structured grids expect cell data in a specific order
+        # We need to transpose and flatten to match VTK cell ordering
+        values_vtk = values_3d.transpose(1, 0, 2).flatten(order='F')
+        
+        if isinstance(data, ReferencedData):
+            data_value_map = data.value_map
+            output[f] = values_vtk
+            output[f"{f}_names"] = data_value_map.map_values(output.cell_data[f])
+        elif isinstance(data, FloatData):
+            output[f] = values_vtk
+        else:
+            # Handle other data types if needed
+            output[f] = values_vtk
     
     return output
 
@@ -97,3 +150,32 @@ def texture_to_vtk(texture):
 def get_textures(element):
     """Get a dictionary of textures for a given element."""
     return [texture_to_vtk(tex) for tex in element.textures]
+
+
+def RGB_from_GA(ga_int):
+    """https://levelup.gitconnected.com/how-to-convert-argb-integer-into-rgba-tuple-in-python-eeb851d65a88
+
+    Args:
+        argb_int (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    c_string = (ga_int).to_bytes(4, byteorder="little").hex()
+    rgb = [int(c_string[i : i + 2], 16) for i in range(0, 8, 2)][:3]
+    
+    return rgb
+
+
+def get_ga_entity_colour(ga_entity):
+    a = ga_entity.get_data("Visual Parameters")[0]
+    c = a.colour # Colour order is BGR
+    true_color = [c[2],c[1],c[0]] # Convert to RGB order
+    return true_color
+
+
+def add_ga_entity_colour(output, ga_entity):
+    """Add the GA entity colour to the output VTK object."""
+    colour = get_ga_entity_colour(ga_entity)
+    output.user_dict["colour"] = colour
+    return output
