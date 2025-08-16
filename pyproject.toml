@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 license = "MIT"
 keywords = []
 authors = [
-  { name = "Derek Kinakin", email = "dkinakin@gmail.com" },
+  { name = "Derek Kinakin"},
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
