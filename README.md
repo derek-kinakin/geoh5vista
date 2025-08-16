@@ -20,10 +20,18 @@ Installation
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
 
-Questions & Support
+Current Status
 -------------------
 
-TBD
+| Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
+| -------------|----------------|-----------------|----------------|-------|
+| Points       | PolyData       | Yes             | No             |       |
+| Curve        | PolyData       |  Yes            | No             |       |
+| Surface      | PolyData       |  Yes            | No             |       |
+| Block model  | Structured Grid |  Yes           | No             | No rotation      |
+| Drillholes   | TBD            | No              | No             |       |
+| 2D Grid      | TBD            | No              | No             |       |
+
 
 Example Use
 -----------
@@ -38,10 +46,6 @@ project
 
 Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``, then
 that object can be directly used for interactive 3D visualization from PyVista_:
-
-```python
-project.plot(multi_colors=True)
-```
 
 An interactive scene can be created and manipulated to create a compelling
 figure. First, grab the elements from the project:
@@ -63,11 +67,11 @@ p = pv.Plotter(notebook=False)
 # Add our datasets
 p.add_mesh(topo, cmap='gist_earth', opacity=0.5)
 p.add_mesh(assay, color='blue', line_width=3)
-p.add_mesh(dacite, color='yellow', opacity=0.6)
+p.add_mesh(dacite, color=dacite.user_dict["colour"], opacity=0.6)
 # Add the volumetric dataset with a thresholding tool
 p.add_mesh_threshold(vol)
 # Add the bounds axis
 p.show_bounds()
 # Render the scene in a pop out window
-p.shdow()
+p.show()
 ```
