@@ -18,7 +18,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-dependencies = ["geoh5py>=0.10.0", "pyvista>=0.25.0"]
+dependencies = ["geoh5py>=0.10.0", "pyvista>=0.46.0"]
 
 [project.urls]
 Documentation = "https://github.com/Derek Kinakin/geoh5vista#readme"
@@ -42,6 +42,10 @@ platforms = ["linux-64","win-64"]
 geoh5vista = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+geoh5py = ">=0.11.0,<0.12"
+pyvista = ">=0.46.1,<0.47"
 
 
 [tool.coverage.run]
