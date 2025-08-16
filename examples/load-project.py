@@ -5,7 +5,7 @@ Load Project
 Load and visualize an GEOH5 project file
 """
 
-import sys
+#import sys
 import pyvista as pv
 from pathlib import Path
 import geoh5vista
