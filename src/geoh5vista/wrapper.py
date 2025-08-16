@@ -1,5 +1,4 @@
-"""This module provides a wrapper that will work for any GEOH5 data object or
-project files.
+"""This module provides a wrapper that will work for any GEOH5 data object or file.
 
 """
 
@@ -11,13 +10,10 @@ __all__ = [
 
 __displayname__ = "Wrapper"
 
+import pyvista
 import numpy as np
-import geoh5py
 from geoh5py.workspace.workspace import Workspace
 
-import pyvista
-
-import geoh5vista
 from geoh5vista.curve import curve_to_vtk
 from geoh5vista.data import text_data_to_vtk, float_data_to_vtk, referenced_data_to_vtk, integer_data_to_vtk, filename_data_to_vtk
 from geoh5vista.points import points_to_vtk
@@ -30,11 +26,11 @@ from geoh5vista.group import group_to_vtk
 
 
 def wrap(data, origin=(0.0, 0.0, 0.0)):
-    """Wraps the OMF data object/project as a VTK data object. This is the
+    """Wraps the GEOH5 data object/project as a VTK data object. This is the
     primary function that an end user will harness.
 
     Args:
-        data: any OMF data object
+        data: any GEOH5 data object
 
     Example:
         >>> import geoh5py
@@ -71,7 +67,7 @@ def wrap(data, origin=(0.0, 0.0, 0.0)):
 
 
 def project_to_vtk(project, load_textures=False):
-    """Converts an Geoh5 workspace (:class:`geoh5py.workspace.workspace.Workspace`) to a
+    """Converts an GEOH5 workspace (:class:`geoh5py.workspace.workspace.Workspace`) to a
     :class:`pyvista.MultiBlock` data oject
     """
     # Iterate over the elements and add converted VTK objects a MultiBlock
