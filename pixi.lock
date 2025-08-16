@@ -1213,10 +1213,10 @@ packages:
 - pypi: ./
   name: geoh5vista
   version: 0.0.0
-  sha256: 17cdf7a9efb11b6883add711077fbfc8270c0189d2d31db2eb87ec5b5b3a5d30
+  sha256: 6169efe6e4e37dd525f312a6a934fe33fbfde1de4636acbe652bfcdc514ebe64
   requires_dist:
   - geoh5py>=0.10.0
-  - pyvista>=0.25.0
+  - pyvista>=0.46.0
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/gl2ps-1.4.2-hae5d5c5_1.conda

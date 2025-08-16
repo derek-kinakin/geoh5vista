@@ -16,7 +16,7 @@ Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: geoh5py>=0.10.0
-Requires-Dist: pyvista>=0.25.0
+Requires-Dist: pyvista>=0.46.0
 Dynamic: license-file
 
 geoh5vista: a Geoh5 <> PyVista (VTK) interface

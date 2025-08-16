@@ -11,3 +11,5 @@ examples/
 tests/
 # pixi environments
 .pixi
+pixi.lock
+
