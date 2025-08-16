@@ -11,7 +11,7 @@ import numpy as np
 import pyvista
 from geoh5py.objects.points import Points
 
-from geoh5vista.utilities import add_data, add_texture_coordinates
+from geoh5vista.utilities import add_data_to_vtk, add_texture_coordinates
 
 
 def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
@@ -27,23 +27,21 @@ def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
     output = pyvista.PolyData(points)
 
     # Now add point data:
-    add_data(output, pts)
+    add_data_to_vtk(output, pts)
+
+    #add_texture_coordinates(output, pts.textures, pts.name)
 
     output.points += np.array(origin)
     return output
 
 
-def vtk_geom_to_points_geom(vtk_obj, gh5wkspc, obj_nm):
-    """Convert a VTK object to a points geometry object
-
-    Args:
-        vtk_obj (:class:`pyvista.PolyData`): the VTK object to convert
-    """
-    points = Points.create(workspace=gh5wkspc,
-                           vertices=vtk_obj.points,
-                           name=obj_nm)
-    return points
+#def vtk_to_points(vtk, workspace, name):
+#    points = Points.create(
+#        workspace=workspace,
+#        vertices=vtk.points,
+#        name=name)
+#    return points
     
 
 points_to_vtk.__displayname__ = "Points to VTK"
-vtk_geom_to_points_geom.__displayname__ = "VTK to Points Geometry"
+#vtk_to_points.__displayname__ = "VTK to Points"
