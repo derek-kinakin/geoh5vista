@@ -1,13 +1,64 @@
-[tool.black]
-line-length = 100
-skip-string-normalization = false
-target-version = ["py39"]
-exclude='\.eggs|\.git|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|node_modules'
+[project]
+name = "geoh5vista"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Derek Kinakin", email = "dkinakin@gmail.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+dependencies = ["geoh5py>=0.10.0", "pyvista>=0.25.0"]
+
+[project.urls]
+Documentation = "https://github.com/Derek Kinakin/geoh5vista#readme"
+Issues = "https://github.com/Derek Kinakin/geoh5vista/issues"
+Source = "https://github.com/Derek Kinakin/geoh5vista"
 
 [tool.isort]
-profile = "black"
+profile = "ruff"
 line_length = 100
 # Sort by name, don't cluster "from" vs "import"
 force_sort_within_sections = true
 # Combines "as" imports on the same line
 combine_as_imports = true
+
+[tool.pixi.workspace]
+name = "geoh5vista"
+channels = ["conda-forge"]
+platforms = ["linux-64","win-64"]
+
+[tool.pixi.pypi-dependencies]
+geoh5vista = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+
+
+[tool.coverage.run]
+source_pkgs = ["geoh5vista", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/geoh5vista/__about__.py",
+]
+
+[tool.coverage.paths]
+geoh5vista = ["src/geoh5vista", "*/geoh5vista/src/geoh5vista"]
+tests = ["tests", "*/geoh5vista/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
