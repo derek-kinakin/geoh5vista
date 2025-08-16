@@ -10,7 +10,7 @@ __displayname__ = "Drillholes"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data
+from geoh5vista.utilities import add_data_to_vtk
 
 def drillholes_to_vtk(dh, origin=(0.0, 0.0, 0.0)):
     #TO DO

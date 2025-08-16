@@ -10,7 +10,7 @@ __displayname__ = "Grid2D"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data, add_texture_coordinates, check_orthogonal
+from geoh5vista.utilities import add_data_to_vtk, add_texture_coordinates, check_orthogonal
 
 
 def grid2d_to_vtk(grd, origin=(0.0, 0.0, 0.0)):

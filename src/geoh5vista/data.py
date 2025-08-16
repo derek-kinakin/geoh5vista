@@ -10,7 +10,7 @@ __displayname__ = "Data"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data, add_texture_coordinates
+from geoh5vista.utilities import add_data_to_vtk, add_texture_coordinates
 
 
 def text_data_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
