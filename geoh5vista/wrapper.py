@@ -13,7 +13,7 @@ __displayname__ = "Wrapper"
 
 import numpy as np
 import geoh5py
-from geoh5py.workspace import Workspace
+from geoh5py.workspace.workspace import Workspace
 
 import pyvista
 
@@ -30,11 +30,25 @@ from geoh5vista.group import group_to_vtk
 
 
 def wrap(data, origin=(0.0, 0.0, 0.0)):
-    """Wraps the GEOH5 data object/project as a VTK data object. This is the
+    """Wraps the OMF data object/project as a VTK data object. This is the
     primary function that an end user will harness.
 
     Args:
-        data: any GEOH5 data object
+        data: any OMF data object
+
+    Example:
+        >>> import geoh5py
+        >>> import geoh5vista
+
+        >>> # Read all elements
+        >>> reader = geoh5py.OMFReader('test_file.omf')
+        >>> project = reader.get_project()
+
+        >>> # Iterate over the elements and add converted VTK objects to dictionary:
+        >>> data = dict()
+        >>> for e in project.elements:
+        >>>     d = geoh5vista.wrap(e)
+        >>>     data[e.name] = d
 
     """
     # Allow recursion
@@ -53,7 +67,7 @@ def wrap(data, origin=(0.0, 0.0, 0.0)):
             # Project is a special case
             return WRAPPERS[key](data)
     except KeyError:
-        raise RuntimeError("Data of type ({}) is not supported currently.".format(key))
+        raise RuntimeError(f"Data of type ({key}) is not supported currently.")
 
 
 def project_to_vtk(project, load_textures=False):
@@ -64,17 +78,19 @@ def project_to_vtk(project, load_textures=False):
     data = pyvista.MultiBlock()
     textures = {}
     origin = np.array([0,0,0])
+    #for e in project.elements:
     for e in project:
         key = e.__class__.__name__
         if key in SKIP:
             pass
         else:
-            d = geoh5vista.wrap(e, origin=origin)
-            data[e.name] = d
+            d = wrap(e, origin=origin)
+            d.user_dict["name"] = e.name
+            data[d.user_dict["name"]] = d
             if hasattr(e, "textures") and e.textures:
-                textures[e.name] = get_textures(e)
-    if load_textures:
-        return data, textures
+                textures[d.user_dict["name"]] = get_textures(e)
+    #if load_textures:
+    #    return data, textures
     return data
 
 
@@ -86,7 +102,6 @@ def load_project(filename, load_textures=False):
     return project_to_vtk(project, load_textures=load_textures)
 
 
-
 WRAPPERS = {
     "Curve": curve_to_vtk,
     "Points": points_to_vtk,
@@ -95,7 +110,6 @@ WRAPPERS = {
     #"FloatData": float_data_to_vtk,
     #"IntegerData": integer_data_to_vtk,
     #"FilenameData": filename_data_to_vtk,
-    "Points": points_to_vtk,
     # Surfaces
     "SurfaceGeometry": surface_geom_to_vtk,
     "Grid2D": grid2d_to_vtk,
@@ -105,19 +119,22 @@ WRAPPERS = {
     # Volumes
     "BlockModelGeometry": blockmodel_grid_geom_to_vtk,
     "BlockModel": blockmodel_to_vtk,
+    # Containers
     "Project": project_to_vtk,
     #"ContainerGroup": group_to_vtk,
+    #"Drillholes": group_to_vtk,
 }
 
 
 SKIP = [
     "ReferencedData",
-    "VisualParameters",
     "TextData",
     "FloatData",
     "IntegerData",
     "FilenameData",
-    "ContainerGroup"
+    "ContainerGroup",
+    "VisualParameters",
+    "GeometricDataConstants"
 ]
 
 # Now set up the display names for the docs
