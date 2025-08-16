@@ -13,4 +13,6 @@ tests/
 .pixi/
 .vscode/
 pixi.lock
+.envrc
+
 

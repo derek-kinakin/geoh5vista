@@ -5,17 +5,17 @@ Load Project
 Load and visualize an GEOH5 project file
 """
 
-
-import pyvista as pv
 import geoh5vista
+import pyvista as pv
+
 from pathlib import Path
 
 path_root = Path(__file__).parents[1]
-
+project_path = path_root / "assets" / "test_1_file.geoh5"
 ###############################################################################
 # Load the project into an :class:`pyvista.MultiBlock` dataset
 
-project = geoh5vista.load_project(f"../assets/test_1_file.geoh5")
+project = geoh5vista.load_project(project_path)
 print(project)
 
 ###############################################################################
