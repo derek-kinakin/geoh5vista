@@ -10,6 +10,7 @@ docs/
 examples/
 tests/
 # pixi environments
-.pixi
+.pixi/
+.vscode/
 pixi.lock
 
