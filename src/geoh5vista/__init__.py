@@ -5,7 +5,8 @@ from geoh5vista.curve import curve_to_vtk
 from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_geom_to_vtk, surface_to_vtk
 from geoh5vista.utilities import (
-    add_data,
+    add_data_to_vtk,
+    add_data_to_vtk_grid,
     add_texture_coordinates,
     check_orientation,
     check_orthogonal,
