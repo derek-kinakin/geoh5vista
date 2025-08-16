@@ -1,8 +1,10 @@
 **/.DS_Store
 **/*.pyc
 **/__pycache__/
+.envrc
 .coverage
 coverage.xml
+pixi.lock
 assets/
 build/
 dist/
@@ -12,7 +14,5 @@ tests/
 # pixi environments
 .pixi/
 .vscode/
-pixi.lock
-.envrc
 
 
