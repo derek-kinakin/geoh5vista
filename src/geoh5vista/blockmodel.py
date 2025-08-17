@@ -21,6 +21,13 @@ def get_blockmodel_shape(bm):
 
 def create_blockmodel_rot_matrix(blkmdl):
     rotation = np.radians(blkmdl.rotation)
+
+    # Handle rotation matrix - ensure it's float64 and valid
+    #if rotation_matrix is None:
+    #    rotation_matrix = np.eye(3, dtype=np.float64)
+    #else:
+    #    rotation_matrix = np.array(rotation_matrix, dtype=np.float64)
+    
     # create a rotation matrix from angle in radians
     rotation_mtx = np.array([[np.cos(rotation), -np.sin(rotation), 0],
                              [np.sin(rotation), np.cos(rotation), 0],
@@ -38,11 +45,6 @@ def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
     """
 
     origin = np.array(origin, dtype=np.float32)
-    # Handle rotation matrix - ensure it's float64 and valid
-    #if rotation_matrix is None:
-    #    rotation_matrix = np.eye(3, dtype=np.float64)
-    #else:
-    #    rotation_matrix = np.array(rotation_matrix, dtype=np.float64)
     
     xc = blkmdl.u_cell_delimiters
     yc = blkmdl.v_cell_delimiters
@@ -52,7 +54,6 @@ def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
     # Build out all nodes in the mesh
     xx, yy, zz = np.meshgrid(xc, yc, zc, indexing='ij')
     points = np.c_[xx.ravel("F"), yy.ravel("F"), zz.ravel("F")]
-    #output = pyvista.StructuredGrid(xx, yy, zz)
 
     #points = points.dot(rotation_matrix)
 
