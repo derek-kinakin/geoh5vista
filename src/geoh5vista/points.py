@@ -14,7 +14,7 @@ from geoh5py.objects.points import Points
 from geoh5vista.utilities import add_data_to_vtk, add_texture_coordinates
 
 
-def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
+def points_geom_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
     """Convert the points to a :class:`pyvista.PolyData` data object.
 
     Args:
@@ -24,7 +24,21 @@ def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
         :class:`pyvista.PolyData`
     """
     points = pts.vertices
-    output = pyvista.PolyData(points)
+    output = pyvista.PointSet(points)
+
+    return output
+
+
+def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
+    """Convert the points to a :class:`pyvista.PolyData` data object.
+
+    Args:
+        pts (:class:`geoh5py.objects.points.Points`): The points to convert
+
+    Return:
+        :class:`pyvista.PolyData`
+    """
+    output = points_geom_to_vtk(pts)
 
     # Now add point data:
     add_data_to_vtk(output, pts)
@@ -35,12 +49,12 @@ def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
     return output
 
 
-#def vtk_to_points(vtk, workspace, name):
-#    points = Points.create(
-#        workspace=workspace,
-#        vertices=vtk.points,
-#        name=name)
-#    return points
+def vtk_to_points(vtk, workspace, name):
+    points = Points.create(
+        workspace=workspace,
+        vertices=vtk.points,
+        name=name)
+    return points
     
 
 points_to_vtk.__displayname__ = "Points to VTK"
