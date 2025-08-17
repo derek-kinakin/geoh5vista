@@ -81,7 +81,6 @@ def project_to_vtk(project, load_textures=False):
             pass
         else:
             d = wrap(e, origin=origin)
-            d.user_dict["name"] = e.name
             data[d.user_dict["name"]] = d
             if hasattr(e, "textures") and e.textures:
                 textures[d.user_dict["name"]] = get_textures(e)

@@ -10,7 +10,7 @@ __displayname__ = "Curve"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data_to_vtk
+from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata
 
 
 def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
@@ -33,7 +33,8 @@ def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
     output["Line Index"] = indices
 
     # Now add data to lines:
-    add_data_to_vtk(output, crv)
+    output = add_data_to_vtk(output, crv)
+    output = add_entity_metadata(output, crv)
 
     output.points += np.array(origin)
     return output

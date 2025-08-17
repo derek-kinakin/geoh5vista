@@ -11,7 +11,7 @@ __displayname__ = "Blockmodel"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data_to_vtk_grid
+from geoh5vista.utilities import add_data_to_vtk_grid, add_entity_metadata
 
 
 def get_blockmodel_shape(bm):
@@ -76,7 +76,7 @@ def blockmodel_to_vtk(blkmdl, origin=(0,0,0)):
     rotation_mtx = create_blockmodel_rot_matrix(blkmdl)
     output = blockmodel_grid_geom_to_vtk(blkmdl, origin=origin, rotation_matrix=rotation_mtx)
     output = add_data_to_vtk_grid(output, blkmdl, index=None)
-    
+    output = add_entity_metadata(output, blkmdl)
     return output
 
 

@@ -14,7 +14,6 @@ from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.data.float_data import FloatData
 
 
-
 try:
     from pyvista import is_pyvista_obj as is_pyvista_dataset
 except ImportError:
@@ -172,8 +171,16 @@ def get_ga_entity_colour(ga_entity):
     return true_color
 
 
-def add_ga_entity_colour(output, ga_entity):
+def add_entity_metadata(output, entity):
     """Add the GA entity colour to the output VTK object."""
-    colour = get_ga_entity_colour(ga_entity)
+    colour = get_ga_entity_colour(entity)
     output.user_dict["colour"] = colour
+    output.user_dict["name"] = entity.name
+    #output.user_dict["entity_type"] = entity.entity_type
     return output
+
+
+def add_data_to_geoh5(output, data):
+    """Add data to the output VTK object."""
+    pass
+

@@ -10,7 +10,7 @@ __displayname__ = "Surface"
 import numpy as np
 import pyvista
 
-from geoh5vista.utilities import add_data_to_vtk, add_ga_entity_colour #, add_texture_coordinates 
+from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates 
 
 
 def surface_geom_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
@@ -39,10 +39,8 @@ def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
     output = surface_geom_to_vtk(trisurf, origin=origin)
 
     # Now add point data:
-    add_data_to_vtk(output, trisurf)
-
-    # Add the GA entity colour
-    add_ga_entity_colour(output, trisurf)
+    output = add_data_to_vtk(output, trisurf)
+    output = add_entity_metadata(output, trisurf)
     #add_texture_coordinates(output, trisurf.textures, trisurf.name)
 
     return output

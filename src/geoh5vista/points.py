@@ -6,7 +6,7 @@ from geoh5py.objects.points import Points
 from geoh5py.workspace.workspace import Workspace
 from typing import Tuple
 
-from geoh5vista.utilities import add_data_to_vtk
+from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata
 # from geoh5vista.utilities import add_texture_coordinates
 
 __all__ = ["points_to_vtk", "vtk_to_points"]
@@ -40,7 +40,8 @@ def points_to_vtk(
     output = points_geom_to_vtk(pts)
 
     # Now add point data:
-    add_data_to_vtk(output, pts)
+    output = add_data_to_vtk(output, pts)
+    output = add_entity_metadata(output, pts)
 
     # add_texture_coordinates(output, pts.textures, pts.name)
 
