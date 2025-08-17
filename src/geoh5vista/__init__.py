@@ -19,7 +19,7 @@ from geoh5vista.wrapper import load_project, project_to_vtk, wrap
 __author__ = "Derek Kinakin"
 __license__ = "BSD-3-Clause"
 __copyright__ = "2024, Derek Kinakin"
-__version__ = "0.0.1"
+__version__ = "0.0.3"
 __displayname__ = "GEOH5-VTK"
 __name__ = "geoh5vista"
 

@@ -25,7 +25,7 @@ Current Status
 
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
 | -------------|----------------|-----------------|----------------|-------|
-| Points       | PolyData       | Yes             | No             |       |
+| Points       | PointSet       | Yes             | No             |       |
 | Curve        | PolyData       |  Yes            | No             |       |
 | Surface      | PolyData       |  Yes            | No             |       |
 | Block model  | Structured Grid |  Yes           | No             | No rotation      |
