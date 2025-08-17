@@ -39,4 +39,4 @@ def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
     return output
 
 
-curve_to_vtk.__displayname__ = "Curve to VTK"
+curve_to_vtk.__displayname__ = "Curve to VTK" # type: ignore

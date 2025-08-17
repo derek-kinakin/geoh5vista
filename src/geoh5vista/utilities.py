@@ -7,15 +7,13 @@ __all__ = [
 ]
 
 
+import pyvista
+import numpy as np
 from PIL import Image
 from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.data.float_data import FloatData
-import numpy as np
-import pyvista
-import geoh5py
-#import xml.etree.ElementTree as et
 
-print("geoh5py version:", geoh5py.__version__)
+
 
 try:
     from pyvista import is_pyvista_obj as is_pyvista_dataset

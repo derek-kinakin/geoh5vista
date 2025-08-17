@@ -37,7 +37,7 @@ assay.set_active_scalars("DENSITY")
 # Then apply a filtering tool from ``pyvista`` to the volumetric data:
 # Threshold the volumetric data
 thresh_vol = vol.threshold([1.09, 4.20])
-print(thresh_vol)
+print(thresh_vol.user_dict["name"])
 
 ###############################################################################
 # Then you can put it all in one environment!

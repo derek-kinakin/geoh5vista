@@ -48,6 +48,6 @@ def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
     return output
 
 # Now set up the display names for the docs
-#surface_to_vtk.__displayname__ = "Surface to VTK"
-#surface_geom_to_vtk.__displayname__ = "Surface Geometry to VTK"
-#surface_to_vtk.__displayname__ = "Surface to VTK"
+surface_to_vtk.__displayname__ = "Surface to VTK" # type: ignore
+surface_geom_to_vtk.__displayname__ = "Surface Geometry to VTK" # type: ignore
+surface_to_vtk.__displayname__ = "Surface to VTK" # type: ignore

@@ -134,6 +134,6 @@ SKIP = [
 ]
 
 # Now set up the display names for the docs
-load_project.__displayname__ = "Load Project File"
-project_to_vtk.__displayname__ = "Project to VTK"
-wrap.__displayname__ = "The Wrapper"
+load_project.__displayname__ = "Load Project File" # type: ignore
+project_to_vtk.__displayname__ = "Project to VTK" # type: ignore
+wrap.__displayname__ = "The Wrapper" # type: ignore
