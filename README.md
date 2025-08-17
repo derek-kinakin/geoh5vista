@@ -28,7 +28,7 @@ Current Status
 | Points       | PointSet       | Yes             | No             |       |
 | Curve        | PolyData       |  Yes            | No             |       |
 | Surface      | PolyData       |  Yes            | No             |       |
-| Block model  | Structured Grid |  Yes           | No             | No rotation      |
+| Block model  | Structured Grid |  Yes           | No             |       |
 | Drillholes   | TBD            | No              | No             |       |
 | 2D Grid      | TBD            | No              | No             |       |
 
