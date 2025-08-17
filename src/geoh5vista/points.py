@@ -1,19 +1,15 @@
 """Methods to convert points objects to VTK data objects"""
-from typing import Tuple
 
 import numpy as np
 import pyvista
 from geoh5py.objects.points import Points
 from geoh5py.workspace.workspace import Workspace
+from typing import Tuple
 
 from geoh5vista.utilities import add_data_to_vtk
 # from geoh5vista.utilities import add_texture_coordinates
 
-
-__all__ = [
-    "points_to_vtk", "vtk_to_points"
-]
-
+__all__ = ["points_to_vtk", "vtk_to_points"]
 __displayname__ = "Points"
 
 
@@ -52,13 +48,11 @@ def points_to_vtk(
     return output
 
 
-def vtk_to_points(
-    vtk: pyvista.PointSet, workspace: Workspace, name: str
-) -> Points:
+def vtk_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Points:
     """Convert a VTK object to a geoh5py Points object."""
     points = Points.create(workspace=workspace, vertices=vtk.points, name=name)
     return points
 
 
 points_to_vtk.__displayname__ = "Points to VTK"  # type: ignore
-vtk_to_points.__displayname__ = "VTK to Points"
+vtk_to_points.__displayname__ = "VTK to Points" # type: ignore
