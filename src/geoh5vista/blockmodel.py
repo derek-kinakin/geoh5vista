@@ -11,6 +11,7 @@ __displayname__ = "Blockmodel"
 import numpy as np
 import pyvista
 
+from geoh5py.shared.utils import xy_rotation_matrix
 from geoh5vista.utilities import add_data_to_vtk_grid, add_entity_metadata
 
 
@@ -29,10 +30,11 @@ def create_blockmodel_rot_matrix(blkmdl):
     #    rotation_matrix = np.array(rotation_matrix, dtype=np.float64)
     
     # create a rotation matrix from angle in radians
-    rotation_mtx = np.array([[np.cos(rotation), -np.sin(rotation), 0],
-                             [np.sin(rotation), np.cos(rotation), 0],
-                             [0, 0, 1]])
-    return rotation_mtx 
+    #rotation_mtx = np.array([[np.cos(rotation), -np.sin(rotation), 0],
+    #                         [np.sin(rotation), np.cos(rotation), 0],
+    #                         [0, 0, 1]])
+    rotation_mtx = xy_rotation_matrix(rotation)
+    return rotation_mtx
 
 
 def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
@@ -55,7 +57,7 @@ def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
     xx, yy, zz = np.meshgrid(xc, yc, zc, indexing='ij')
     points = np.c_[xx.ravel("F"), yy.ravel("F"), zz.ravel("F")]
 
-    #points = points.dot(rotation_matrix)
+    points = points.dot(rotation_matrix)
 
     output = pyvista.StructuredGrid()
     output.points = points
