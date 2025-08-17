@@ -1,4 +1,12 @@
 """Methods to convert points objects to VTK data objects"""
+from typing import Tuple
+
+import numpy as np
+import pyvista
+from geoh5py.objects.points import Points
+from geoh5py.workspace.workspace import Workspace
+
+from geoh5vista.utilities import add_data_to_vtk
 
 
 __all__ = [
@@ -7,21 +15,18 @@ __all__ = [
 
 __displayname__ = "Points"
 
-import numpy as np
-import pyvista
-from geoh5py.objects.points import Points
 
-from geoh5vista.utilities import add_data_to_vtk, add_texture_coordinates
+# from geoh5vista.utilities import add_texture_coordinates
 
 
-def points_geom_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
-    """Convert the points to a :class:`pyvista.PolyData` data object.
-
+def points_geom_to_vtk(
+    pts: Points, origin: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+) -> pyvista.PointSet:
+    """Convert the points to a :class:`pyvista.PointSet` data object.
     Args:
-        pts (:class:`geoh5py.objects.points.Points`): The points to convert
-
+        pts: The points to convert
     Return:
-        :class:`pyvista.PolyData`
+        A :class:`pyvista.PointSet`
     """
     points = pts.vertices
     output = pyvista.PointSet(points)
@@ -29,33 +34,33 @@ def points_geom_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
     return output
 
 
-def points_to_vtk(pts, origin=(0.0, 0.0, 0.0)):
-    """Convert the points to a :class:`pyvista.PolyData` data object.
-
+def points_to_vtk(
+    pts: Points, origin: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+) -> pyvista.PointSet:
+    """Convert the points to a :class:`pyvista.PointSet` data object.
     Args:
-        pts (:class:`geoh5py.objects.points.Points`): The points to convert
-
+        pts: The points to convert
     Return:
-        :class:`pyvista.PolyData`
+        A :class:`pyvista.PointSet`
     """
     output = points_geom_to_vtk(pts)
 
     # Now add point data:
     add_data_to_vtk(output, pts)
 
-    #add_texture_coordinates(output, pts.textures, pts.name)
+    # add_texture_coordinates(output, pts.textures, pts.name)
 
     output.points += np.array(origin)
     return output
 
 
-def vtk_to_points(vtk, workspace, name):
-    points = Points.create(
-        workspace=workspace,
-        vertices=vtk.points,
-        name=name)
+def vtk_to_points(
+    vtk: pyvista.PointSet, workspace: Workspace, name: str
+) -> Points:
+    """Convert a VTK object to a geoh5py Points object."""
+    points = Points.create(workspace=workspace, vertices=vtk.points, name=name)
     return points
-    
 
-points_to_vtk.__displayname__ = "Points to VTK"
-#vtk_to_points.__displayname__ = "VTK to Points"
+
+points_to_vtk.__displayname__ = "Points to VTK"  # type: ignore
+# vtk_to_points.__displayname__ = "VTK to Points"
