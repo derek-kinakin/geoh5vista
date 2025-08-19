@@ -51,6 +51,11 @@ def points_to_vtk(
 
 def vtk_geom_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Points:
     """Convert a VTK object to a geoh5py Points object."""
+    if name:
+        name = name
+    else:
+        name = vtk.user_dict["name"]
+
     points = Points.create(workspace=workspace, vertices=vtk.points, name=name)
     return points
 
