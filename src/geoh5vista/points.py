@@ -66,5 +66,7 @@ def vtk_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Poi
     return points
 
 
+points_geom_to_vtk.__displayname__ = "Points Geometry to VTK"  # type: ignore
 points_to_vtk.__displayname__ = "Points to VTK"  # type: ignore
+vtk_geom_to_points.__displayname__ = "VTK Geometry to Points" # type: ignore
 vtk_to_points.__displayname__ = "VTK to Points" # type: ignore

@@ -9,8 +9,8 @@ __displayname__ = "Surface"
 
 import numpy as np
 import pyvista
-
-from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates 
+from geoh5py.objects.surface import Surface
+from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
 
 
 def surface_geom_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
@@ -46,7 +46,7 @@ def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
     return output
 
 
-def vtk_to_surface_geom(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Surface:
+def vtk_geom_to_surface(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Surface:
     """Convert a VTK object to a geoh5py Surface object."""
     if name:
         name = name
@@ -59,11 +59,12 @@ def vtk_to_surface_geom(vtk: pyvista.PolyData, workspace: Workspace, name: str) 
 
 def vtk_to_surface(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Surface:
     """Convert a VTK object to a geoh5py Surface object."""
-    surface = vtk_to_surface_geom(vtk=vtk, workspace=workspace, name=name)
+    surface = vtk_geom_to_surface(vtk=vtk, workspace=workspace, name=name)
     return surface
 
 
 # Now set up the display names for the docs
 surface_to_vtk.__displayname__ = "Surface to VTK" # type: ignore
 surface_geom_to_vtk.__displayname__ = "Surface Geometry to VTK" # type: ignore
-surface_to_vtk.__displayname__ = "Surface to VTK" # type: ignore
+vtk_geom_to_surface.__displayname__ = "VTK Geometry to Surface" # type: ignore
+vtk_to_surface.__displayname__ = "VTK to Surface" # type: ignore
