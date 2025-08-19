@@ -2,7 +2,10 @@
 
 
 __all__ = [
+    "surface_geom_to_vtk",
     "surface_to_vtk",
+    "vtk_geom_to_surface",
+    "vtk_to_surface"
 ]
 
 __displayname__ = "Surface"

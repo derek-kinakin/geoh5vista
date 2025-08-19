@@ -9,7 +9,12 @@ from typing import Tuple
 from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata
 # from geoh5vista.utilities import add_texture_coordinates
 
-__all__ = ["points_to_vtk", "vtk_to_points"]
+__all__ = [
+    "points_geom_to_vtk",
+    "points_to_vtk",
+    "vtk_geom_to_points",
+    "vtk_to_points"
+]
 __displayname__ = "Points"
 
 

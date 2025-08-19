@@ -3,6 +3,9 @@
 
 __all__ = [
     "curve_to_vtk",
+    "curve_geom_to_vtk",
+    "vtk_geom_to_curve",
+    "vtk_to_curve"
 ]
 
 __displayname__ = "Curve"
