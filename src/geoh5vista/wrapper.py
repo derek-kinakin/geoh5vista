@@ -15,14 +15,14 @@ import numpy as np
 from geoh5py.workspace.workspace import Workspace
 
 from geoh5vista.curve import curve_to_vtk
-from geoh5vista.data import text_data_to_vtk, float_data_to_vtk, referenced_data_to_vtk, integer_data_to_vtk, filename_data_to_vtk
+#from geoh5vista.data import text_data_to_vtk, float_data_to_vtk, referenced_data_to_vtk, integer_data_to_vtk, filename_data_to_vtk
 from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_geom_to_vtk, surface_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.geoimage import geoimage_to_vtk
-from geoh5vista.utilities import get_textures, texture_to_vtk
+#from geoh5vista.utilities import get_textures, texture_to_vtk
 from geoh5vista.blockmodel import blockmodel_grid_geom_to_vtk, blockmodel_to_vtk
-from geoh5vista.group import group_to_vtk
+#from geoh5vista.group import group_to_vtk
 
 
 def wrap(data, origin=(0.0, 0.0, 0.0)):
@@ -107,9 +107,9 @@ WRAPPERS = {
     #"FilenameData": filename_data_to_vtk,
     # Surfaces
     "SurfaceGeometry": surface_geom_to_vtk,
-    "Grid2D": grid2d_to_vtk,
-    "GeoImage": geoimage_to_vtk,
     "Surface": surface_to_vtk,
+    "Grid2D": grid2d_to_vtk,
+    #"GeoImage": geoimage_to_vtk,
     #"ImageTexture": texture_to_vtk,
     # Volumes
     "BlockModelGeometry": blockmodel_grid_geom_to_vtk,
@@ -129,7 +129,8 @@ SKIP = [
     "FilenameData",
     "ContainerGroup",
     "VisualParameters",
-    "GeometricDataConstants"
+    "GeometricDataConstants",
+    "GeoImage"
 ]
 
 # Now set up the display names for the docs
