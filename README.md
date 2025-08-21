@@ -26,12 +26,13 @@ Current Status
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
 | -------------|----------------|-----------------|----------------|-------|
 | Points       | PointSet       | Yes             | No             |       |
-| Curve        | PolyData       |  Yes            | No             |       |
-| Surface      | PolyData       |  Yes            | No             |       |
-| Block model  | Structured Grid |  Yes           | No             |       |
+| Curve        | PolyData       | Yes             | No             |       |
+| Surface      | PolyData       | Yes             | No             |       |
+| Block model  | StructuredGrid | Yes             | No             |       |
 | Drillholes   | TBD            | No              | No             |       |
-| 2D Grid      | TBD            | No              | No             |       |
-
+| 2D Grid      | ImageData      | Yes             | No             |       |
+| GeoImage     | TBD            | No              | No             |       |
+| Octree Grid  | TBD            | No              | No             |       |
 
 Example Use
 -----------

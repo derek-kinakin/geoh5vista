@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image
 from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.data.float_data import FloatData
-
+from geoh5py.data.integer_data import IntegerData
 
 try:
     from pyvista import is_pyvista_obj as is_pyvista_dataset
@@ -62,6 +62,8 @@ def add_data_to_vtk(output, entity, index=None):
             output[f] = data.values
             output[f"{f}_names"] = data_value_map.map_values(output[f])
         elif isinstance(data, FloatData):
+            output[f] = data.values
+        elif isinstance(data, IntegerData):
             output[f] = data.values
         else:
             pass
