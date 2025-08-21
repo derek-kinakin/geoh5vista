@@ -20,7 +20,7 @@ Installation
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
 
-Current Status
+Current Status of Supported Geoh5 Entities
 -------------------
 
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
@@ -32,7 +32,11 @@ Current Status
 | Drillholes   | TBD            | No              | No             |       |
 | 2D Grid      | ImageData      | Yes             | No             |       |
 | GeoImage     | TBD            | No              | No             |       |
-| Octree Grid  | TBD            | No              | No             |       |
+| Octree grid  | TBD            | No              | No             |       |
+
+This table provides the list of entities that will be supported. Read from and write
+to Geoh5 support is the goal for each entity.
+
 
 Example Use
 -----------
