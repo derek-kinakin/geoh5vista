@@ -4,8 +4,8 @@
 
 __all__ = [
     "wrap",
-    "project_to_vtk",
-    "load_project",
+    "workspace_to_vtk",
+    "read_workspace",
 ]
 
 __displayname__ = "Wrapper"
@@ -25,7 +25,7 @@ from geoh5vista.octree import octree_to_vtk
 #from geoh5vista.group import group_to_vtk
 
 
-def wrap(data, origin=(0.0, 0.0, 0.0)):
+def geoh5wrap(data, origin=(0.0, 0.0, 0.0)):
     """Wraps the GEOH5 data object/project as a VTK data object. This is the
     primary function that an end user will harness.
 
@@ -34,17 +34,17 @@ def wrap(data, origin=(0.0, 0.0, 0.0)):
     if isinstance(data, (list, tuple)):
         multi = pyvista.MultiBlock()
         for i, item in enumerate(data):
-            multi.append(wrap(item))
+            multi.append(geoh5wrap(item))
             multi.set_block_name(i, item.name)
         return multi
     # get the class name
     key = data.__class__.__name__
     try:
         if key != "Project":
-            return WRAPPERS[key](data, origin=origin)
+            return GEOH5WRAPPERS[key](data, origin=origin)
         else:
             # Project is a special case
-            return WRAPPERS[key](data)
+            return GEOH5WRAPPERS[key](data)
     except KeyError:
         raise RuntimeError(f"Data of type ({key}) is not supported currently.")
 
@@ -60,10 +60,10 @@ def workspace_to_vtk(workspace, load_textures=False):
     #for e in project.elements:
     for e in workspace:
         key = e.__class__.__name__
-        if key in SKIP:
+        if key in GEOH5SKIP:
             pass
         else:
-            d = wrap(e, origin=origin)
+            d = geoh5wrap(e, origin=origin)
             data[d.user_dict["name"]] = d
             if hasattr(e, "textures") and e.textures:
                 textures[d.user_dict["name"]] = get_textures(e)
@@ -72,7 +72,7 @@ def workspace_to_vtk(workspace, load_textures=False):
     return data
 
 
-def load_workspace(filename, load_textures=False):
+def read_workspace(filename, load_textures=False):
     """Loads an Geoh5 workspace from a filepath into a :class:`pyvista.MultiBlock` dataset"""
     wp = Workspace(filename)
     project = wp.fetch_children(wp.root, recursively=True)
@@ -80,7 +80,7 @@ def load_workspace(filename, load_textures=False):
     return workspace_to_vtk(project, load_textures=load_textures)
 
 
-WRAPPERS = {
+GEOH5WRAPPERS = {
     "Points": points_to_vtk,
     "Curve": curve_to_vtk,
     # Surfaces
@@ -99,7 +99,7 @@ WRAPPERS = {
 }
 
 
-SKIP = [
+GEOH5SKIP = [
     "ReferencedData",
     "TextData",
     "FloatData",
@@ -113,6 +113,6 @@ SKIP = [
 ]
 
 # Now set up the display names for the docs
-load_workspace.__displayname__ = "Load Workspace File" # type: ignore
+read_workspace.__displayname__ = "Load Workspace File" # type: ignore
 workspace_to_vtk.__displayname__ = "Workspace to VTK" # type: ignore
-wrap.__displayname__ = "The Wrapper" # type: ignore
+geoh5wrap.__displayname__ = "GEOH5 Entity Wrapper" # type: ignore

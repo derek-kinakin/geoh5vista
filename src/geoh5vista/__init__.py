@@ -13,7 +13,7 @@ from geoh5vista.utilities import (
     texture_to_vtk,
 )
 from geoh5vista.blockmodel import blockmodel_grid_geom_to_vtk, blockmodel_to_vtk
-from geoh5vista.wrapper import load_workspace, workspace_to_vtk, wrap
+from geoh5vista.wrapper import read_workspace, workspace_to_vtk, geoh5wrap
 
 # Package meta data
 __author__ = "Derek Kinakin"
