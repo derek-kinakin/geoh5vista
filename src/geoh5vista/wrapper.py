@@ -48,6 +48,7 @@ def geoh5wrap(data, origin=(0.0, 0.0, 0.0)):
 def entities_to_vtk(entity_list):
 #def entities_to_vtk(entity_list, load_textures=False):
     """Converts an list of GEOH5 entities to collection in a :class:`pyvista.MultiBlock` data object
+
     """
     # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
@@ -69,7 +70,9 @@ def entities_to_vtk(entity_list):
 
 
 def read_workspace(filename, load_textures=False):
-    """Loads an Geoh5 workspace from a filepath to return a list of child entities"""
+    """Loads an Geoh5 workspace from a filepath to return a list of child entities.
+
+    """
     wp = Workspace(filename)
     entities = wp.fetch_children(wp.root, recursively=True)
 
