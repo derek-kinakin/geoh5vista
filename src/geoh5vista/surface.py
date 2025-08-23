@@ -51,13 +51,16 @@ def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
 
 
 def vtk_geom_to_surface(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Surface:
-    """Convert a VTK object to a geoh5py Surface object."""
-    if name:
-        name = name
-    else:
-        name = vtk.user_dict["name"]
+    """Convert a VTK PolyData object to a geoh5py Surface object."""
 
-    surface = Surface.create(workspace=workspace, vertices=vtk.points, name=name)
+    points = vtk.points
+    # extract triangle faces without VTK padding
+    if isinstance(vtk, pyvista.PolyData) and vtk.is_all_triangles:
+        cells = vtk.faces.reshape((vtk.n_faces, 4))[:, 1:]
+    else:
+        raise ValueError("Convert VTK object to all triangular mesh PolyData object.")
+
+    surface = Surface.create(workspace=workspace, name=name, vertices=points, cells=cells)
     return surface
 
 

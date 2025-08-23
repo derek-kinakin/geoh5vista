@@ -60,12 +60,14 @@ def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
 
 def vtk_geom_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Curve:
     """Convert a VTK object to a geoh5py Curve object."""
-    if name:
-        name = name
-    else:
-        name = vtk.user_dict["name"]
 
-    curve = Curve.create(workspace=workspace, vertices=vtk.points, name=name)
+    points = vtk.points
+    if isinstance(vtk, pyvista.PolyData) and vtk.lines is not None:
+        lines = vtk.lines.reshape(-1, 3)[:, 1:]
+    else:
+        raise ValueError("VTK object should be a PolyData object with lines.")
+
+    curve = Curve.create(workspace=workspace, name=name, vertices=points, cells=lines)
     return curve
 
 
