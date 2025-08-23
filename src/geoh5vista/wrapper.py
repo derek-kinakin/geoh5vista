@@ -15,36 +15,19 @@ import numpy as np
 from geoh5py.workspace.workspace import Workspace
 
 from geoh5vista.curve import curve_to_vtk
-#from geoh5vista.data import text_data_to_vtk, float_data_to_vtk, referenced_data_to_vtk, integer_data_to_vtk, filename_data_to_vtk
 from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_geom_to_vtk, surface_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.geoimage import geoimage_to_vtk
 #from geoh5vista.utilities import get_textures, texture_to_vtk
 from geoh5vista.blockmodel import blockmodel_grid_geom_to_vtk, blockmodel_to_vtk
+from geoh5vista.octree import octree_grid_geom_to_vtk, octree_to_vtk
 #from geoh5vista.group import group_to_vtk
 
 
 def wrap(data, origin=(0.0, 0.0, 0.0)):
     """Wraps the GEOH5 data object/project as a VTK data object. This is the
     primary function that an end user will harness.
-
-    Args:
-        data: any GEOH5 data object
-
-    Example:
-        >>> import geoh5py
-        >>> import geoh5vista
-
-        >>> # Read all elements
-        >>> reader = geoh5py.OMFReader('test_file.omf')
-        >>> project = reader.get_project()
-
-        >>> # Iterate over the elements and add converted VTK objects to dictionary:
-        >>> data = dict()
-        >>> for e in project.elements:
-        >>>     d = geoh5vista.wrap(e)
-        >>>     data[e.name] = d
 
     """
     # Allow recursion
@@ -98,22 +81,18 @@ def load_project(filename, load_textures=False):
 
 
 WRAPPERS = {
-    "Curve": curve_to_vtk,
     "Points": points_to_vtk,
-    #"ReferencedData": referenced_data_to_vtk,
-    #"TextData": text_data_to_vtk,
-    #"FloatData": float_data_to_vtk,
-    #"IntegerData": integer_data_to_vtk,
-    #"FilenameData": filename_data_to_vtk,
+    "Curve": curve_to_vtk,
     # Surfaces
     "SurfaceGeometry": surface_geom_to_vtk,
     "Surface": surface_to_vtk,
+    # Grids
     "Grid2D": grid2d_to_vtk,
-    #"GeoImage": geoimage_to_vtk,
-    #"ImageTexture": texture_to_vtk,
+    "GeoImage": geoimage_to_vtk,
     # Volumes
     "BlockModelGeometry": blockmodel_grid_geom_to_vtk,
     "BlockModel": blockmodel_to_vtk,
+    "Octree": octree_to_vtk,
     # Containers
     "Project": project_to_vtk,
     #"ContainerGroup": group_to_vtk,
@@ -130,7 +109,8 @@ SKIP = [
     "ContainerGroup",
     "VisualParameters",
     "GeometricDataConstants",
-    "GeoImage"
+    "GeoImage",
+    "Drillholes"
 ]
 
 # Now set up the display names for the docs
