@@ -3,7 +3,7 @@
 
 from geoh5vista.curve import curve_to_vtk
 from geoh5vista.points import points_to_vtk
-from geoh5vista.surface import surface_geom_to_vtk, surface_to_vtk
+from geoh5vista.surface import surface_to_vtk
 from geoh5vista.utilities import (
     add_data_to_vtk,
     add_data_to_vtk_grid,
@@ -13,7 +13,7 @@ from geoh5vista.utilities import (
     texture_to_vtk,
 )
 from geoh5vista.blockmodel import blockmodel_grid_geom_to_vtk, blockmodel_to_vtk
-from geoh5vista.wrapper import load_project, project_to_vtk, wrap
+from geoh5vista.wrapper import load_workspace, workspace_to_vtk, wrap
 
 # Package meta data
 __author__ = "Derek Kinakin"

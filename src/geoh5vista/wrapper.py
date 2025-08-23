@@ -20,8 +20,8 @@ from geoh5vista.surface import surface_geom_to_vtk, surface_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.geoimage import geoimage_to_vtk
 #from geoh5vista.utilities import get_textures, texture_to_vtk
-from geoh5vista.blockmodel import blockmodel_grid_geom_to_vtk, blockmodel_to_vtk
-from geoh5vista.octree import octree_grid_geom_to_vtk, octree_to_vtk
+from geoh5vista.blockmodel import blockmodel_to_vtk
+from geoh5vista.octree import octree_to_vtk
 #from geoh5vista.group import group_to_vtk
 
 
@@ -49,16 +49,16 @@ def wrap(data, origin=(0.0, 0.0, 0.0)):
         raise RuntimeError(f"Data of type ({key}) is not supported currently.")
 
 
-def project_to_vtk(project, load_textures=False):
+def workspace_to_vtk(workspace, load_textures=False):
     """Converts an GEOH5 workspace (:class:`geoh5py.workspace.workspace.Workspace`) to a
-    :class:`pyvista.MultiBlock` data oject
+    :class:`pyvista.MultiBlock` data object
     """
     # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
     textures = {}
     origin = np.array([0,0,0])
     #for e in project.elements:
-    for e in project:
+    for e in workspace:
         key = e.__class__.__name__
         if key in SKIP:
             pass
@@ -72,12 +72,12 @@ def project_to_vtk(project, load_textures=False):
     return data
 
 
-def load_project(filename, load_textures=False):
-    """Loads an Geoh5 file into a :class:`pyvista.MultiBlock` dataset"""
+def load_workspace(filename, load_textures=False):
+    """Loads an Geoh5 workspace from a filepath into a :class:`pyvista.MultiBlock` dataset"""
     wp = Workspace(filename)
     project = wp.fetch_children(wp.root, recursively=True)
-        
-    return project_to_vtk(project, load_textures=load_textures)
+
+    return workspace_to_vtk(project, load_textures=load_textures)
 
 
 WRAPPERS = {
@@ -90,11 +90,10 @@ WRAPPERS = {
     "Grid2D": grid2d_to_vtk,
     "GeoImage": geoimage_to_vtk,
     # Volumes
-    "BlockModelGeometry": blockmodel_grid_geom_to_vtk,
     "BlockModel": blockmodel_to_vtk,
     "Octree": octree_to_vtk,
     # Containers
-    "Project": project_to_vtk,
+    "Workspace": workspace_to_vtk,
     #"ContainerGroup": group_to_vtk,
     #"Drillholes": group_to_vtk,
 }
@@ -114,6 +113,6 @@ SKIP = [
 ]
 
 # Now set up the display names for the docs
-load_project.__displayname__ = "Load Project File" # type: ignore
-project_to_vtk.__displayname__ = "Project to VTK" # type: ignore
+load_workspace.__displayname__ = "Load Workspace File" # type: ignore
+workspace_to_vtk.__displayname__ = "Workspace to VTK" # type: ignore
 wrap.__displayname__ = "The Wrapper" # type: ignore
