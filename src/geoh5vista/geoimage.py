@@ -1,9 +1,7 @@
 """Methods for converting volumetric data objects"""
 
 __all__ = [
-    "get_volume_shape",
-    "volume_grid_geom_to_vtk",
-    "volume_to_vtk",
+    "geoimage_to_vtk",
 ]
 
 __displayname__ = "GeoImage"
@@ -18,4 +16,4 @@ def geoimage_to_vtk(gi, origin=(0.0, 0.0, 0.0)):
     pass
 
 # Now set up the display names for the docs
-geoimage_to_vtk.__displayname__ = "GeoImage to VTK"
+geoimage_to_vtk.__displayname__ = "GeoImage to VTK" # type: ignore

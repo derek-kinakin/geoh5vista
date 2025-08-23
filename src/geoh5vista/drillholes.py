@@ -2,7 +2,7 @@
 
 
 __all__ = [
-    "drillhole_to_vtk",
+    "drillholes_to_vtk",
 ]
 
 __displayname__ = "Drillholes"
@@ -17,4 +17,4 @@ def drillholes_to_vtk(dh, origin=(0.0, 0.0, 0.0)):
     pass
 
 # Now set up the display names for the docs
-drillholes_to_vtk.__displayname__ = "Drillholes to VTK"
+drillholes_to_vtk.__displayname__ = "Drillholes to VTK" # type: ignore

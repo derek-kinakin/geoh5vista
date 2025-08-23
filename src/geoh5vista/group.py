@@ -15,4 +15,4 @@ def group_to_vtk(grp, origin=(0.0, 0.0, 0.0)):
     pass
 
 
-group_to_vtk.__displayname__ = "Group to VTK"
+group_to_vtk.__displayname__ = "Group to VTK" # type: ignore

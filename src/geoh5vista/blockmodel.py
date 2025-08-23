@@ -83,6 +83,6 @@ def blockmodel_to_vtk(blkmdl, origin=(0,0,0)):
 
 
 # Now set up the display names for the docs
-blockmodel_to_vtk.__displayname__ = "Blockmodel to VTK"
-blockmodel_grid_geom_to_vtk.__displayname__ = "Blockmodel Grid Geometry to VTK"
-get_blockmodel_shape.__displayname__ = "Blockmodel Shape"
+blockmodel_to_vtk.__displayname__ = "Blockmodel to VTK" # type: ignore
+blockmodel_grid_geom_to_vtk.__displayname__ = "Blockmodel Grid Geometry to VTK" # type: ignore
+get_blockmodel_shape.__displayname__ = "Blockmodel Shape" # type: ignore
