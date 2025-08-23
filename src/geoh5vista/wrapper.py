@@ -42,15 +42,16 @@ def geoh5wrap(data, origin=(0.0, 0.0, 0.0)):
     try:
         return GEOH5WRAPPERS[key](data, origin=origin)
     except KeyError:
-        raise RuntimeError(f"Data of type ({key}) is not supported currently.")
+        raise RuntimeError(f"Data of type ({key}) is not  currently supported.")
 
 
-def entities_to_vtk(entity_list, load_textures=False):
+def entities_to_vtk(entity_list):
+#def entities_to_vtk(entity_list, load_textures=False):
     """Converts an list of GEOH5 entities to collection in a :class:`pyvista.MultiBlock` data object
     """
     # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
-    textures = {}
+    #textures = {}
     origin = np.array([0,0,0])
     #for e in project.elements:
     for e in entity_list:
@@ -60,8 +61,8 @@ def entities_to_vtk(entity_list, load_textures=False):
         else:
             d = geoh5wrap(e, origin=origin)
             data[d.user_dict["name"]] = d
-            if hasattr(e, "textures") and e.textures:
-                textures[d.user_dict["name"]] = get_textures(e)
+            #if hasattr(e, "textures") and e.textures:
+            #    textures[d.user_dict["name"]] = get_textures(e)
     #if load_textures:
     #    return data, textures
     return data
@@ -72,21 +73,22 @@ def read_workspace(filename, load_textures=False):
     wp = Workspace(filename)
     entities = wp.fetch_children(wp.root, recursively=True)
 
-    return entities_to_vtk(entities, load_textures=load_textures)
+    #return entities_to_vtk(entities, load_textures=load_textures)
+    return entities_to_vtk(entities)
 
 
 GEOH5WRAPPERS = {
-    # Basic entities
+    ## Basic entities
     "Points": points_to_vtk,
     "Curve": curve_to_vtk,
     "Surface": surface_to_vtk,
-    # Grid entities
+    ## Grid entities
     "Grid2D": grid2d_to_vtk,
     "GeoImage": geoimage_to_vtk,
-    # Volume entities
+    ## Volume entities
     "BlockModel": blockmodel_to_vtk,
     "Octree": octree_to_vtk,
-    # Container entities
+    ## Container entities
     #"Drillholes": group_to_vtk,
     #"ContainerGroup": group_to_vtk,
 }

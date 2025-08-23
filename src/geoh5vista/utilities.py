@@ -3,21 +3,21 @@ __all__ = [
     "check_orthogonal",
     "add_data_to_vtk",
     "add_data_to_vtk_grid",
-    "add_texture_coordinates",
+    #"add_texture_coordinates",
 ]
 
 
-import pyvista
+#import pyvista
 import numpy as np
-from PIL import Image
+#from PIL import Image
 from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 
-try:
-    from pyvista import is_pyvista_obj as is_pyvista_dataset
-except ImportError:
-    from pyvista import is_pyvista_dataset
+#try:
+#    from pyvista import is_pyvista_obj as is_pyvista_dataset
+#except ImportError:
+#    from pyvista import is_pyvista_dataset
 
 
 def check_orientation(axis_u, axis_v, axis_w):
@@ -112,43 +112,43 @@ def add_data_to_vtk_grid(output, entity, index=None):
     return output
 
 
-def add_texture_coordinates(output, textures, elname):
-    """Add texture coordinates to a pyvista data object."""
-    if not is_pyvista_dataset(output):
-        output = pyvista.wrap(output)
-    for i, tex in enumerate(textures):
-        # Now map the coordinates for the texture
-        tmp = output.texture_map_to_plane(
-            origin=tex.origin,
-            point_u=tex.origin + tex.axis_u,
-            point_v=tex.origin + tex.axis_v,
-        )
-        # Grab the texture coordinates
-        tcoord = tmp.GetPointData().GetTCoords()
-        name = tex.name
-        if name is None or name == "":
-            name = "{}-texture-{}".format(elname, i)
-        tcoord.SetName(name)
-        # Add these coordinates to the PointData of the output
-        # NOTE: Let pyvista handle setting the TCoords because of how VTK cleans
-        #       up old TCoords
-        output.GetPointData().AddArray(tcoord)
-    return output
+#def add_texture_coordinates(output, textures, elname):
+#    """Add texture coordinates to a pyvista data object."""
+#    if not is_pyvista_dataset(output):
+#        output = pyvista.wrap(output)
+#    for i, tex in enumerate(textures):
+#        # Now map the coordinates for the texture
+#        tmp = output.texture_map_to_plane(
+#            origin=tex.origin,
+#            point_u=tex.origin + tex.axis_u,
+#            point_v=tex.origin + tex.axis_v,
+#        )
+#        # Grab the texture coordinates
+#        tcoord = tmp.GetPointData().GetTCoords()
+#        name = tex.name
+#        if name is None or name == "":
+#            name = "{}-texture-{}".format(elname, i)
+#        tcoord.SetName(name)
+#        # Add these coordinates to the PointData of the output
+#        # NOTE: Let pyvista handle setting the TCoords because of how VTK cleans
+#        #       up old TCoords
+#        output.GetPointData().AddArray(tcoord)
+#    return output
 
 
-def texture_to_vtk(texture):
-    """Convert an OMF texture to a VTK texture."""
-    img = np.array(Image.open(texture.image))
-    texture.image.seek(0)  # Reset the image bytes in case it is accessed again
-    if img.shape[2] > 3:
-        img = img[:, :, 0:3]
-    vtexture = pyvista.numpy_to_texture(img)
-    return vtexture
+#def texture_to_vtk(texture):
+#    """Convert an OMF texture to a VTK texture."""
+#    img = np.array(Image.open(texture.image))
+#    texture.image.seek(0)  # Reset the image bytes in case it is accessed again
+#    if img.shape[2] > 3:
+#        img = img[:, :, 0:3]
+#    vtexture = pyvista.numpy_to_texture(img)
+#    return vtexture
 
 
-def get_textures(element):
-    """Get a dictionary of textures for a given element."""
-    return [texture_to_vtk(tex) for tex in element.textures]
+#def get_textures(element):
+#    """Get a dictionary of textures for a given element."""
+#    return [texture_to_vtk(tex) for tex in element.textures]
 
 
 def RGB_from_GA(ga_int):
