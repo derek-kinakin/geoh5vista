@@ -1,19 +1,7 @@
 """``geoh5vista``: 3D visualization for the Geoh5 format (geoh5)
 """
 
-from geoh5vista.curve import curve_to_vtk
-from geoh5vista.points import points_to_vtk
-from geoh5vista.surface import surface_to_vtk
-from geoh5vista.utilities import (
-    add_data_to_vtk,
-    add_data_to_vtk_grid,
-    add_texture_coordinates,
-    check_orientation,
-    check_orthogonal,
-    texture_to_vtk,
-)
-from geoh5vista.blockmodel import blockmodel_grid_geom_to_vtk, blockmodel_to_vtk
-from geoh5vista.wrapper import read_workspace, workspace_to_vtk, geoh5wrap
+from geoh5vista.wrapper import read_workspace
 
 # Package meta data
 __author__ = "Derek Kinakin"
@@ -27,10 +15,7 @@ __name__ = "geoh5vista"
 def ignore_warnings():
     """Sets a warning filter for pillow's annoying ``DecompressionBombWarning``"""
     import warnings
-
     from PIL import Image
-
     warnings.simplefilter(action="ignore", category=Image.DecompressionBombWarning)
-
 
 ignore_warnings()
