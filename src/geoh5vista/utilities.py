@@ -45,7 +45,7 @@ def check_orthogonal(axis_u, axis_v, axis_w):
     return True
 
 
-def add_data_to_vtk(output, entity, index=None):
+def add_data_to_vtk(output, entity):
     """Adds data arrays to an output VTK data object. Assigns data to cells or points
     based on number of data values compared to number of cells or points."""
 
@@ -56,22 +56,26 @@ def add_data_to_vtk(output, entity, index=None):
         fields.remove("UserComments")
     
     for f in fields:
-        data = entity.get_data(f)[0]
-        if isinstance(data, ReferencedData):
-            data_value_map = data.value_map
-            output[f] = data.values
-            output[f"{f}_names"] = data_value_map.map_values(output[f])
-        elif isinstance(data, FloatData):
-            output[f] = data.values
-        elif isinstance(data, IntegerData):
-            output[f] = data.values
+        data_obj = entity.get_data(f)
+        if data_obj:
+            data = data_obj[0]
+            if isinstance(data, ReferencedData):
+                data_value_map = data.value_map
+                output[f] = data.values
+                output[f"{f}_names"] = data_value_map.map_values(output[f])
+            elif isinstance(data, FloatData):
+                output[f] = data.values
+            elif isinstance(data, IntegerData):
+                output[f] = data.values
+            else:
+                pass
         else:
             pass
     
     return output
 
 
-def add_data_to_vtk_grid(output, entity, index=None):
+def add_data_to_vtk_grid(output, entity):
     """Adds data arrays to an output VTK data object. Assigns data to cells or points
     based on number of data values compared to number of cells or points."""
     

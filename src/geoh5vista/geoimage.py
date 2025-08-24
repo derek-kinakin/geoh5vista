@@ -13,7 +13,7 @@ from geoh5vista.utilities import check_orientation
 
 
 def geoimage_to_vtk(gi, origin=(0.0, 0.0, 0.0)):
-    pass
+    return print("GeoImages not yet implemented by geoh5py")
 
 # Now set up the display names for the docs
 geoimage_to_vtk.__displayname__ = "GeoImage to VTK" # type: ignore

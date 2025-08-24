@@ -17,7 +17,7 @@ from geoh5py.workspace.workspace import Workspace
 from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata
 
 
-def curve_geom_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
+def curve_geom_to_vtk(crv):
     """Convert the curve to a :class:`pyvista.PolyData` data object.
 
     Args:
@@ -36,11 +36,10 @@ def curve_geom_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
     indices = output.connectivity().cell_data["RegionId"]
     output["Line Index"] = indices
 
-    output.points += np.array(origin)
     return output
 
 
-def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
+def curve_to_vtk(crv):
     """Convert the curve to a :class:`pyvista.PolyData` data object.
 
     Args:
@@ -51,7 +50,7 @@ def curve_to_vtk(crv, origin=(0.0, 0.0, 0.0)):
     """
    
     # Now add data to lines:
-    output = curve_geom_to_vtk(crv, origin=origin)
+    output = curve_geom_to_vtk(crv)
     output = add_data_to_vtk(output, crv)
     output = add_entity_metadata(output, crv)
 

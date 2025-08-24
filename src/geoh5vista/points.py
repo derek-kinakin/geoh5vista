@@ -18,9 +18,7 @@ __all__ = [
 __displayname__ = "Points"
 
 
-def points_geom_to_vtk(
-    pts: Points, origin: Tuple[float, float, float] = (0.0, 0.0, 0.0)
-) -> pyvista.PointSet:
+def points_geom_to_vtk(pts: Points) -> pyvista.PointSet:
     """Convert the points to a :class:`pyvista.PointSet` data object.
     Args:
         pts: The points to convert
@@ -33,9 +31,7 @@ def points_geom_to_vtk(
     return output
 
 
-def points_to_vtk(
-    pts: Points, origin: Tuple[float, float, float] = (0.0, 0.0, 0.0)
-) -> pyvista.PointSet:
+def points_to_vtk(pts: Points) -> pyvista.PointSet:
     """Convert the points to a :class:`pyvista.PointSet` data object.
     Args:
         pts: The points to convert
@@ -50,7 +46,6 @@ def points_to_vtk(
 
     # add_texture_coordinates(output, pts.textures, pts.name)
 
-    output.points += np.array(origin)
     return output
 
 

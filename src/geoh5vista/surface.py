@@ -17,7 +17,7 @@ from geoh5py.workspace.workspace import Workspace
 from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
 
 
-def surface_geom_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
+def surface_geom_to_vtk(trisurf):
     """Convert the triangulated surface to a :class:`pyvista.PolyData`
     object
 
@@ -26,13 +26,12 @@ def surface_geom_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
             convert
     """
     pts = trisurf.vertices
-    pts += np.array(origin, dtype=np.float64)
     faces = trisurf.cells
     output = pyvista.make_tri_mesh(pts, faces)
     return output
 
 
-def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
+def surface_to_vtk(trisurf):
     """Convert the surface to a its appropriate VTK data object type.
 
     Args:
@@ -40,7 +39,7 @@ def surface_to_vtk(trisurf, origin=(0.0, 0.0, 0.0)):
             convert
     """
 
-    output = surface_geom_to_vtk(trisurf, origin=origin)
+    output = surface_geom_to_vtk(trisurf)
 
     # Now add point data:
     output = add_data_to_vtk(output, trisurf)

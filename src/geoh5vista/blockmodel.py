@@ -37,7 +37,7 @@ def create_blockmodel_rot_matrix(blkmdl):
     return rotation_mtx
 
 
-def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
+def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
     """Convert the block model to a :class:`pyvista.StructuredGrid`
     object containing the 3D grid.
 
@@ -46,7 +46,7 @@ def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
             to convert
     """
 
-    origin = np.array(origin, dtype=np.float32)
+    origin = np.array([blkmdl.origin[0], blkmdl.origin[1], blkmdl.origin[2]], "float32")
     
     xc = blkmdl.u_cell_delimiters
     yc = blkmdl.v_cell_delimiters
@@ -66,7 +66,7 @@ def blockmodel_grid_geom_to_vtk(blkmdl, origin=(0, 0, 0), rotation_matrix=None):
     return output
 
 
-def blockmodel_to_vtk(blkmdl, origin=(0,0,0)):
+def blockmodel_to_vtk(blkmdl):
     """Convert the block model to a VTK data object.
 
     Args:
@@ -74,10 +74,9 @@ def blockmodel_to_vtk(blkmdl, origin=(0,0,0)):
         to convert
 
     """
-    origin = np.array([blkmdl.origin[0], blkmdl.origin[1], blkmdl.origin[2]], "float32")
     rotation_mtx = create_blockmodel_rot_matrix(blkmdl)
-    output = blockmodel_grid_geom_to_vtk(blkmdl, origin=origin, rotation_matrix=rotation_mtx)
-    output = add_data_to_vtk_grid(output, blkmdl, index=None)
+    output = blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=rotation_mtx)
+    output = add_data_to_vtk_grid(output, blkmdl)
     output = add_entity_metadata(output, blkmdl)
     return output
 

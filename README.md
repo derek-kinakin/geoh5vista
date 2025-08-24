@@ -29,9 +29,8 @@ Current Status of Supported Geoh5 Entities
 | Curve        | PolyData       | Yes             | No             |       |
 | Surface      | PolyData       | Yes             | No             |       |
 | Block model  | StructuredGrid | Yes             | No             |       |
-| Drillholes   | TBD            | No              | No             |       |
+| Drillholes   | MultiBlock     | No              | No             |       |
 | 2D Grid      | ImageData      | Yes             | No             |       |
-| GeoImage     | TBD            | No              | No             |       |
 | Octree grid  | TBD            | No              | No             |       |
 
 This table provides the list of entities that will be supported. Read from and write
