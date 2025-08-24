@@ -11,7 +11,6 @@ __all__ = [
 __displayname__ = "Wrapper"
 
 import pyvista
-import numpy as np
 from geoh5py.workspace.workspace import Workspace
 
 from geoh5vista.curve import curve_to_vtk
@@ -19,10 +18,10 @@ from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.geoimage import geoimage_to_vtk
-#from geoh5vista.utilities import get_textures, texture_to_vtk
 from geoh5vista.blockmodel import blockmodel_to_vtk
 from geoh5vista.octree import octree_to_vtk
 from geoh5vista.drillholes import drillholes_to_vtk
+#from geoh5vista.utilities import get_textures, texture_to_vtk
 
 
 def geoh5wrap(data):
@@ -30,19 +29,14 @@ def geoh5wrap(data):
     primary function that an end user will harness.
 
     """
-    # Allow recursion
-    if isinstance(data, (list, tuple)):
-        multi = pyvista.MultiBlock()
-        for i, item in enumerate(data):
-            multi.append(geoh5wrap(item))
-            multi.set_block_name(i, item.name)
-        return multi
-    # get the class name
-    key = data.__class__.__name__
-    try:
-        return GEOH5WRAPPERS[key](data)
-    except KeyError:
-        raise RuntimeError(f"Data of type ({key}) is not  currently supported.")
+    if data is None:
+        return None
+    else:
+        key = data.__class__.__name__ # get the class name
+        try:
+            return GEOH5WRAPPERS[key](data)
+        except KeyError:
+            raise RuntimeError(f"Data of type ({key}) is not  currently supported.")
 
 
 def entities_to_vtk(entity_list):
@@ -54,11 +48,11 @@ def entities_to_vtk(entity_list):
     # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
     #textures = {}
-    for e in entity_list:
-        key = e.__class__.__name__
+    for item in entity_list:
+        key = item.__class__.__name__
         if key in SUPPORTED:
-            d = geoh5wrap(e)
-            data[d.user_dict["name"]] = d
+            e = geoh5wrap(item)
+            data.append(e, name=e.user_dict["name"])
             #if hasattr(e, "textures") and e.textures:
             #    textures[d.user_dict["name"]] = get_textures(e)
         else:
@@ -68,11 +62,11 @@ def entities_to_vtk(entity_list):
     return data
 
 
-def read_workspace(filename, load_textures=False):
+def read_workspace(workspace_path, load_textures=False):
     """Loads an GEOH5 workspace from a filepath to return a list of child entities.
 
     """
-    wp = Workspace(filename)
+    wp = Workspace(workspace_path)
     entities = wp.fetch_children(wp.root, recursively=True)
     supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
 
