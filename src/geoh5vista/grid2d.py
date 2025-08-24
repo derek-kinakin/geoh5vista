@@ -14,7 +14,7 @@ from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
 from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
 
 
-def grid2d_geom_to_vtk(grd, origin=(0.0, 0.0, 0.0)):
+def grid2d_geom_to_vtk(grd):
     """Convert the 2D grid geometry to a :class:`pyvista.RectilinearGrid` object.
 
     Args:
@@ -28,7 +28,9 @@ def grid2d_geom_to_vtk(grd, origin=(0.0, 0.0, 0.0)):
         dip = np.deg2rad(grd.dip)
         
     rot = np.deg2rad(grd.rotation)
-    rotation_mtx = yz_rotation_matrix(dip)*xy_rotation_matrix(rot)
+    # TO DO: Implement rotation matrix for 2D grid inclined from horizontal
+    #rotation_mtx = yz_rotation_matrix(dip)*xy_rotation_matrix(rot)
+    rotation_mtx = xy_rotation_matrix(rot)
     
     output = pyvista.ImageData()
     output.origin = grd.origin
@@ -39,7 +41,7 @@ def grid2d_geom_to_vtk(grd, origin=(0.0, 0.0, 0.0)):
     return output
 
 
-def grid2d_to_vtk(grd, origin=(0.0, 0.0, 0.0)):
+def grid2d_to_vtk(grd):
     """Convert the 2D grid to a :class:`pyvista.RectilinearGrid` object.
 
     Args:
@@ -47,7 +49,7 @@ def grid2d_to_vtk(grd, origin=(0.0, 0.0, 0.0)):
             grid geometry to convert
 
     """
-    output = grid2d_geom_to_vtk(grd, origin)
+    output = grid2d_geom_to_vtk(grd)
     output = add_data_to_vtk(output, grd)
     output = add_entity_metadata(output, grd)
     

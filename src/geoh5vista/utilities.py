@@ -182,7 +182,7 @@ def add_entity_metadata(output, entity):
     colour = get_ga_entity_colour(entity)
     output.user_dict["colour"] = colour
     output.user_dict["name"] = entity.name
-    #output.user_dict["entity_type"] = entity.entity_type
+    output.user_dict["entity_type"] = entity.__class__.__name__
     return output
 
 
