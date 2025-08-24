@@ -86,7 +86,10 @@ GEOH5WRAPPERS = {
     "BlockModel": blockmodel_to_vtk,
     "Octree": octree_to_vtk,
     ## Container entities
-    "Drillholes": drillholes_to_vtk,
+    "Drillhole": drillholes_to_vtk,
+    "DrillholeGroup": drillholes_to_vtk,
+    "ConcatenatorDrillholeGroup": drillholes_to_vtk,
+    "ConcatenatedDrillhole": drillholes_to_vtk,
     #"ContainerGroup": group_to_vtk,
 }
 
@@ -98,7 +101,8 @@ SUPPORTED = [
     "Grid2D",
     "BlockModel",
     "Octree",
-    "Drillholes",
+    "DrillholeGroup",
+    "ConcatenatorDrillholeGroup",
 ]
 
 GEOH5SKIP = [
