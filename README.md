@@ -7,15 +7,13 @@ processing datasets in the geoh5 specification.
 
 The structure and interfaces of this project are heavily inspired by (and borrowed from) the 'omfvista' package, which provides a similar interface for the 'omf' format.
 
-omfvista package: https://github.com/OpenGeoVis/omfvista
-
-Geoh5 Format package: https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/index.html
-
-Documentation is hosted at https://github.com/derek-kinakin/geoh5vista
-
+omfvista package: <https://github.com/OpenGeoVis/omfvista>
+Geoh5 Format package: <https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/index.html>
+Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 
 Installation
 ------------
+
 ```python
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
@@ -36,7 +34,6 @@ Current Status of Supported Geoh5 Entities
 
 This table provides the list of entities that will be supported. Read from and write
 to Geoh5 support is the goal for each entity.
-
 
 Example Use
 -----------
