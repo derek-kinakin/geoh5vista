@@ -13,7 +13,7 @@ import pyvista
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5py.groups.drillhole import IntegratorDrillholeGroup
-from geoh5vista.utilities import add_data_to_vtk
+from geoh5vista.utilities import add_drillhole_interval_data_to_vtk
 
 def drillholes_to_vtk(dhgrp):
     #TO DO
@@ -21,21 +21,20 @@ def drillholes_to_vtk(dhgrp):
     dh_multi = pyvista.MultiBlock()
     for dh in dhgrp.children:
         if len(dh.to_[0].values)>0:
-            data_intervals = np.insert(dh.to_[0].values, 0, dh.from_[0].values[0])
+            data_intervals = np.sort(np.unique(np.concatenate([dh.to_[0].values, dh.from_[0].values, dh.trace_depth])))
             data_intervals_locations = dh.desurvey(data_intervals)
             line = pyvista.lines_from_points(data_intervals_locations)
-            line = add_data_to_vtk(line, dh)
-            points = pyvista.PolyData(dh.trace)
+            line["depth"] = data_intervals
+            line = add_drillhole_interval_data_to_vtk(line, dh)
             dh_multi.append(line, name=dh.name)
-            dh_multi.append(points, name=f"{dh.name}_trace")
         else:
             line = pyvista.lines_from_points(dh.trace)
+            line["depth"] = dh.trace_depth
             dh_multi.append(line, name=dh.name)
 
     dh_multi.user_dict["name"] = dhgrp.name
     dh_multi.user_dict["colour"] = "black"
     dh_multi.user_dict["entity_type"] = "Drillholes"
-#    dh_multi.plot()
     return dh_multi
 
 

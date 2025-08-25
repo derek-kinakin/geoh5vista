@@ -76,6 +76,54 @@ def add_data_to_vtk(output, entity):
     return output
 
 
+def add_drillhole_interval_data_to_vtk(output, entity):
+    """Adds data arrays to Polydata line objects. Assigns data to cells or points
+    based on number of data values compared to number of cells or points."""
+
+    if 'depth' not in output.point_data:
+        raise ValueError("The line object must have a 'depth' point data array.")
+
+    point_depths = output.point_data['depth']
+    cell_depth_midpoints = (point_depths[:-1] + point_depths[1:]) / 2.0
+
+    fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
+    interval_from = entity.from_[0].values
+    interval_to = entity.to_[0].values
+
+    for f in fields:
+        data_obj = entity.get_data(f)
+        if not data_obj:
+            continue
+        
+        data = data_obj[0]
+        data_values = data.values
+
+        if isinstance(data, FloatData):
+            new_cell_data = np.full(output.n_cells, np.nan, dtype=float)
+        elif isinstance(data, IntegerData):
+            new_cell_data = np.full(output.n_cells, -1, dtype=int)
+        elif isinstance(data, ReferencedData):
+            new_cell_data = np.full(output.n_cells, -1, dtype=int)
+        else:
+            continue
+
+        for i in range(len(interval_from)):
+            start, end = interval_from[i], interval_to[i]
+            mask = (cell_depth_midpoints >= start) & (cell_depth_midpoints < end)
+            new_cell_data[mask] = data_values[i]
+
+        output.cell_data[f] = new_cell_data
+
+        if isinstance(data, ReferencedData):
+            value_map = data.value_map
+            names_array = np.full(output.n_cells, "N/A", dtype=object)
+            valid_mask = new_cell_data != -1
+            names_array[valid_mask] = value_map.map_values(new_cell_data[valid_mask])
+            output.cell_data[f"{f}_names"] = names_array
+
+    return output
+
+
 def add_data_to_vtk_grid(output, entity):
     """Adds data arrays to an output VTK data object. Assigns data to cells or points
     based on number of data values compared to number of cells or points."""
@@ -197,8 +245,6 @@ SKIPDATA = [
     'Azimuth',
     'DEPTH (Static-Survey)',
     'Dip',
-    'FROM (litho)',
-    'TO (litho)',
     'Visual Parameters',
     'UserComments'
 ]
