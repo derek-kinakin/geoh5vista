@@ -1,15 +1,13 @@
 geoh5vista: a Geoh5 <> PyVista (VTK) interface
 ===========================================
 
-A PyVista (and VTK) interface for the `Geoh5 package` (``geoh5``)
-providing Python 3D visualization and useable mesh data structures for
-processing datasets in the geoh5 specification.
+A PyVista (and VTK) interface for the `Geoh5` file format providing Python 3D visualization and useable mesh data structures for processing datasets in the geoh5 specification.
 
 The structure and interfaces of this project are heavily inspired by (and borrowed from) the 'omfvista' package, which provides a similar interface for the 'omf' format.
 
 omfvista package: <https://github.com/OpenGeoVis/omfvista>
 
-Geoh5 Format package: <https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/index.html>
+Geoh5 Python interface package: <https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/index.html>
 
 Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 
