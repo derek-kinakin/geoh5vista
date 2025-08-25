@@ -25,11 +25,12 @@ Current Status of Supported Geoh5 Entities
 
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
 | -------------|----------------|-----------------|----------------|-------|
+| Workspace    | MultiBlock     | Yes             | No             |       |
 | Points       | PointSet       | Yes             | No             |       |
 | Curve        | PolyData       | Yes             | No             |       |
 | Surface      | PolyData       | Yes             | No             |       |
 | Block model  | StructuredGrid | Yes             | No             |       |
-| Drillholes   | MultiBlock     | No              | No             |       |
+| Drillholes   | MultiBlock     | Yes             | No             |       |
 | 2D Grid      | ImageData      | Yes             | No             |       |
 | Octree grid  | TBD            | No              | No             |       |
 

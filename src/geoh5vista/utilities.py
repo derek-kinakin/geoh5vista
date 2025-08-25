@@ -49,11 +49,12 @@ def add_data_to_vtk(output, entity):
     """Adds data arrays to an output VTK data object. Assigns data to cells or points
     based on number of data values compared to number of cells or points."""
 
-    fields = [i.name for i in entity.children]
-    if "Visual Parameters" in fields:
-        fields.remove("Visual Parameters")
-    if "UserComments" in fields:
-        fields.remove("UserComments")
+    fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
+    #fields = [i.name for i in entity.children]
+    #if "Visual Parameters" in fields:
+    #    fields.remove("Visual Parameters")
+    #if "UserComments" in fields:
+    #    fields.remove("UserComments")
     
     for f in fields:
         data_obj = entity.get_data(f)
@@ -78,12 +79,13 @@ def add_data_to_vtk(output, entity):
 def add_data_to_vtk_grid(output, entity):
     """Adds data arrays to an output VTK data object. Assigns data to cells or points
     based on number of data values compared to number of cells or points."""
-    
-    fields = [i.name for i in entity.children]
-    if "Visual Parameters" in fields:
-        fields.remove("Visual Parameters")
-    if "UserComments" in fields:
-        fields.remove("UserComments")
+
+    fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
+    #fields = [i.name for i in entity.children]
+    #if "Visual Parameters" in fields:
+    #    fields.remove("Visual Parameters")
+    #if "UserComments" in fields:
+    #    fields.remove("UserComments")
     
     for f in fields:
         data = entity.get_data(f)[0]
@@ -190,3 +192,13 @@ def add_data_to_geoh5(output, data):
     """Add data to the output VTK object."""
     pass
 
+
+SKIPDATA = [
+    'Azimuth',
+    'DEPTH (Static-Survey)',
+    'Dip',
+    'FROM (litho)',
+    'TO (litho)',
+    'Visual Parameters',
+    'UserComments'
+]
