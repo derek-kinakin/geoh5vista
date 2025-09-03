@@ -11,6 +11,7 @@ dist/
 docs/
 examples/
 tests/
+archive/
 # pixi environments
 .pixi/
 .vscode/
