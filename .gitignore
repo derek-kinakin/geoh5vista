@@ -15,5 +15,4 @@ archive/
 # pixi environments
 .pixi/
 .vscode/
-
-
+src/geoh5vista.egg-info/
