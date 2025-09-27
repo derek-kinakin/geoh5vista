@@ -1,4 +1,4 @@
-"""Methods to add data to VTK or GEOH5 objects"""
+"""This module provides functions for transferring data between geoh5py and PyVista objects."""
 
 
 __all__ = [

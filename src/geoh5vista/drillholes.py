@@ -1,4 +1,4 @@
-"""Methods to convert drillhole objects to VTK data objects"""
+"""This module provides functions for converting geoh5py Drillhole objects to and from PyVista data objects."""
 
 
 __all__ = [

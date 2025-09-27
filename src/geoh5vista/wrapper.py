@@ -1,6 +1,4 @@
-"""This module provides a wrapper for GEOH5 files.
-
-"""
+"""This module provides a high-level wrapper for converting geoh5py objects to PyVista objects."""
 
 __all__ = [
     "geoh5wrap",

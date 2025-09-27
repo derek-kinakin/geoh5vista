@@ -1,4 +1,4 @@
-"""Methods for converting block model data objects"""
+"""This module provides functions for converting geoh5py BlockModel objects to and from PyVista data objects."""
 
 __all__ = [
     "get_blockmodel_shape",
@@ -58,11 +58,11 @@ def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
     points = np.c_[xx.ravel("F"), yy.ravel("F"), zz.ravel("F")]
 
     points = points.dot(rotation_matrix)
+    points += origin
 
     output = pyvista.StructuredGrid()
     output.points = points
     output.dimensions = xc.shape[0], yc.shape[0], zc.shape[0] 
-    output.points += origin
     return output
 
 

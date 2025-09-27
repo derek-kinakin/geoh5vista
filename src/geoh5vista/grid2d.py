@@ -1,4 +1,4 @@
-"""Methods to convert grid2d objects to VTK data objects"""
+"""This module provides functions for converting geoh5py Grid2D objects to and from PyVista data objects."""
 
 
 __all__ = [

@@ -1,4 +1,4 @@
-"""Methods to convert points objects to VTK data objects"""
+"""This module provides functions for converting geoh5py Point objects to and from PyVista data objects."""
 
 import pyvista
 from geoh5py.objects.points import Points

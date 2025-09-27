@@ -1,4 +1,4 @@
-"""Methods to convert surface objects to VTK data objects"""
+"""This module provides functions for converting geoh5py Surface objects to and from PyVista data objects."""
 
 
 __all__ = [

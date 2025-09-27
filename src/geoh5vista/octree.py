@@ -1,4 +1,4 @@
-"""Methods for converting volumetric data objects"""
+"""This module provides functions for converting geoh5py Octree objects to and from PyVista data objects."""
 
 __all__ = [
     "octree_grid_geom_to_vtk",

@@ -12,3 +12,11 @@ You're a senior expert software engineer with extensive experience in maintainin
 1. Review the geoh5py API documents located at the following link: https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/content/api/modules.html.
 2. Review the PyVista API documents located at the following link: https://docs.pyvista.org/api/
 3. Review the existing geoh5vista code in the src folder of the repository.
+
+## Goals of the Module
+
+1. Read geoh5py entities and convert them to PyVista objects.
+2. Add geoh5py data to PyVista objects.
+3. Add geoh5py metadata to PyVista objects.
+5. Write PyVista objects to geoh5py entities.
+6. Add PyVista data to geoh5py entities.
