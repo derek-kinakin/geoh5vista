@@ -14,7 +14,7 @@ import numpy as np
 import pyvista
 from geoh5py.objects.curve import Curve
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
 def curve_geom_to_vtk(crv):

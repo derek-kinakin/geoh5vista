@@ -11,7 +11,7 @@ import numpy as np
 import pyvista
 
 from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
-from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
+from geoh5vista.data import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
 
 
 def grid2d_geom_to_vtk(grd):

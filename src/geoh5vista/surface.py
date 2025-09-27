@@ -10,11 +10,11 @@ __all__ = [
 
 __displayname__ = "Surface"
 
-import numpy as np
+
 import pyvista
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.utilities import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
+from geoh5vista.data import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
 
 
 def surface_geom_to_vtk(trisurf):

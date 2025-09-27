@@ -12,7 +12,7 @@ import numpy as np
 import pyvista
 
 from geoh5py.shared.utils import xy_rotation_matrix
-from geoh5vista.utilities import add_data_to_vtk_grid, add_entity_metadata
+from geoh5vista.data import add_data_to_vtk_grid, add_entity_metadata
 
 
 def get_blockmodel_shape(bm):

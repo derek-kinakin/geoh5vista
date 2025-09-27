@@ -13,7 +13,7 @@ import pyvista
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5py.groups.drillhole import IntegratorDrillholeGroup
-from geoh5vista.utilities import add_drillhole_interval_data_to_vtk
+from geoh5vista.data import add_drillhole_interval_data_to_vtk
 
 def drillholes_to_vtk(dhgrp):
     #TO DO
