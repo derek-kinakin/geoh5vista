@@ -1,6 +1,7 @@
 """This module provides a high-level wrapper for converting geoh5py objects to PyVista objects."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
+from pathlib import Path
 
 import pyvista
 from geoh5py.objects.object_base import ObjectBase
@@ -80,13 +81,13 @@ def entities_to_vtk(entity_list: List[ObjectBase]) -> pyvista.MultiBlock:
 
 
 def read_workspace(
-    workspace_path: str, load_visible: bool = False
+    workspace_path: Union[str, Path], load_visible: bool = True
 ) -> pyvista.MultiBlock:
     """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
 
     Parameters
     ----------
-    workspace_path : str
+    workspace_path : str or pathlib.Path
         The path to the geoh5 workspace file.
     load_visible : bool, optional
         If ``True``, only entities that are marked as visible in the
@@ -106,7 +107,7 @@ def read_workspace(
         supported_entities = [
             e
             for e in supported_entities
-            if e.visible is not None and e.visible
+            if e.visible["Visible"].any()
         ]
 
     return entities_to_vtk(supported_entities)
