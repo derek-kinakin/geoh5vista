@@ -21,9 +21,9 @@ from geoh5vista.utilities import get_ga_entity_colour
 def add_entity_metadata(output, entity):
     """Add the GA entity colour to the output VTK object."""
     colour = get_ga_entity_colour(entity)
-    output.user_dict["colour"] = colour
-    output.user_dict["name"] = entity.name
-    output.user_dict["entity_type"] = entity.__class__.__name__
+    output.field_data["gh5_colour"] = colour
+    output.field_data["gh5_name"] = entity.name
+    output.field_data["gh5_entity_type"] = entity.__class__.__name__
     return output
 
 
