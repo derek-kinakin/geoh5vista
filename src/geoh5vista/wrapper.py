@@ -36,7 +36,7 @@ def geoh5wrap(data):
 
 
 def entities_to_vtk(entity_list):
-    """Converts an list of GEOH5 entities to collection in a :class:`pyvista.MultiBlock` 
+    """Converts an list of GEOH5 entities to their PyVista object equivalents and stores them in a MultiBlock
     data object.
 
     """
