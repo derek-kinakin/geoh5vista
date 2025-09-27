@@ -17,11 +17,9 @@ from geoh5vista.curve import curve_to_vtk
 from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
-from geoh5vista.geoimage import geoimage_to_vtk
 from geoh5vista.blockmodel import blockmodel_to_vtk
 from geoh5vista.octree import octree_to_vtk
 from geoh5vista.drillholes import drillholes_to_vtk
-#from geoh5vista.utilities import get_textures, texture_to_vtk
 
 
 def geoh5wrap(data):
@@ -40,29 +38,23 @@ def geoh5wrap(data):
 
 
 def entities_to_vtk(entity_list):
-#def entities_to_vtk(entity_list, load_textures=False):
     """Converts an list of GEOH5 entities to collection in a :class:`pyvista.MultiBlock` 
     data object.
 
     """
     # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
-    #textures = {}
     for item in entity_list:
         key = item.__class__.__name__
         if key in SUPPORTED:
             e = geoh5wrap(item)
             data.append(e, name=e.user_dict["name"])
-            #if hasattr(e, "textures") and e.textures:
-            #    textures[d.user_dict["name"]] = get_textures(e)
         else:
             pass
-    #if load_textures:
-    #    return data, textures
     return data
 
 
-def read_workspace(workspace_path, load_textures=False, load_visible=False):
+def read_workspace(workspace_path, load_visible=False):
     """Loads an GEOH5 workspace from a filepath to return a list of child entities.
 
     """
@@ -73,7 +65,6 @@ def read_workspace(workspace_path, load_textures=False, load_visible=False):
     if load_visible:
         supported_entities = [e for e in supported_entities if e.visible["Visible"].any()]
 
-    #return entities_to_vtk(entities, load_textures=load_textures)
     return entities_to_vtk(supported_entities)
 
 
@@ -84,7 +75,6 @@ GEOH5WRAPPERS = {
     "Surface": surface_to_vtk,
     ## Grid entities
     "Grid2D": grid2d_to_vtk,
-    "GeoImage": geoimage_to_vtk,
     ## Volume entities
     "BlockModel": blockmodel_to_vtk,
     "Octree": octree_to_vtk,
@@ -93,7 +83,6 @@ GEOH5WRAPPERS = {
     "DrillholeGroup": drillholes_to_vtk,
     "ConcatenatorDrillholeGroup": drillholes_to_vtk,
     "ConcatenatedDrillhole": drillholes_to_vtk,
-    #"ContainerGroup": group_to_vtk,
 }
 
 

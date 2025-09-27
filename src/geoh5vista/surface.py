@@ -14,7 +14,7 @@ __displayname__ = "Surface"
 import pyvista
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.data import add_data_to_vtk, add_entity_metadata #, add_texture_coordinates
+from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
 def surface_geom_to_vtk(trisurf):
@@ -44,7 +44,6 @@ def surface_to_vtk(trisurf):
     # Now add point data:
     output = add_data_to_vtk(output, trisurf)
     output = add_entity_metadata(output, trisurf)
-    #add_texture_coordinates(output, trisurf.textures, trisurf.name)
 
     return output
 
