@@ -51,9 +51,9 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
             line["depth"] = dh.trace_depth
             dh_multi.append(line, name=dh.name)
 
-    dh_multi.user_dict["name"] = dhgrp.name
-    dh_multi.user_dict["colour"] = "black"
-    dh_multi.user_dict["entity_type"] = "Drillholes"
+    dh_multi.field_data["gh5_name"] = dhgrp.name
+    dh_multi.field_data["gh5_colour"] = "black"
+    dh_multi.field_data["gh5_entity_type"] = "Drillholes"
     return dh_multi
 
 
