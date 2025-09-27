@@ -18,13 +18,18 @@ from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
 def curve_geom_to_vtk(crv):
-    """Convert the curve to a :class:`pyvista.PolyData` data object.
+    """Convert the curve geometry to a ``pyvista.PolyData`` object.
 
-    Args:
-        crv (:class:`geoh5py.objects.curve.Curve`): The curve to convert
+    Parameters
+    ----------
+    crv : geoh5py.objects.curve.Curve
+        The curve to convert.
 
-    Return:
-        :class:`pyvista.PolyData`
+    Returns
+    -------
+    pyvista.PolyData
+        The curve geometry as a PolyData object.
+
     """
     ids = crv.cells
     lines = np.c_[np.full(len(ids), 2, dtype=np.int_), ids]
@@ -40,13 +45,20 @@ def curve_geom_to_vtk(crv):
 
 
 def curve_to_vtk(crv):
-    """Convert the curve to a :class:`pyvista.PolyData` data object.
+    """Convert a ``geoh5py.objects.curve.Curve`` to a ``pyvista.PolyData`` object.
 
-    Args:
-        crv (:class:`geoh5py.objects.curve.Curve`): The curve to convert
+    This function converts the curve geometry and transfers all associated data.
 
-    Return:
-        :class:`pyvista.PolyData`
+    Parameters
+    ----------
+    crv : geoh5py.objects.curve.Curve
+        The curve to convert.
+
+    Returns
+    -------
+    pyvista.PolyData
+        The converted curve.
+
     """
    
     # Now add data to lines:
@@ -58,7 +70,28 @@ def curve_to_vtk(crv):
 
 
 def vtk_geom_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Curve:
-    """Convert a VTK object to a geoh5py Curve object."""
+    """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.curve.Curve`` object.
+
+    Parameters
+    ----------
+    vtk : pyvista.PolyData
+        The VTK object to convert. It must have lines.
+    workspace : geoh5py.workspace.Workspace
+        The geoh5py workspace to add the new curve to.
+    name : str
+        The name of the new curve.
+
+    Returns
+    -------
+    geoh5py.objects.curve.Curve
+        The newly created curve.
+
+    Raises
+    ------
+    ValueError
+        If the VTK object is not a PolyData object with lines.
+
+    """
 
     points = vtk.points
     if isinstance(vtk, pyvista.PolyData) and vtk.lines is not None:
@@ -71,7 +104,27 @@ def vtk_geom_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) ->
 
 
 def vtk_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Curve:
-    """Convert a VTK object to a geoh5py Curve object."""
+    """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.curve.Curve`` object.
+
+    This is a wrapper for ``vtk_geom_to_curve`` and is intended to be the
+    main entry point for this conversion. In the future, it will also handle
+    transferring data from the VTK object to the geoh5py object.
+
+    Parameters
+    ----------
+    vtk : pyvista.PolyData
+        The VTK object to convert.
+    workspace : geoh5py.workspace.Workspace
+        The geoh5py workspace to add the new curve to.
+    name : str
+        The name of the new curve.
+
+    Returns
+    -------
+    geoh5py.objects.curve.Curve
+        The newly created curve.
+
+    """
     curve = vtk_geom_to_curve(vtk=vtk, workspace=workspace, name=name)
     return curve
 

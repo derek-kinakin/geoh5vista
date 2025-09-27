@@ -16,8 +16,23 @@ from geoh5py.groups.drillhole import IntegratorDrillholeGroup
 from geoh5vista.data import add_drillhole_interval_data_to_vtk
 
 def drillholes_to_vtk(dhgrp):
-    #TO DO
-    print(dhgrp.name)
+    """Convert a ``geoh5py.groups.drillhole.DrillholeGroup`` to a ``pyvista.MultiBlock``.
+
+    Each drillhole in the group is converted to a ``pyvista.PolyData`` line
+    object, and the collection is returned as a ``pyvista.MultiBlock``.
+
+    Parameters
+    ----------
+    dhgrp : geoh5py.groups.drillhole.DrillholeGroup
+        The drillhole group to convert.
+
+    Returns
+    -------
+    pyvista.MultiBlock
+        A multiblock dataset containing all the drillholes as PolyData
+        line objects.
+
+    """
     dh_multi = pyvista.MultiBlock()
     for dh in dhgrp.children:
         if len(dh.to_[0].values)>0:

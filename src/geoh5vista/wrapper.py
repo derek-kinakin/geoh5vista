@@ -19,8 +19,26 @@ from geoh5vista.drillholes import drillholes_to_vtk
 
 
 def geoh5wrap(data):
-    """Wraps the GEOH5 data object as a VTK data object. This is the
-    primary function that an end user will harness.
+    """Wrap a geoh5py data object as a PyVista data object.
+
+    This is the primary function that an end user will harness. It takes
+    any supported geoh5py object and returns the corresponding PyVista
+    object with all data transferred.
+
+    Parameters
+    ----------
+    data : geoh5py.objects.base_object.BaseObject
+        The geoh5py data object to wrap.
+
+    Returns
+    -------
+    pyvista.DataSet
+        The wrapped PyVista data object.
+
+    Raises
+    ------
+    RuntimeError
+        If the data object type is not supported.
 
     """
     if data is None:
@@ -34,8 +52,17 @@ def geoh5wrap(data):
 
 
 def entities_to_vtk(entity_list):
-    """Converts an list of GEOH5 entities to their PyVista object equivalents and stores them in a MultiBlock
-    data object.
+    """Convert a list of geoh5py entities to a ``pyvista.MultiBlock`` object.
+
+    Parameters
+    ----------
+    entity_list : list
+        A list of geoh5py entities to convert.
+
+    Returns
+    -------
+    pyvista.MultiBlock
+        A MultiBlock object containing the converted entities.
 
     """
     # Iterate over the elements and add converted VTK objects a MultiBlock
@@ -49,7 +76,20 @@ def entities_to_vtk(entity_list):
 
 
 def read_workspace(workspace_path, load_visible=False):
-    """Loads an GEOH5 workspace from a filepath to return a list of child entities.
+    """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
+
+    Parameters
+    ----------
+    workspace_path : str
+        The path to the geoh5 workspace file.
+    load_visible : bool, optional
+        If ``True``, only entities that are marked as visible in the
+        workspace will be loaded. Default is ``False``.
+
+    Returns
+    -------
+    pyvista.MultiBlock
+        A MultiBlock object containing the converted entities.
 
     """
     wp = Workspace(workspace_path)

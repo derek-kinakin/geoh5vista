@@ -18,12 +18,18 @@ from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
 def surface_geom_to_vtk(trisurf):
-    """Convert the triangulated surface to a :class:`pyvista.PolyData`
-    object
+    """Convert the triangulated surface geometry to a ``pyvista.PolyData`` object.
 
-    Args:
-        trisurf (:class:`geoh5py.objects.surface.Surface`): the surface to
-            convert
+    Parameters
+    ----------
+    trisurf : geoh5py.objects.surface.Surface
+        The surface to convert.
+
+    Returns
+    -------
+    pyvista.PolyData
+        The surface geometry as a PolyData object.
+
     """
     pts = trisurf.vertices
     faces = trisurf.cells
@@ -32,11 +38,21 @@ def surface_geom_to_vtk(trisurf):
 
 
 def surface_to_vtk(trisurf):
-    """Convert the surface to a its appropriate VTK data object type.
+    """Convert a ``geoh5py.objects.surface.Surface`` to a ``pyvista.PolyData`` object.
 
-    Args:
-        trisurf (:class:`geoh5py.objects.surface.Surface`): the surface element to
-            convert
+    This function converts the surface geometry and transfers all associated
+    data.
+
+    Parameters
+    ----------
+    trisurf : geoh5py.objects.surface.Surface
+        The surface to convert.
+
+    Returns
+    -------
+    pyvista.PolyData
+        The converted surface.
+
     """
 
     output = surface_geom_to_vtk(trisurf)
@@ -49,7 +65,28 @@ def surface_to_vtk(trisurf):
 
 
 def vtk_geom_to_surface(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Surface:
-    """Convert a VTK PolyData object to a geoh5py Surface object."""
+    """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.surface.Surface`` object.
+
+    Parameters
+    ----------
+    vtk : pyvista.PolyData
+        The VTK object to convert. It must be a triangular mesh.
+    workspace : geoh5py.workspace.Workspace
+        The geoh5py workspace to add the new surface to.
+    name : str
+        The name of the new surface.
+
+    Returns
+    -------
+    geoh5py.objects.surface.Surface
+        The newly created surface.
+
+    Raises
+    ------
+    ValueError
+        If the VTK object is not a triangular mesh PolyData object.
+
+    """
 
     points = vtk.points
     # extract triangle faces without VTK padding
@@ -63,7 +100,27 @@ def vtk_geom_to_surface(vtk: pyvista.PolyData, workspace: Workspace, name: str) 
 
 
 def vtk_to_surface(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Surface:
-    """Convert a VTK object to a geoh5py Surface object."""
+    """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.surface.Surface`` object.
+
+    This is a wrapper for ``vtk_geom_to_surface`` and is intended to be the
+    main entry point for this conversion. In the future, it will also handle
+    transferring data from the VTK object to the geoh5py object.
+
+    Parameters
+    ----------
+    vtk : pyvista.PolyData
+        The VTK object to convert.
+    workspace : geoh5py.workspace.Workspace
+        The geoh5py workspace to add the new surface to.
+    name : str
+        The name of the new surface.
+
+    Returns
+    -------
+    geoh5py.objects.surface.Surface
+        The newly created surface.
+
+    """
     surface = vtk_geom_to_surface(vtk=vtk, workspace=workspace, name=name)
     return surface
 

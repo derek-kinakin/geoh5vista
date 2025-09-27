@@ -16,11 +16,36 @@ from geoh5vista.data import add_data_to_vtk_grid, add_entity_metadata
 
 
 def get_blockmodel_shape(bm):
-    """Returns the shape of a block model"""
+    """Get the shape of a block model.
+
+    Parameters
+    ----------
+    bm : geoh5py.objects.block_model.BlockModel
+        The block model to get the shape of.
+
+    Returns
+    -------
+    tuple
+        The shape of the block model as (n_u, n_v, n_z).
+
+    """
     return (bm.shape[0], bm.shape[1], bm.shape[2])
 
 
 def create_blockmodel_rot_matrix(blkmdl):
+    """Create a rotation matrix for a block model.
+
+    Parameters
+    ----------
+    blkmdl : geoh5py.objects.block_model.BlockModel
+        The block model to create the rotation matrix for.
+
+    Returns
+    -------
+    numpy.ndarray
+        The 2D rotation matrix.
+
+    """
     rotation = np.radians(blkmdl.rotation)
 
     # Handle rotation matrix - ensure it's float64 and valid
@@ -38,12 +63,21 @@ def create_blockmodel_rot_matrix(blkmdl):
 
 
 def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
-    """Convert the block model to a :class:`pyvista.StructuredGrid`
-    object containing the 3D grid.
+    """Convert the block model geometry to a ``pyvista.StructuredGrid``.
 
-    Args:
-        blkmdl (:class:`geoh5py.objects.block_model.BlockModel`): the grid geometry
-            to convert
+    Parameters
+    ----------
+    blkmdl : geoh5py.objects.block_model.BlockModel
+        The block model to convert.
+    rotation_matrix : numpy.ndarray, optional
+        A 3x3 rotation matrix to apply to the grid points. If None, no
+        rotation is applied. Default is None.
+
+    Returns
+    -------
+    pyvista.StructuredGrid
+        The block model geometry as a structured grid.
+
     """
 
     origin = np.array([blkmdl.origin[0], blkmdl.origin[1], blkmdl.origin[2]], "float32")
@@ -67,11 +101,20 @@ def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
 
 
 def blockmodel_to_vtk(blkmdl):
-    """Convert the block model to a VTK data object.
+    """Convert a ``geoh5py.objects.block_model.BlockModel`` to a ``pyvista.StructuredGrid``.
 
-    Args:
-        blkmdl (:class:`geoh5py.objects.block_model.BlockModel`): The block model
-        to convert
+    This function converts the block model geometry and transfers all associated
+    data.
+
+    Parameters
+    ----------
+    blkmdl : geoh5py.objects.block_model.BlockModel
+        The block model to convert.
+
+    Returns
+    -------
+    pyvista.StructuredGrid
+        The converted block model.
 
     """
     rotation_mtx = create_blockmodel_rot_matrix(blkmdl)

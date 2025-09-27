@@ -15,11 +15,18 @@ __displayname__ = "Points"
 
 
 def points_geom_to_vtk(pts: Points) -> pyvista.PointSet:
-    """Convert the points to a :class:`pyvista.PointSet` data object.
-    Args:
-        pts: The points to convert
-    Return:
-        A :class:`pyvista.PointSet`
+    """Convert the points geometry to a ``pyvista.PointSet`` object.
+
+    Parameters
+    ----------
+    pts : geoh5py.objects.points.Points
+        The points to convert.
+
+    Returns
+    -------
+    pyvista.PointSet
+        The points geometry as a PointSet object.
+
     """
     points = pts.vertices
     output = pyvista.PointSet(points)
@@ -28,11 +35,21 @@ def points_geom_to_vtk(pts: Points) -> pyvista.PointSet:
 
 
 def points_to_vtk(pts: Points) -> pyvista.PointSet:
-    """Convert the points to a :class:`pyvista.PointSet` data object.
-    Args:
-        pts: The points to convert
-    Return:
-        A :class:`pyvista.PointSet`
+    """Convert a ``geoh5py.objects.points.Points`` object to a ``pyvista.PointSet``.
+
+    This function converts the points geometry and transfers all associated
+    data.
+
+    Parameters
+    ----------
+    pts : geoh5py.objects.points.Points
+        The points to convert.
+
+    Returns
+    -------
+    pyvista.PointSet
+        The converted points.
+
     """
     output = points_geom_to_vtk(pts)
 
@@ -44,14 +61,50 @@ def points_to_vtk(pts: Points) -> pyvista.PointSet:
 
 
 def vtk_geom_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Points:
-    """Convert a VTK object to a geoh5py Points object."""
+    """Convert a ``pyvista.PointSet`` object to a ``geoh5py.objects.points.Points`` object.
+
+    Parameters
+    ----------
+    vtk : pyvista.PointSet
+        The VTK object to convert.
+    workspace : geoh5py.workspace.Workspace
+        The geoh5py workspace to add the new points to.
+    name : str
+        The name of the new points.
+
+    Returns
+    -------
+    geoh5py.objects.points.Points
+        The newly created points.
+
+    """
 
     points = Points.create(workspace=workspace, name=name, vertices=vtk.points)
     return points
 
 
 def vtk_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Points:
-    """Convert a VTK object to a geoh5py Points object."""
+    """Convert a ``pyvista.PointSet`` object to a ``geoh5py.objects.points.Points`` object.
+
+    This is a wrapper for ``vtk_geom_to_points`` and is intended to be the
+    main entry point for this conversion. In the future, it will also handle
+    transferring data from the VTK object to the geoh5py object.
+
+    Parameters
+    ----------
+    vtk : pyvista.PointSet
+        The VTK object to convert.
+    workspace : geoh5py.workspace.Workspace
+        The geoh5py workspace to add the new points to.
+    name : str
+        The name of the new points.
+
+    Returns
+    -------
+    geoh5py.objects.points.Points
+        The newly created points.
+
+    """
     points = vtk_geom_to_points(vtk=vtk, workspace=workspace, name=name)
     return points
 

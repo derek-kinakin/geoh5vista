@@ -15,11 +15,17 @@ from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
 def grid2d_geom_to_vtk(grd):
-    """Convert the 2D grid geometry to a :class:`pyvista.RectilinearGrid` object.
+    """Convert the 2D grid geometry to a ``pyvista.ImageData`` object.
 
-    Args:
-        grd (:class:`geoh5py.objects.grid2d.Grid2D`): the surface
-            grid geometry to convert
+    Parameters
+    ----------
+    grd : geoh5py.objects.grid2d.Grid2D
+        The 2D grid to convert.
+
+    Returns
+    -------
+    pyvista.ImageData
+        The converted 2D grid geometry.
 
     """
     if grd.vertical:
@@ -42,11 +48,19 @@ def grid2d_geom_to_vtk(grd):
 
 
 def grid2d_to_vtk(grd):
-    """Convert the 2D grid to a :class:`pyvista.RectilinearGrid` object.
+    """Convert a ``geoh5py.objects.grid2d.Grid2D`` to a ``pyvista.ImageData`` object.
 
-    Args:
-        grd (:class:`geoh5py.objects.grid2d.Grid2D`): the surface
-            grid geometry to convert
+    This function converts the grid geometry and transfers all associated data.
+
+    Parameters
+    ----------
+    grd : geoh5py.objects.grid2d.Grid2D
+        The 2D grid to convert.
+
+    Returns
+    -------
+    pyvista.ImageData
+        The converted 2D grid.
 
     """
     output = grid2d_geom_to_vtk(grd)
