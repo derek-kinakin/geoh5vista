@@ -43,12 +43,10 @@ def entities_to_vtk(entity_list):
     # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
     for item in entity_list:
-        key = item.__class__.__name__
-        if key in SUPPORTED:
-            e = geoh5wrap(item)
-            data.append(e, name=e.user_dict["name"])
-        else:
-            pass
+        e = geoh5wrap(item)
+        data.append(e, name=e.user_dict["name"])
+    else:
+        pass
     return data
 
 
