@@ -17,7 +17,7 @@ from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
-def surface_geom_to_vtk(trisurf):
+def surface_geom_to_vtk(trisurf: Surface) -> pyvista.PolyData:
     """Convert the triangulated surface geometry to a ``pyvista.PolyData`` object.
 
     Parameters
@@ -31,13 +31,15 @@ def surface_geom_to_vtk(trisurf):
         The surface geometry as a PolyData object.
 
     """
+    if trisurf.vertices is None or trisurf.cells is None:
+        raise ValueError("Surface must have vertices and cells defined.")
     pts = trisurf.vertices
     faces = trisurf.cells
     output = pyvista.make_tri_mesh(pts, faces)
     return output
 
 
-def surface_to_vtk(trisurf):
+def surface_to_vtk(trisurf: Surface) -> pyvista.PolyData:
     """Convert a ``geoh5py.objects.surface.Surface`` to a ``pyvista.PolyData`` object.
 
     This function converts the surface geometry and transfers all associated

@@ -1,5 +1,18 @@
 """This module provides a high-level wrapper for converting geoh5py objects to PyVista objects."""
 
+from typing import List, Optional
+
+import pyvista
+from geoh5py.objects.object_base import ObjectBase
+from geoh5py.workspace.workspace import Workspace
+
+from geoh5vista.blockmodel import blockmodel_to_vtk
+from geoh5vista.curve import curve_to_vtk
+from geoh5vista.drillholes import drillholes_to_vtk
+from geoh5vista.grid2d import grid2d_to_vtk
+from geoh5vista.points import points_to_vtk
+from geoh5vista.surface import surface_to_vtk
+
 __all__ = [
     "geoh5wrap",
     "read_workspace",
@@ -7,18 +20,8 @@ __all__ = [
 
 __displayname__ = "Wrapper"
 
-import pyvista
-from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.curve import curve_to_vtk
-from geoh5vista.points import points_to_vtk
-from geoh5vista.surface import surface_to_vtk
-from geoh5vista.grid2d import grid2d_to_vtk
-from geoh5vista.blockmodel import blockmodel_to_vtk
-from geoh5vista.drillholes import drillholes_to_vtk
-
-
-def geoh5wrap(data):
+def geoh5wrap(data: ObjectBase) -> Optional[pyvista.DataSet]:
     """Wrap a geoh5py data object as a PyVista data object.
 
     This is the primary function that an end user will harness. It takes
@@ -27,7 +30,7 @@ def geoh5wrap(data):
 
     Parameters
     ----------
-    data : geoh5py.objects.base_object.BaseObject
+    data : geoh5py.objects.object_base.ObjectBase
         The geoh5py data object to wrap.
 
     Returns
@@ -44,14 +47,14 @@ def geoh5wrap(data):
     if data is None:
         return None
     else:
-        key = data.__class__.__name__ # get the class name
+        key = data.__class__.__name__  # get the class name
         try:
             return GEOH5WRAPPERS[key](data)
         except KeyError:
             raise RuntimeError(f"Data of type ({key}) is not  currently supported.")
 
 
-def entities_to_vtk(entity_list):
+def entities_to_vtk(entity_list: List[ObjectBase]) -> pyvista.MultiBlock:
     """Convert a list of geoh5py entities to a ``pyvista.MultiBlock`` object.
 
     Parameters
@@ -69,13 +72,16 @@ def entities_to_vtk(entity_list):
     data = pyvista.MultiBlock()
     for item in entity_list:
         e = geoh5wrap(item)
-        data.append(e, name=e["gh5_name"])
+        if e is not None and "gh5_name" in e.field_data:
+            data.append(e, name=e.field_data["gh5_name"])
     else:
         pass
     return data
 
 
-def read_workspace(workspace_path, load_visible=False):
+def read_workspace(
+    workspace_path: str, load_visible: bool = False
+) -> pyvista.MultiBlock:
     """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
 
     Parameters
@@ -93,11 +99,15 @@ def read_workspace(workspace_path, load_visible=False):
 
     """
     wp = Workspace(workspace_path)
-    #entities = wp.fetch_children(wp.root, recursively=True)
+    # entities = wp.fetch_children(wp.root, recursively=True)
     entities = wp.objects
     supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
     if load_visible:
-        supported_entities = [e for e in supported_entities if e.visible["Visible"].any()]
+        supported_entities = [
+            e
+            for e in supported_entities
+            if e.visible is not None and e.visible
+        ]
 
     return entities_to_vtk(supported_entities)
 

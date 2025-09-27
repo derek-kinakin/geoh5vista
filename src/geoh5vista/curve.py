@@ -17,7 +17,7 @@ from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata
 
 
-def curve_geom_to_vtk(crv):
+def curve_geom_to_vtk(crv: Curve) -> pyvista.PolyData:
     """Convert the curve geometry to a ``pyvista.PolyData`` object.
 
     Parameters
@@ -44,7 +44,7 @@ def curve_geom_to_vtk(crv):
     return output
 
 
-def curve_to_vtk(crv):
+def curve_to_vtk(crv: Curve) -> pyvista.PolyData:
     """Convert a ``geoh5py.objects.curve.Curve`` to a ``pyvista.PolyData`` object.
 
     This function converts the curve geometry and transfers all associated data.

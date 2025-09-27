@@ -8,14 +8,16 @@ __all__ = [
 
 __displayname__ = "Blockmodel"
 
+from typing import Optional, Tuple
 import numpy as np
 import pyvista
 
+from geoh5py.objects.block_model import BlockModel
 from geoh5py.shared.utils import xy_rotation_matrix
 from geoh5vista.data import add_data_to_vtk_grid, add_entity_metadata
 
 
-def get_blockmodel_shape(bm):
+def get_blockmodel_shape(bm: BlockModel) -> Tuple[int, int, int]:
     """Get the shape of a block model.
 
     Parameters
@@ -32,7 +34,7 @@ def get_blockmodel_shape(bm):
     return (bm.shape[0], bm.shape[1], bm.shape[2])
 
 
-def create_blockmodel_rot_matrix(blkmdl):
+def create_blockmodel_rot_matrix(blkmdl: BlockModel) -> np.ndarray:
     """Create a rotation matrix for a block model.
 
     Parameters
@@ -62,7 +64,9 @@ def create_blockmodel_rot_matrix(blkmdl):
     return rotation_mtx
 
 
-def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
+def blockmodel_grid_geom_to_vtk(
+    blkmdl: BlockModel, rotation_matrix: Optional[np.ndarray] = None
+) -> pyvista.StructuredGrid:
     """Convert the block model geometry to a ``pyvista.StructuredGrid``.
 
     Parameters
@@ -91,7 +95,8 @@ def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
     xx, yy, zz = np.meshgrid(xc, yc, zc, indexing='ij')
     points = np.c_[xx.ravel("F"), yy.ravel("F"), zz.ravel("F")]
 
-    points = points.dot(rotation_matrix)
+    if rotation_matrix is not None:
+        points = points.dot(rotation_matrix)
     points += origin
 
     output = pyvista.StructuredGrid()
@@ -100,7 +105,7 @@ def blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=None):
     return output
 
 
-def blockmodel_to_vtk(blkmdl):
+def blockmodel_to_vtk(blkmdl: BlockModel) -> pyvista.StructuredGrid:
     """Convert a ``geoh5py.objects.block_model.BlockModel`` to a ``pyvista.StructuredGrid``.
 
     This function converts the block model geometry and transfers all associated

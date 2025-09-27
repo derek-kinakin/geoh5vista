@@ -1,3 +1,8 @@
+from typing import List
+
+import numpy as np
+from geoh5py.objects.object_base import ObjectBase
+
 __all__ = [
     "check_orientation",
     "check_orthogonal",
@@ -5,16 +10,9 @@ __all__ = [
 ]
 
 
-#import pyvista
-import numpy as np
-
-#try:
-#    from pyvista import is_pyvista_obj as is_pyvista_dataset
-#except ImportError:
-#    from pyvista import is_pyvista_dataset
-
-
-def check_orientation(axis_u, axis_v, axis_w):
+def check_orientation(
+    axis_u: np.ndarray, axis_v: np.ndarray, axis_w: np.ndarray
+) -> bool:
     """Check if the given axes form a rectilinear cartesian reference frame.
 
     Parameters
@@ -41,7 +39,9 @@ def check_orientation(axis_u, axis_v, axis_w):
     return False
 
 
-def check_orthogonal(axis_u, axis_v, axis_w):
+def check_orthogonal(
+    axis_u: np.ndarray, axis_v: np.ndarray, axis_w: np.ndarray
+) -> bool:
     """Check if the three input vectors are orthogonal.
 
     Parameters
@@ -69,7 +69,7 @@ def check_orthogonal(axis_u, axis_v, axis_w):
     return True
 
 
-def RGB_from_GA(ga_int):
+def RGB_from_GA(ga_int: int) -> List[int]:
     """Convert a Geoscience ANALYST integer color to an RGB tuple.
 
     See: https://levelup.gitconnected.com/how-to-convert-argb-integer-into-rgba-tuple-in-python-eeb851d65a88
@@ -90,7 +90,7 @@ def RGB_from_GA(ga_int):
     return rgb
 
 
-def get_gh5_entity_colour(gh5_entity):
+def get_gh5_entity_colour(gh5_entity: ObjectBase) -> List[int]:
     """Get the color of a geoh5py entity from its visual parameters.
 
     Parameters
@@ -104,8 +104,15 @@ def get_gh5_entity_colour(gh5_entity):
         The RGB color as a list of three integers.
 
     """
-    a = gh5_entity.get_data("Visual Parameters")[0]
-    c = a.colour # Colour order is BGR
-    true_color = [c[2],c[1],c[0]] # Convert to RGB order
+    data_list = gh5_entity.get_data("Visual Parameters")
+    if not data_list:
+        return [0, 0, 0]  # Return a default color if no visual parameters
+
+    a = data_list[0]
+    if a.colour is None:
+        return [0, 0, 0]
+
+    c = a.colour  # Colour order is BGR
+    true_color = [c[2], c[1], c[0]]  # Convert to RGB order
     return true_color
 

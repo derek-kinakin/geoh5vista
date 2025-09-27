@@ -12,13 +12,27 @@ __all__ = [
 __displayname__ = "Data"
 
 import numpy as np
-from geoh5py.data.referenced_data import ReferencedData
+import pyvista
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
-from geoh5vista.utilities import get_gh5_entity_colour
+from geoh5py.data.referenced_data import ReferencedData
+from geoh5py.objects.block_model import BlockModel
+from geoh5py.objects.drillhole import Drillhole
+from geoh5py.objects.object_base import ObjectBase
+
+from .utilities import get_gh5_entity_colour
 
 
-def add_entity_metadata(output, entity):
+SKIPDATA = [
+    'Azimuth',
+    'DEPTH (Static-Survey)',
+    'Dip',
+    'Visual Parameters',
+    'UserComments'
+]
+
+
+def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
     """Add geoh5 entity metadata to a VTK object's field data.
 
     This includes the entity's name, color (from visual parameters), and
@@ -28,7 +42,7 @@ def add_entity_metadata(output, entity):
     ----------
     output : pyvista.DataSet
         The VTK data object to add the metadata to.
-    entity : geoh5py.objects.base_object.BaseObject
+    entity : geoh5py.objects.object_base.ObjectBase
         The geoh5py entity to source the metadata from.
 
     Returns
@@ -44,7 +58,7 @@ def add_entity_metadata(output, entity):
     return output
 
 
-def add_data_to_vtk(output, entity):
+def add_data_to_vtk(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
     """Transfer data from a geoh5py entity to a VTK object.
 
     Data is added as point or cell arrays. For ``ReferencedData``, a
@@ -55,7 +69,7 @@ def add_data_to_vtk(output, entity):
     ----------
     output : pyvista.DataSet
         The VTK data object to add the data to.
-    entity : geoh5py.objects.base_object.BaseObject
+    entity : geoh5py.objects.object_base.ObjectBase
         The geoh5py entity to source the data from.
 
     Returns
@@ -66,33 +80,31 @@ def add_data_to_vtk(output, entity):
     """
 
     fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
-    #fields = [i.name for i in entity.children]
-    #if "Visual Parameters" in fields:
-    #    fields.remove("Visual Parameters")
-    #if "UserComments" in fields:
-    #    fields.remove("UserComments")
-    
+
     for f in fields:
-        data_obj = entity.get_data(f)
-        if data_obj:
-            data = data_obj[0]
+        data_obj_list = entity.get_data(f)
+        if data_obj_list:
+            data = data_obj_list[0]
+            if data.values is None:
+                continue
             if isinstance(data, ReferencedData):
                 data_value_map = data.value_map
                 output[f] = data.values
-                output[f"{f}_names"] = data_value_map.map_values(output[f])
-            elif isinstance(data, FloatData):
-                output[f] = data.values
-            elif isinstance(data, IntegerData):
+                if data_value_map is not None:
+                    output[f"{f}_names"] = data_value_map.map_values(output[f])
+            elif isinstance(data, (FloatData, IntegerData)):
                 output[f] = data.values
             else:
                 pass
         else:
             pass
-    
+
     return output
 
 
-def add_drillhole_interval_data_to_vtk(output, entity):
+def add_drillhole_interval_data_to_vtk(
+    output: pyvista.PolyData, entity: Drillhole
+) -> pyvista.PolyData:
     """Transfer interval-based drillhole data to a VTK line object.
 
     This function maps interval data (e.g., geology, assays) from a
@@ -120,22 +132,34 @@ def add_drillhole_interval_data_to_vtk(output, entity):
 
     """
 
-    if 'depth' not in output.point_data:
+    if "depth" not in output.point_data:
         raise ValueError("The line object must have a 'depth' point data array.")
 
-    point_depths = output.point_data['depth']
+    point_depths = output.point_data["depth"]
     cell_depth_midpoints = (point_depths[:-1] + point_depths[1:]) / 2.0
 
     fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
-    interval_from = entity.from_[0].values
-    interval_to = entity.to_[0].values
+
+    if entity.from_ is None or entity.to_ is None:
+        return output
+
+    from_data = entity.from_
+    to_data = entity.to_
+
+    if from_data.values is None or to_data.values is None:
+        return output
+
+    interval_from = from_data.values
+    interval_to = to_data.values
 
     for f in fields:
-        data_obj = entity.get_data(f)
-        if not data_obj:
+        data_obj_list = entity.get_data(f)
+        if not data_obj_list:
             continue
-        
-        data = data_obj[0]
+
+        data = data_obj_list[0]
+        if data.values is None:
+            continue
         data_values = data.values
 
         if isinstance(data, FloatData):
@@ -158,13 +182,18 @@ def add_drillhole_interval_data_to_vtk(output, entity):
             value_map = data.value_map
             names_array = np.full(output.n_cells, "N/A", dtype=object)
             valid_mask = new_cell_data != -1
-            names_array[valid_mask] = value_map.map_values(new_cell_data[valid_mask])
+            if value_map is not None:
+                names_array[valid_mask] = value_map.map_values(
+                    new_cell_data[valid_mask]
+                )
             output.cell_data[f"{f}_names"] = names_array
 
     return output
 
 
-def add_data_to_vtk_grid(output, entity):
+def add_data_to_vtk_grid(
+    output: pyvista.StructuredGrid, entity: BlockModel
+) -> pyvista.StructuredGrid:
     """Transfer data from a geoh5py grid entity to a VTK grid object.
 
     This function is specialized for grid objects like ``BlockModel``, where
@@ -186,44 +215,36 @@ def add_data_to_vtk_grid(output, entity):
     """
 
     fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
-    #fields = [i.name for i in entity.children]
-    #if "Visual Parameters" in fields:
-    #    fields.remove("Visual Parameters")
-    #if "UserComments" in fields:
-    #    fields.remove("UserComments")
-    
+
     for f in fields:
-        data = entity.get_data(f)[0]
+        data_obj_list = entity.get_data(f)
+        if not data_obj_list:
+            continue
+        data = data_obj_list[0]
+        if data.values is None:
+            continue
         values = data.values
-        
-        # For block models, we need to reshape to match the grid structure
-        # geoh5 uses (n_u, n_v, n_z) ordering, but we need to match PyVista's cell ordering
+
+        if entity.shape is None:
+            continue
         n_u, n_v, n_z = entity.shape
-        
-        # Reshape values to 3D array with proper dimensions
-        # This order seems to be the inverse of what one might expect
-        # but it works to get the correct orientation in PyVista when
-        # combined with the transpose below
-        values_3d = values.reshape((n_v, n_u, n_z), order='C')
-        
-        # PyVista structured grids expect cell data in a specific order
-        # We need to transpose and flatten to match VTK cell ordering
-        values_vtk = values_3d.transpose(1, 0, 2).flatten(order='F')
-        
+
+        values_3d = values.reshape((n_v, n_u, n_z), order="C")
+
+        values_vtk = values_3d.transpose(1, 0, 2).flatten(order="F")
+
         if isinstance(data, ReferencedData):
             data_value_map = data.value_map
             output[f] = values_vtk
-            output[f"{f}_names"] = data_value_map.map_values(output.cell_data[f])
-        elif isinstance(data, FloatData):
-            output[f] = values_vtk
+            if data_value_map is not None:
+                output[f"{f}_names"] = data_value_map.map_values(output.cell_data[f])
         else:
-            # Handle other data types if needed
             output[f] = values_vtk
-    
+
     return output
 
 
-def add_data_to_geoh5(output, data):
+def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
     """Add data from a VTK object to a geoh5py entity.
 
     .. warning::
@@ -231,7 +252,7 @@ def add_data_to_geoh5(output, data):
 
     Parameters
     ----------
-    output : geoh5py.objects.base_object.BaseObject
+    output : geoh5py.objects.object_base.ObjectBase
         The geoh5py entity to add the data to.
     data : pyvista.DataSet
         The VTK data object to source the data from.
@@ -239,14 +260,6 @@ def add_data_to_geoh5(output, data):
     """
     pass
 
-
-SKIPDATA = [
-    'Azimuth',
-    'DEPTH (Static-Survey)',
-    'Dip',
-    'Visual Parameters',
-    'UserComments'
-]
 
 add_entity_metadata.__displayname__ = "Metadata to VTK"  # type: ignore
 add_data_to_vtk.__displayname__ = "Text Data to VTK"  # type: ignore

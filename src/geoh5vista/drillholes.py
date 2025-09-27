@@ -12,10 +12,10 @@ import pyvista
 
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.groups.drillhole import DrillholeGroup
-from geoh5py.groups.drillhole import IntegratorDrillholeGroup
 from geoh5vista.data import add_drillhole_interval_data_to_vtk
 
-def drillholes_to_vtk(dhgrp):
+
+def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
     """Convert a ``geoh5py.groups.drillhole.DrillholeGroup`` to a ``pyvista.MultiBlock``.
 
     Each drillhole in the group is converted to a ``pyvista.PolyData`` line
@@ -35,14 +35,18 @@ def drillholes_to_vtk(dhgrp):
     """
     dh_multi = pyvista.MultiBlock()
     for dh in dhgrp.children:
-        if len(dh.to_[0].values)>0:
-            data_intervals = np.sort(np.unique(np.concatenate([dh.to_[0].values, dh.from_[0].values, dh.trace_depth])))
+        if isinstance(dh, Drillhole) and dh.to_ and dh.from_ and dh.to_.values is not None and dh.from_.values is not None and len(dh.to_.values) > 0 and dh.trace_depth is not None:
+            data_intervals = np.sort(
+                np.unique(
+                    np.concatenate([dh.to_.values, dh.from_.values, dh.trace_depth])
+                )
+            )
             data_intervals_locations = dh.desurvey(data_intervals)
             line = pyvista.lines_from_points(data_intervals_locations)
             line["depth"] = data_intervals
             line = add_drillhole_interval_data_to_vtk(line, dh)
             dh_multi.append(line, name=dh.name)
-        else:
+        elif isinstance(dh, Drillhole) and dh.trace is not None and dh.trace_depth is not None:
             line = pyvista.lines_from_points(dh.trace)
             line["depth"] = dh.trace_depth
             dh_multi.append(line, name=dh.name)
