@@ -1,4 +1,4 @@
-"""This module provides a wrapper that will work for any GEOH5 data object or file.
+"""This module provides a wrapper for GEOH5 files.
 
 """
 
