@@ -42,7 +42,7 @@ Example Use
 import pyvista as pv
 import geoh5vista
 
-project = geoh5vista.load_project('test_file.geoh5')
+project = geoh5vista.read_workspace('test_file.geoh5')
 project
 ```
 
@@ -55,21 +55,19 @@ figure. First, grab the elements from the project:
 ```python
 # Grab a few elements of interest and plot em up!
 vol = project['Block Model']
-assay = project['wolfpass_WP_assay']
 topo = project['Topography']
 dacite = project['Dacite']
 ```
 
 Then create a 3D scene with these spatial data and apply a filtering tool from
-PyVista_ to the volumetric data:
+PyVista to the volumetric data:
 
 ```python
 # Create a plotting window
 p = pv.Plotter(notebook=False)
 # Add our datasets
 p.add_mesh(topo, cmap='gist_earth', opacity=0.5)
-p.add_mesh(assay, color='blue', line_width=3)
-p.add_mesh(dacite, color=dacite.user_dict["colour"], opacity=0.6)
+p.add_mesh(dacite, color=dacite["gh5_colour"], opacity=0.6)
 # Add the volumetric dataset with a thresholding tool
 p.add_mesh_threshold(vol)
 # Add the bounds axis
