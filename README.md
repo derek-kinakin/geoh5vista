@@ -27,10 +27,9 @@ Current Status of Supported Geoh5 Entities
 | Points       | PointSet       | Yes             | No             |       |
 | Curve        | PolyData       | Yes             | No             |       |
 | Surface      | PolyData       | Yes             | No             |       |
+| 2D Grid      | ImageData      | Yes             | No             |       |
 | Block model  | StructuredGrid | Yes             | No             |       |
 | Drillholes   | MultiBlock     | Yes             | No             |       |
-| 2D Grid      | ImageData      | Yes             | No             |       |
-| Octree grid  | TBD            | No              | No             |       |
 
 This table provides the list of entities that will be supported. Read from and write
 to Geoh5 support is the goal for each entity.

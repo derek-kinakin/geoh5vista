@@ -2,7 +2,6 @@
 
 __all__ = [
     "geoh5wrap",
-    "entities_to_vtk",
     "read_workspace",
 ]
 
@@ -16,7 +15,6 @@ from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.blockmodel import blockmodel_to_vtk
-from geoh5vista.octree import octree_to_vtk
 from geoh5vista.drillholes import drillholes_to_vtk
 
 
@@ -73,7 +71,6 @@ GEOH5WRAPPERS = {
     "Grid2D": grid2d_to_vtk,
     ## Volume entities
     "BlockModel": blockmodel_to_vtk,
-    "Octree": octree_to_vtk,
     ## Container entities
     "Drillhole": drillholes_to_vtk,
     "DrillholeGroup": drillholes_to_vtk,
@@ -88,7 +85,6 @@ SUPPORTED = [
     "Surface",
     "Grid2D",
     "BlockModel",
-    "Octree",
     "DrillholeGroup",
     "ConcatenatorDrillholeGroup",
 ]
@@ -103,6 +99,7 @@ GEOH5SKIP = [
     "VisualParameters",
     "GeometricDataConstants",
     "GeoImage",
+    "Octree",
     "Drillholes",
     "DrapeModel",
     "AirborneMagnetics",
@@ -125,5 +122,4 @@ GEOH5SKIP = [
 
 # Now set up the display names for the docs
 read_workspace.__displayname__ = "Load a GEOH5 Workspace File" # type: ignore
-entities_to_vtk.__displayname__ = "Entities to VTK" # type: ignore
 geoh5wrap.__displayname__ = "GEOH5 Entity Wrapper" # type: ignore

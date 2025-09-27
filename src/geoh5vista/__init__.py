@@ -5,7 +5,6 @@ from geoh5vista.blockmodel import blockmodel_to_vtk
 from geoh5vista.curve import curve_to_vtk, vtk_to_curve
 from geoh5vista.drillholes import drillholes_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
-from geoh5vista.octree import octree_to_vtk
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.surface import surface_to_vtk, vtk_to_surface
 from geoh5vista.wrapper import geoh5wrap, read_workspace
@@ -24,7 +23,6 @@ __all__ = [
     "curve_to_vtk",
     "drillholes_to_vtk",
     "grid2d_to_vtk",
-    "octree_to_vtk",
     "points_to_vtk",
     "surface_to_vtk",
     "vtk_to_curve",
