@@ -62,13 +62,16 @@ def entities_to_vtk(entity_list):
     return data
 
 
-def read_workspace(workspace_path, load_textures=False):
+def read_workspace(workspace_path, load_textures=False, load_visible=False):
     """Loads an GEOH5 workspace from a filepath to return a list of child entities.
 
     """
     wp = Workspace(workspace_path)
-    entities = wp.fetch_children(wp.root, recursively=True)
+    #entities = wp.fetch_children(wp.root, recursively=True)
+    entities = wp.objects
     supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
+    if load_visible:
+        supported_entities = [e for e in supported_entities if e.visible["Visible"].any()]
 
     #return entities_to_vtk(entities, load_textures=load_textures)
     return entities_to_vtk(supported_entities)
