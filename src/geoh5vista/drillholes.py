@@ -45,10 +45,12 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
             line = pyvista.lines_from_points(data_intervals_locations)
             line["depth"] = data_intervals
             line = add_drillhole_interval_data_to_vtk(line, dh)
+            line["dh_name"] = np.repeat(dh.name, line.n_points)
             dh_multi.append(line, name=dh.name)
         elif isinstance(dh, Drillhole) and dh.trace is not None and dh.trace_depth is not None:
             line = pyvista.lines_from_points(dh.trace)
             line["depth"] = dh.trace_depth
+            line["dh_name"] = np.repeat(dh.name, line.n_points)
             dh_multi.append(line, name=dh.name)
 
     dh_multi = dh_multi.combine()
