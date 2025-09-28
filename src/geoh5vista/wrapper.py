@@ -100,8 +100,8 @@ def read_workspace(
 
     """
     wp = Workspace(workspace_path)
-    # entities = wp.fetch_children(wp.root, recursively=True)
-    entities = wp.objects
+    entities = wp.fetch_children(wp.root, recursively=True)
+    # entities = wp.objects # This approach doesn't include drillholes
     supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
     if load_visible:
         supported_entities = [
@@ -136,6 +136,7 @@ SUPPORTED = [
     "Surface",
     "Grid2D",
     "BlockModel",
+    "Drillhole",
     "DrillholeGroup",
     "ConcatenatorDrillholeGroup",
 ]
@@ -151,7 +152,6 @@ GEOH5SKIP = [
     "GeometricDataConstants",
     "GeoImage",
     "Octree",
-    "Drillholes",
     "DrapeModel",
     "AirborneMagnetics",
     "PotentialElectrode",
@@ -166,7 +166,6 @@ GEOH5SKIP = [
     "BooleanData",
     "PropertyGroup",
     "CommentsData",
-    "ConcatenatorDrillholeGroup",
     "ConcatenatedDrillhole",
     "CustomGroup"
 ]

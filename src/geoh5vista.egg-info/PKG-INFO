@@ -1,11 +1,13 @@
 Metadata-Version: 2.4
 Name: geoh5vista
-Version: 0.0.0
+Version: 0.0.7
+Summary: A Python library for converting geoh5py objects to PyVista data objects for 3D visualization and geometry processing.
 Author: Derek Kinakin
 License-Expression: MIT
-Project-URL: Documentation, https://github.com/Derek Kinakin/geoh5vista#readme
-Project-URL: Issues, https://github.com/Derek Kinakin/geoh5vista/issues
-Project-URL: Source, https://github.com/Derek Kinakin/geoh5vista
+Project-URL: Documentation, https://github.com/derek-kinakin/geoh5vista#readme
+Project-URL: Issues, https://github.com/derek-kinakin/geoh5vista/issues
+Project-URL: Source, https://github.com/derek-kinakin/geoh5vista
+Keywords: geoscience,geoh5,pyvista,3d-visualization,geology
 Classifier: Development Status :: 4 - Beta
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3.11
@@ -22,29 +24,38 @@ Dynamic: license-file
 geoh5vista: a Geoh5 <> PyVista (VTK) interface
 ===========================================
 
-A PyVista (and VTK) interface for the `Geoh5 package` (``geoh5``)
-providing Python 3D visualization and useable mesh data structures for
-processing datasets in the geoh5 specification.
+A PyVista (and VTK) interface for the `Geoh5` file format providing Python 3D visualization and useable mesh data structures for processing datasets in the geoh5 specification.
 
 The structure and interfaces of this project are heavily inspired by (and borrowed from) the 'omfvista' package, which provides a similar interface for the 'omf' format.
 
-omfvista package: https://github.com/OpenGeoVis/omfvista
+omfvista package: <https://github.com/OpenGeoVis/omfvista>
 
-Geoh5 Format package: https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/index.html
+Geoh5 Python interface package: <https://mirageoscience-geoh5py.readthedocs-hosted.com/en/stable/index.html>
 
-Documentation is hosted at https://github.com/derek-kinakin/geoh5vista
-
+Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 
 Installation
 ------------
+
 ```python
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
 
-Questions & Support
+Current Status of Supported Geoh5 Entities
 -------------------
 
-TBD
+| Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
+| -------------|----------------|-----------------|----------------|-------|
+| Workspace    | MultiBlock     | Yes             | No             |       |
+| Points       | PointSet       | Yes             | No             |       |
+| Curve        | PolyData       | Yes             | No             |       |
+| Surface      | PolyData       | Yes             | No             |       |
+| 2D Grid      | ImageData      | Yes             | No             |       |
+| Block model  | StructuredGrid | Yes             | No             |       |
+| Drillholes   | MultiBlock     | Yes             | No             |       |
+
+This table provides the list of entities that will be supported. Read from and write
+to Geoh5 support is the goal for each entity.
 
 Example Use
 -----------
@@ -53,16 +64,12 @@ Example Use
 import pyvista as pv
 import geoh5vista
 
-project = geoh5vista.load_project('test_file.geoh5')
+project = geoh5vista.read_workspace('test_file.geoh5')
 project
 ```
 
 Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``, then
 that object can be directly used for interactive 3D visualization from PyVista_:
-
-```python
-project.plot(multi_colors=True)
-```
 
 An interactive scene can be created and manipulated to create a compelling
 figure. First, grab the elements from the project:
@@ -70,25 +77,23 @@ figure. First, grab the elements from the project:
 ```python
 # Grab a few elements of interest and plot em up!
 vol = project['Block Model']
-assay = project['wolfpass_WP_assay']
 topo = project['Topography']
 dacite = project['Dacite']
 ```
 
 Then create a 3D scene with these spatial data and apply a filtering tool from
-PyVista_ to the volumetric data:
+PyVista to the volumetric data:
 
 ```python
 # Create a plotting window
 p = pv.Plotter(notebook=False)
 # Add our datasets
 p.add_mesh(topo, cmap='gist_earth', opacity=0.5)
-p.add_mesh(assay, color='blue', line_width=3)
-p.add_mesh(dacite, color='yellow', opacity=0.6)
+p.add_mesh(dacite, color=dacite["gh5_colour"], opacity=0.6)
 # Add the volumetric dataset with a thresholding tool
 p.add_mesh_threshold(vol)
 # Add the bounds axis
 p.show_bounds()
 # Render the scene in a pop out window
-p.shdow()
+p.show()
 ```

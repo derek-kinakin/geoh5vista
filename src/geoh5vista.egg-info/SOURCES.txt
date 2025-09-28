@@ -6,9 +6,7 @@ src/geoh5vista/blockmodel.py
 src/geoh5vista/curve.py
 src/geoh5vista/data.py
 src/geoh5vista/drillholes.py
-src/geoh5vista/geoimage.py
 src/geoh5vista/grid2d.py
-src/geoh5vista/group.py
 src/geoh5vista/points.py
 src/geoh5vista/surface.py
 src/geoh5vista/utilities.py
