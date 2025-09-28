@@ -69,27 +69,6 @@ def check_orthogonal(
     return True
 
 
-def RGB_from_GA(ga_int: int) -> List[int]:
-    """Convert a Geoscience ANALYST integer color to an RGB tuple.
-
-    See: https://levelup.gitconnected.com/how-to-convert-argb-integer-into-rgba-tuple-in-python-eeb851d65a88
-
-    Parameters
-    ----------
-    ga_int : int
-        The Geoscience ANALYST integer color.
-
-    Returns
-    -------
-    list
-        The RGB color as a list of three integers.
-
-    """
-    c_string = (ga_int).to_bytes(4, byteorder="little").hex()
-    rgb = [int(c_string[i : i + 2], 16) for i in range(0, 8, 2)][:3]
-    return rgb
-
-
 def get_gh5_entity_colour(gh5_entity: ObjectBase) -> List[int]:
     """Get the color of a geoh5py entity from its visual parameters.
 
