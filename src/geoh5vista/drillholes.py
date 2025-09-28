@@ -35,10 +35,10 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
     """
     dh_multi = pyvista.MultiBlock()
     for dh in dhgrp.children:
-        if isinstance(dh, Drillhole) and dh.to_ and dh.from_ and dh.to_.values is not None and dh.from_.values is not None and len(dh.to_.values) > 0 and dh.trace_depth is not None:
+        if isinstance(dh, Drillhole) and dh.to_[0] and dh.from_[0] and dh.to_[0].values is not None and dh.from_[0].values is not None and len(dh.to_[0].values) > 0 and dh.trace_depth is not None:
             data_intervals = np.sort(
                 np.unique(
-                    np.concatenate([dh.to_.values, dh.from_.values, dh.trace_depth])
+                    np.concatenate([dh.to_[0].values, dh.from_[0].values, dh.trace_depth])
                 )
             )
             data_intervals_locations = dh.desurvey(data_intervals)
@@ -51,6 +51,7 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
             line["depth"] = dh.trace_depth
             dh_multi.append(line, name=dh.name)
 
+    dh_multi = dh_multi.combine()
     dh_multi.field_data["gh5_name"] = dhgrp.name
     dh_multi.field_data["gh5_colour"] = "black"
     dh_multi.field_data["gh5_entity_type"] = "Drillholes"

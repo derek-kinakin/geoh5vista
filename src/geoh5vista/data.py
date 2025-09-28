@@ -143,8 +143,8 @@ def add_drillhole_interval_data_to_vtk(
     if entity.from_ is None or entity.to_ is None:
         return output
 
-    from_data = entity.from_
-    to_data = entity.to_
+    from_data = entity.from_[0]
+    to_data = entity.to_[0]
 
     if from_data.values is None or to_data.values is None:
         return output
