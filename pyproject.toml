@@ -1,11 +1,11 @@
 [project]
 name = "geoh5vista"
-version = '0.0.5'
-description = ''
+version = '0.0.7'
+description = 'A Python library for converting geoh5py objects to PyVista data objects for 3D visualization and geometry processing.'
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-keywords = []
+keywords = ["geoscience", "geoh5", "pyvista", "3d-visualization", "geology"]
 authors = [
   { name = "Derek Kinakin"},
 ]
@@ -21,9 +21,9 @@ classifiers = [
 dependencies = ["geoh5py>=0.10.0", "pyvista>=0.46.0"]
 
 [project.urls]
-Documentation = "https://github.com/Derek Kinakin/geoh5vista#readme"
-Issues = "https://github.com/Derek Kinakin/geoh5vista/issues"
-Source = "https://github.com/Derek Kinakin/geoh5vista"
+Documentation = "https://github.com/derek-kinakin/geoh5vista#readme"
+Issues = "https://github.com/derek-kinakin/geoh5vista/issues"
+Source = "https://github.com/derek-kinakin/geoh5vista"
 
 [tool.isort]
 profile = "ruff"
@@ -66,3 +66,7 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
