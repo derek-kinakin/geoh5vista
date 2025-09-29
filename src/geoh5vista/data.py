@@ -19,17 +19,8 @@ from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.objects.block_model import BlockModel
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
-
-from .utilities import get_gh5_entity_colour
-
-
-SKIPDATA = [
-    'Azimuth',
-    'DEPTH (Static-Survey)',
-    'Dip',
-    'Visual Parameters',
-    'UserComments'
-]
+from geoh5vista.constants import DATASKIP
+from geoh5vista.utilities import get_gh5_entity_colour
 
 
 def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
@@ -79,7 +70,7 @@ def add_data_to_vtk(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.Data
 
     """
 
-    fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
+    fields = [f for f in entity.get_data_list() if f not in DATASKIP]
 
     for f in fields:
         data_obj_list = entity.get_data(f)
@@ -138,7 +129,7 @@ def add_drillhole_interval_data_to_vtk(
     point_depths = output.point_data["depth"]
     cell_depth_midpoints = (point_depths[:-1] + point_depths[1:]) / 2.0
 
-    fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
+    fields = [f for f in entity.get_data_list() if f not in DATASKIP]
 
     if entity.from_ is None or entity.to_ is None:
         return output
@@ -214,7 +205,7 @@ def add_data_to_vtk_grid(
 
     """
 
-    fields = [f for f in entity.get_data_list() if f not in SKIPDATA]
+    fields = [f for f in entity.get_data_list() if f not in DATASKIP]
 
     for f in fields:
         data_obj_list = entity.get_data(f)

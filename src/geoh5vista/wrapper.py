@@ -13,6 +13,8 @@ from geoh5vista.drillholes import drillholes_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.points import points_to_vtk
 from geoh5vista.surface import surface_to_vtk
+from geoh5vista.constants import SUPPORTED
+
 
 __all__ = [
     "geoh5wrap",
@@ -129,46 +131,6 @@ GEOH5WRAPPERS = {
     "ConcatenatedDrillhole": drillholes_to_vtk,
 }
 
-
-SUPPORTED = [
-    "Points",
-    "Curve",
-    "Surface",
-    "Grid2D",
-    "BlockModel",
-    "Drillhole",
-    "DrillholeGroup",
-    "ConcatenatorDrillholeGroup",
-]
-
-GEOH5SKIP = [
-    "ReferencedData",
-    "TextData",
-    "FloatData",
-    "IntegerData",
-    "FilenameData",
-    "ContainerGroup",
-    "VisualParameters",
-    "GeometricDataConstants",
-    "GeoImage",
-    "Octree",
-    "DrapeModel",
-    "AirborneMagnetics",
-    "PotentialElectrode",
-    "AirborneEMSurvey",
-    "AirborneTEMSurvey",
-    "AirborneTEMReceivers",
-    "AirborneFEMTransmitters",
-    "VP Model",
-    "UIJsonGroup",
-    "InterpretationSection",
-    "Slicer",
-    "BooleanData",
-    "PropertyGroup",
-    "CommentsData",
-    "ConcatenatedDrillhole",
-    "CustomGroup"
-]
 
 # Now set up the display names for the docs
 read_workspace.__displayname__ = "Load a GEOH5 Workspace File" # type: ignore
