@@ -137,36 +137,41 @@ def vtkwrap(data: Optional[pyvista.DataSet]) -> Optional[ObjectBase]:
     if data is None:
         return None
     else:
+        cell_type = data.get_cell(0).type # Check that the cell types are consistent
+        data = data.extract_cells_by_type(cell_type) 
+        if data is None:
+            print("The cell types of the object are not consistent. Skipping object.")
+            pass
+        else:
+            key = f"{data.__class__.__name__}_{cell_type.name}"
+            try:
+                return VTKWRAPPERS[key](data)
+            except KeyError:
+                raise RuntimeError(f"Data of type ({key}) is not currently supported.")
 
-        key = data.__class__.__name__
-        if key == "PolyData":
-            if data.n_lines > 0:
-                key = "PolyData_lines"
-            elif data.all_triangles():
-                key = "PolyData_trisurf"
-        try:
-            return VTKWRAPPERS[key](data)
-        except KeyError:
-            raise RuntimeError(f"Data of type ({key}) is not currently supported.")
 
-
-def vtk_to_entities():
+def vtk_to_entities(workspace_path: Union[str, Path], data: Union[List[pyvista.DataSet], pyvista.MultiBlock]) -> List[ObjectBase]:
     pass
 
 
-def write_workspace():
+def write_workspace(workspace_path: Union[str, Path], data: List[ObjectBase]) -> None:
     pass
 
-## Idea - use cell type to determine type of polydata (lines, trisurf, etc)
+
 VTKWRAPPERS = {
+    ## key is combination of VTK class and cell type
     ## Basic entities
-    "PointSet": vtk_to_points,
-    "PolyData_lines": vtk_to_curve,
-    "PolyData_trisurf": vtk_to_surface,
+    "PointSet_1": vtk_to_points,
+    "PointSet_2": vtk_to_points,
+    "PolyData_1": vtk_to_points,
+    "PolyData_2": vtk_to_points,
+    "PolyData_3": vtk_to_curve,
+    "PolyData_4": vtk_to_curve,
+    "PolyData_5": vtk_to_surface,
     ## Grid entities
-    #"ImageData": vtk_to_grid2d,
+    #"ImageData_8": vtk_to_grid2d,
     ## Volume entities
-    #"StructuredGrid": vtk_to_blockmodel,
+    #"StructuredGrid_12": vtk_to_blockmodel,
 }
 
 
