@@ -7,10 +7,10 @@ import pyvista
 from geoh5py.objects.object_base import ObjectBase
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.blockmodel import blockmodel_to_vtk, vtk_to_blockmodel
+from geoh5vista.blockmodel import blockmodel_to_vtk#, vtk_to_blockmodel
 from geoh5vista.curve import curve_to_vtk, vtk_to_curve
 from geoh5vista.drillholes import drillholes_to_vtk
-from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
+from geoh5vista.grid2d import grid2d_to_vtk#, vtk_to_grid2d
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.surface import surface_to_vtk, vtk_to_surface
 from geoh5vista.constants import SUPPORTED
@@ -133,8 +133,21 @@ GEOH5WRAPPERS = {
 }
 
 
-def vtkwrap():
-    pass
+def vtkwrap(data: Optional[pyvista.DataSet]) -> Optional[ObjectBase]:
+    if data is None:
+        return None
+    else:
+
+        key = data.__class__.__name__
+        if key == "PolyData":
+            if data.n_lines > 0:
+                key = "PolyData_lines"
+            elif data.all_triangles():
+                key = "PolyData_trisurf"
+        try:
+            return VTKWRAPPERS[key](data)
+        except KeyError:
+            raise RuntimeError(f"Data of type ({key}) is not currently supported.")
 
 
 def vtk_to_entities():
@@ -144,16 +157,16 @@ def vtk_to_entities():
 def write_workspace():
     pass
 
-
+## Idea - use cell type to determine type of polydata (lines, trisurf, etc)
 VTKWRAPPERS = {
     ## Basic entities
-    "Points": vtk_to_points,
-    "Curve": vtk_to_curve,
-    "Surface": vtk_to_surface,
+    "PointSet": vtk_to_points,
+    "PolyData_lines": vtk_to_curve,
+    "PolyData_trisurf": vtk_to_surface,
     ## Grid entities
-    "Grid2D": vtk_to_grid2d,
+    "ImageData": vtk_to_grid2d,
     ## Volume entities
-    "BlockModel": vtk_to_blockmodel,
+    "StructuredGrid": vtk_to_blockmodel,
 }
 
 
