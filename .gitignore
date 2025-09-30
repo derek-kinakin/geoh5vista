@@ -1,6 +1,10 @@
 **/.DS_Store
 **/*.pyc
 **/__pycache__/
+# pixi environments
+.pixi/
+.vscode/
+.github/
 .envrc
 .coverage
 coverage.xml
@@ -12,7 +16,4 @@ docs/
 examples/
 tests/
 archive/
-# pixi environments
-.pixi/
-.vscode/
 src/geoh5vista.egg-info/
