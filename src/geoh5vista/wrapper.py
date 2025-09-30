@@ -164,9 +164,9 @@ VTKWRAPPERS = {
     "PolyData_lines": vtk_to_curve,
     "PolyData_trisurf": vtk_to_surface,
     ## Grid entities
-    "ImageData": vtk_to_grid2d,
+    #"ImageData": vtk_to_grid2d,
     ## Volume entities
-    "StructuredGrid": vtk_to_blockmodel,
+    #"StructuredGrid": vtk_to_blockmodel,
 }
 
 
