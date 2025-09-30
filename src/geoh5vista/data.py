@@ -47,10 +47,16 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
     output.field_data["gh5_name"] = entity.name
     output.field_data["gh5_entity_type"] = entity.__class__.__name__
 
-    if entity.visible["Visible"].any():
-        output.field_data["gh5_visible"] = True
+    # Visibility is a bit tricky since it can be a bool or a dict
+    if isinstance(entity.visible, dict) and "Visible" in entity.visible:
+        if entity.visible["Visible"].any():
+            output.field_data["gh5_visible"] = True
+        else:
+            output.field_data["gh5_visible"] = False
+    elif isinstance(entity.visible, bool):
+        output.field_data["gh5_visible"] = entity.visible
     else:
-        output.field_data["gh5_visible"] = False
+        output.field_data["gh5_visible"] = True
     return output
 
 

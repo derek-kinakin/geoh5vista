@@ -18,7 +18,9 @@ from geoh5vista.constants import SUPPORTED
 
 __all__ = [
     "geoh5wrap",
-    "read_workspace",
+    "read_geoh5",
+    "vtkwrap",
+    "write_geoh5",
 ]
 
 __displayname__ = "Wrapper"
@@ -77,12 +79,12 @@ def entities_to_vtk(entity_list: List[ObjectBase]) -> pyvista.MultiBlock:
         e = geoh5wrap(item)
         if e is not None and "gh5_name" in e.field_data:
             data.append(e, name=e.field_data["gh5_name"])
-    else:
-        pass
+        else:
+            pass
     return data
 
 
-def read_workspace(
+def read_geoh5(
     workspace_path: Union[str, Path], load_only_visible: bool = False
 ) -> pyvista.MultiBlock:
     """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
@@ -133,36 +135,84 @@ GEOH5WRAPPERS = {
 }
 
 
-def vtkwrap(data: Optional[pyvista.DataSet]) -> Optional[ObjectBase]:
+def vtkwrap(data: Optional[pyvista.DataSet], workspace_path: Union[str, Path], name: Optional[str] = None) -> None:
     if data is None:
         return None
+    elif isinstance(data, pyvista.PointSet):
+        key = "PointSet"
     else:
         cell_type = data.get_cell(0).type # Check that the cell types are consistent
         data = data.extract_cells_by_type(cell_type) 
         if data is None:
             print("The cell types of the object are not consistent. Skipping object.")
             pass
-        else:
-            key = f"{data.__class__.__name__}_{cell_type.name}"
-            try:
-                return VTKWRAPPERS[key](data)
-            except KeyError:
-                raise RuntimeError(f"Data of type ({key}) is not currently supported.")
+        key = f"{data.__class__.__name__}_{cell_type.name}"
+    try:
+        return VTKWRAPPERS[key](data, workspace_path, name=name)
+    except KeyError:
+        raise RuntimeError(f"Data of type ({key}) is not currently supported.")
 
 
-def vtk_to_entities(workspace_path: Union[str, Path], data: Union[List[pyvista.DataSet], pyvista.MultiBlock]) -> List[ObjectBase]:
-    pass
+def vtk_to_entities(
+    data: Union[List[pyvista.DataSet], pyvista.MultiBlock, pyvista.DataSet]
+) -> List[pyvista.DataSet]:
+    """Ensure that data is a list of pyvista DataSet objects."""
+
+    if isinstance(data, pyvista.MultiBlock):
+        if data.is_nested:
+            data = data.flatten()
+        return [data[k] for k in data.keys()]
+
+    elif isinstance(data, pyvista.DataSet):
+        return [data]
+
+    elif isinstance(data, list):
+        return data
+    else:
+        raise TypeError("Unsupported data type.")
 
 
-def write_workspace(workspace_path: Union[str, Path], data: List[ObjectBase]) -> None:
-    pass
+def _get_entity_name(
+    item: pyvista.DataSet, data_list: List[pyvista.DataSet], entity_name: Optional[str]
+) -> str:
+    """Determine the name for a geoh5 entity."""
+    if entity_name:
+        return entity_name
+
+    if "gh5_name" in item.field_data:
+        return item.field_data["gh5_name"]
+    
+    name = f"{item.__class__.__name__}_{data_list.index(item)}"
+    print(f"Object name not found. Using default name: {name}")
+    return name
+
+
+def write_geoh5(
+    data: Union[List[pyvista.DataSet], pyvista.MultiBlock, pyvista.DataSet],
+    workspace_path: Union[str, Path],
+    entity_name: Optional[str] = None,
+) -> None:
+    """Write PyVista objects to a geoh5 workspace."""
+    data_list = vtk_to_entities(data)
+
+    workspace_exists = Path(workspace_path).exists()
+    print(
+        f"Workspace {workspace_path} {'exists. Adding data.' if workspace_exists else 'Creating new workspace.'}"
+    )
+
+    # Use a single context manager to handle both cases
+    with Workspace(workspace_path) if workspace_exists else Workspace.create(
+        workspace_path
+    ) as wp:
+        for item in data_list:
+            name = _get_entity_name(item, data_list, entity_name)
+            vtkwrap(data=item, workspace_path=wp, name=name)
 
 
 VTKWRAPPERS = {
     ## key is combination of VTK class and cell type
     ## Basic entities
-    "PointSet_1": vtk_to_points,
-    "PointSet_2": vtk_to_points,
+    "PointSet": vtk_to_points,
     "PolyData_1": vtk_to_points,
     "PolyData_2": vtk_to_points,
     "PolyData_3": vtk_to_curve,
@@ -179,5 +229,7 @@ VTKWRAPPERS = {
 
 
 # Now set up the display names for the docs
-read_workspace.__displayname__ = "Load a GEOH5 Workspace File" # type: ignore
+read_geoh5.__displayname__ = "Load a GEOH5 Workspace File" # type: ignore
 geoh5wrap.__displayname__ = "GEOH5 Entity Wrapper" # type: ignore
+write_geoh5.__displayname__ = "Write a GEOH5 Workspace File" # type: ignore
+vtkwrap.__displayname__ = "VTK Object Wrapper" # type: ignore

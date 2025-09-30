@@ -7,7 +7,7 @@ from geoh5vista.drillholes import drillholes_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.surface import surface_to_vtk, vtk_to_surface
-from geoh5vista.wrapper import geoh5wrap, read_workspace
+from geoh5vista.wrapper import geoh5wrap, read_geoh5, vtkwrap, write_geoh5
 
 # Package meta data
 __author__ = "Derek Kinakin"
@@ -28,7 +28,9 @@ __all__ = [
     "vtk_to_curve",
     "vtk_to_points",
     "vtk_to_surface",
-    "read_workspace",
+    "read_geoh5",
     "geoh5wrap",
+    "write_geoh5",
+    "vtkwrap"
 ]
 
