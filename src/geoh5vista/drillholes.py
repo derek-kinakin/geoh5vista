@@ -53,7 +53,7 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
             line["dh_name"] = np.repeat(dh.name, line.n_points)
             dh_multi.append(line, name=dh.name)
 
-    dh_multi = dh_multi.combine()
+    dh_multi = dh_multi.extract_geometry()
     dh_multi.field_data["gh5_name"] = dhgrp.name
     dh_multi.field_data["gh5_colour"] = "black"
     dh_multi.field_data["gh5_entity_type"] = "Drillholes"
