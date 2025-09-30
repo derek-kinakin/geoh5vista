@@ -46,6 +46,11 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
     output.field_data["gh5_colour"] = colour
     output.field_data["gh5_name"] = entity.name
     output.field_data["gh5_entity_type"] = entity.__class__.__name__
+
+    if entity.visible["Visible"].any():
+        output.field_data["gh5_visible"] = True
+    else:
+        output.field_data["gh5_visible"] = False
     return output
 
 

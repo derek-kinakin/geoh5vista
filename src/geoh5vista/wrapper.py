@@ -7,12 +7,12 @@ import pyvista
 from geoh5py.objects.object_base import ObjectBase
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.blockmodel import blockmodel_to_vtk
-from geoh5vista.curve import curve_to_vtk
+from geoh5vista.blockmodel import blockmodel_to_vtk, vtk_to_blockmodel
+from geoh5vista.curve import curve_to_vtk, vtk_to_curve
 from geoh5vista.drillholes import drillholes_to_vtk
-from geoh5vista.grid2d import grid2d_to_vtk
-from geoh5vista.points import points_to_vtk
-from geoh5vista.surface import surface_to_vtk
+from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
+from geoh5vista.points import points_to_vtk, vtk_to_points
+from geoh5vista.surface import surface_to_vtk, vtk_to_surface
 from geoh5vista.constants import SUPPORTED
 
 
@@ -83,7 +83,7 @@ def entities_to_vtk(entity_list: List[ObjectBase]) -> pyvista.MultiBlock:
 
 
 def read_workspace(
-    workspace_path: Union[str, Path], load_visible: bool = True
+    workspace_path: Union[str, Path], load_only_visible: bool = False
 ) -> pyvista.MultiBlock:
     """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
 
@@ -105,7 +105,8 @@ def read_workspace(
     entities = wp.fetch_children(wp.root, recursively=True)
     # entities = wp.objects # This approach doesn't include drillholes
     supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
-    if load_visible:
+
+    if load_only_visible:
         supported_entities = [
             e
             for e in supported_entities
@@ -129,6 +130,30 @@ GEOH5WRAPPERS = {
     "DrillholeGroup": drillholes_to_vtk,
     "ConcatenatorDrillholeGroup": drillholes_to_vtk,
     "ConcatenatedDrillhole": drillholes_to_vtk,
+}
+
+
+def vtkwrap():
+    pass
+
+
+def vtk_to_entities():
+    pass
+
+
+def write_workspace():
+    pass
+
+
+VTKWRAPPERS = {
+    ## Basic entities
+    "Points": vtk_to_points,
+    "Curve": vtk_to_curve,
+    "Surface": vtk_to_surface,
+    ## Grid entities
+    "Grid2D": vtk_to_grid2d,
+    ## Volume entities
+    "BlockModel": vtk_to_blockmodel,
 }
 
 
