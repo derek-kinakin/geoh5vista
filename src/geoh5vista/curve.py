@@ -10,8 +10,10 @@ __all__ = [
 
 __displayname__ = "Curve"
 
+
 import numpy as np
 import pyvista
+from typing import Union
 from geoh5py.objects.curve import Curve
 from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata
@@ -69,7 +71,7 @@ def curve_to_vtk(crv: Curve) -> pyvista.PolyData:
     return output
 
 
-def vtk_geom_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Curve:
+def vtk_geom_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Curve:
     """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.curve.Curve`` object.
 
     Parameters
@@ -94,16 +96,16 @@ def vtk_geom_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) ->
     """
 
     points = vtk.points
-    if isinstance(vtk, pyvista.PolyData) and vtk.lines is not None:
-        lines = vtk.lines.reshape(-1, 3)[:, 1:]
+    if vtk.lines is None:
+        lines = vtk.cells.reshape(-1, 3)[:, 1:]
     else:
-        raise ValueError("VTK object should be a PolyData object with lines.")
+        lines = vtk.lines.reshape(-1, 3)[:, 1:]
 
     curve = Curve.create(workspace=workspace, name=name, vertices=points, cells=lines)
     return curve
 
 
-def vtk_to_curve(vtk: pyvista.PolyData, workspace: Workspace, name: str) -> Curve:
+def vtk_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Curve:
     """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.curve.Curve`` object.
 
     This is a wrapper for ``vtk_geom_to_curve`` and is intended to be the
