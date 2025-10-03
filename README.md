@@ -23,10 +23,10 @@ Current Status of Supported Geoh5 Entities
 
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
 | -------------|----------------|-----------------|----------------|-------|
-| Workspace    | MultiBlock     | Yes             | No             |       |
-| Points       | PointSet       | Yes             | No             |       |
-| Curve        | PolyData       | Yes             | No             |       |
-| Surface      | PolyData       | Yes             | No             |       |
+| Workspace    | MultiBlock     | Yes             | Yes            |       |
+| Points       | PointSet       | Yes             | Geometry       |       |
+| Curve        | PolyData       | Yes             | Geometry       |       |
+| Surface      | PolyData       | Yes             | Geometry       |       |
 | 2D Grid      | ImageData      | Yes             | No             |       |
 | Block model  | StructuredGrid | Yes             | No             |       |
 | Drillholes   | MultiBlock     | Yes             | No             |       |
@@ -41,7 +41,7 @@ Example Use
 import pyvista as pv
 import geoh5vista
 
-project = geoh5vista.read_workspace('test_file.geoh5')
+project = geoh5vista.read_geoh5('test_file.geoh5')
 project
 ```
 
