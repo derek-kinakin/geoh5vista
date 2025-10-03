@@ -221,6 +221,7 @@ VTKWRAPPERS = {
     "UnstructuredGrid_4": vtk_to_curve,
     "PolyData_5": vtk_to_surface,
     "UnstructuredGrid_5": vtk_to_surface,
+    "UnstructuredGrid_TRIANGLE": vtk_to_surface,
     ## Grid entities
     #"ImageData_8": vtk_to_grid2d,
     ## Volume entities
