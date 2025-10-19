@@ -93,7 +93,7 @@ def vtk_geom_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], 
 
     points = vtk.points
     # extract triangle faces without VTK padding
-    cells = vtk.cells.reshape((vtk.n_cells, 4))[:, 1:]
+    cells = vtk.faces.reshape((vtk.n_cells, 4))[:, 1:]
 
     surface = Surface.create(workspace=workspace, name=name, vertices=points, cells=cells)
     return surface
