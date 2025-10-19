@@ -15,7 +15,7 @@ import pyvista
 from typing import Union
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.data import add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
 
 
 def surface_geom_to_vtk(trisurf: Surface) -> pyvista.PolyData:
@@ -122,6 +122,7 @@ def vtk_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], works
 
     """
     surface = vtk_geom_to_surface(vtk=vtk, workspace=workspace, name=name)
+    surface = add_data_to_geoh5(surface, vtk)
     return surface
 
 

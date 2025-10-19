@@ -16,7 +16,7 @@ import pyvista
 from typing import Union
 from geoh5py.objects.curve import Curve
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.data import add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
 
 
 def curve_geom_to_vtk(crv: Curve) -> pyvista.PolyData:
@@ -128,6 +128,7 @@ def vtk_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspa
 
     """
     curve = vtk_geom_to_curve(vtk=vtk, workspace=workspace, name=name)
+    curve = add_data_to_geoh5(curve, vtk)
     return curve
 
 

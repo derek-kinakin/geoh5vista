@@ -233,6 +233,7 @@ VTKWRAPPERS = {
     #"ImageData_8": vtk_to_grid2d,
     ## Volume entities
     #"StructuredGrid_12": vtk_to_blockmodel,
+    #"StructuredGrid_HEXAHEDRON": vtk_to_blockmodel,
 }
 
 

@@ -246,11 +246,34 @@ def add_data_to_vtk_grid(
     return output
 
 
+def get_vtk_array_association(data: pyvista.DataSet, name: str) -> str:
+    """Determine if a VTK array should be assigned to 'VERTEX' or 'CELL'
+    for writing to geoh5.
+
+    Parameters
+    ----------
+    data : pyvista.DataSet
+        The VTK data object containing the array.
+    name : str
+        The name of the array.
+
+    Returns
+    -------
+        str
+            The determined association: 'VERTEX' or 'CELL'.
+
+    """
+    # Placeholder logic; replace with actual determination logic
+    if name in data.point_data:
+        return "VERTEX"
+    elif name in data.cell_data:
+        return "CELL"
+    else:
+        return "VERTEX"
+
+
 def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
     """Add data from a VTK object to a geoh5py entity.
-
-    .. warning::
-        This function is not yet implemented.
 
     Parameters
     ----------
@@ -260,7 +283,27 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
         The VTK data object to source the data from.
 
     """
-    pass
+    skip_names = ["gh5_colour", "gh5_name", "gh5_entity_type", "gh5_visible"]
+    
+    if data is None:
+        return output
+
+    elif data.n_arrays == 0:
+        return output
+
+    else:
+        data_array_names = [i for i in data.array_names if i not in skip_names]
+        for name in data_array_names:
+            association = get_vtk_array_association(data, name)
+            # Implement data transfer logic here
+            output.add_data(
+                {name: {
+                    "association": association,
+                    "values": data[name]
+                }}
+            )
+
+        return output
 
 
 add_entity_metadata.__displayname__ = "Metadata to VTK"  # type: ignore
