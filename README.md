@@ -31,7 +31,7 @@ Current Status of Supported Geoh5 Entities
 | Block model  | StructuredGrid | Yes             | No             |       |
 | Drillholes   | MultiBlock     | Yes             | No             |       |
 
-This table provides the list of entities that will be supported. Read from and write
+This table provides the list of supported entities. Read from and write
 to Geoh5 support is the goal for each entity.
 
 Example Use
@@ -45,11 +45,11 @@ project = geoh5vista.read_geoh5('test_file.geoh5')
 project
 ```
 
-Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``, then
-that object can be directly used for interactive 3D visualization from PyVista_:
+Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``,
+that object can be directly used for interactive 3D visualization from PyVista:
 
-An interactive scene can be created and manipulated to create a compelling
-figure. First, grab the elements from the project:
+An interactive scene can be created and manipulated to create a figure.
+First, grab the elements from the project:
 
 ```python
 # Grab a few elements of interest and plot em up!
