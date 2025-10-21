@@ -103,19 +103,23 @@ def read_geoh5(
         A MultiBlock object containing the converted entities.
 
     """
-    wp = Workspace(workspace_path)
-    entities = wp.fetch_children(wp.root, recursively=True)
-    # entities = wp.objects # This approach doesn't include drillholes
-    supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
+    # Check for workspace existence
+    if not Path(workspace_path).exists():
+        raise FileNotFoundError(f"Workspace file {workspace_path} not found.")
+    else:
+        wp = Workspace(workspace_path)
+        entities = wp.fetch_children(wp.root, recursively=True)
+        # entities = wp.objects # This approach doesn't include drillholes
+        supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
 
-    if load_only_visible:
-        supported_entities = [
-            e
-            for e in supported_entities
-            if e.visible["Visible"].any()
-        ]
+        if load_only_visible:
+            supported_entities = [
+                e
+                for e in supported_entities
+                if e.visible["Visible"].any()
+            ]
 
-    return entities_to_vtk(supported_entities)
+        return entities_to_vtk(supported_entities)
 
 
 GEOH5WRAPPERS = {
