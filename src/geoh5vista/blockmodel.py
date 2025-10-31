@@ -105,6 +105,43 @@ def blockmodel_grid_geom_to_vtk(
     return output
 
 
+def blockmodel_grid_geom_to_image_vtk(
+    blkmdl: BlockModel, rotation_matrix: Optional[np.ndarray] = None
+) -> pyvista.ImageData:
+    """Convert the block model geometry to a ``pyvista.ImageData``.
+
+    Parameters
+    ----------
+    blkmdl : geoh5py.objects.block_model.BlockModel
+        The block model to convert.
+    rotation_matrix : numpy.ndarray, optional
+        A 3x3 rotation matrix to apply to the grid points. If None, no
+        rotation is applied. Default is None.
+
+    Returns
+    -------
+    pyvista.ImageData
+        The block model geometry as a image data opbject.
+
+    """
+    output = pyvista.ImageData()
+    origin = np.array([blkmdl.origin[0], blkmdl.origin[1], blkmdl.origin[2]], "float32")
+
+    output.origin = origin
+   
+    # Use a vtkImageData
+    dimensions = blkmdl.shape
+    output.dimensions = dimensions
+    
+    spacing = (blkmdl.u_cells, blkmdl.v_cells, blkmdl.z_cells)
+    output.spacing = spacing
+    
+    if rotation_matrix is not None:
+        output.direction_matrix = rotation_matrix
+    
+    return output
+
+
 def blockmodel_to_vtk(blkmdl: BlockModel) -> pyvista.StructuredGrid:
     """Convert a ``geoh5py.objects.block_model.BlockModel`` to a ``pyvista.StructuredGrid``.
 
