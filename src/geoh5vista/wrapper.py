@@ -103,12 +103,16 @@ def read_geoh5(
         A MultiBlock object containing the converted entities.
 
     """
-    #wp = Workspace(workspace_path)
+    # Check for workspace existence
+    if not Path(workspace_path).exists():
+        raise FileNotFoundError(f"Workspace file {workspace_path} not found.")
+    else:
+        #wp = Workspace(workspace_path)
     with Workspace(workspace_path) as wp:
-        entities = wp.fetch_children(wp.root, recursively=True)
-        # entities = wp.objects # This approach doesn't include drillholes
+            entities = wp.fetch_children(wp.root, recursively=True)
+            # entities = wp.objects # This approach doesn't include drillholes
 
-        supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
+            supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
 
         if load_only_visible:
             supported_entities = [
@@ -235,6 +239,7 @@ VTKWRAPPERS = {
     #"ImageData_8": vtk_to_grid2d,
     ## Volume entities
     #"StructuredGrid_12": vtk_to_blockmodel,
+    #"StructuredGrid_HEXAHEDRON": vtk_to_blockmodel,
 }
 
 

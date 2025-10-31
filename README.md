@@ -23,15 +23,15 @@ Current Status of Supported Geoh5 Entities
 
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
 | -------------|----------------|-----------------|----------------|-------|
-| Workspace    | MultiBlock     | Yes             | Yes            |       |
-| Points       | PointSet       | Yes             | Geometry       |       |
-| Curve        | PolyData       | Yes             | Geometry       |       |
-| Surface      | PolyData       | Yes             | Geometry       |       |
+| Workspace    | MultiBlock     | Yes             | Yes            | A multiblock can be written to Geoh5|
+| Points       | PointSet       | Yes             | Yes            | Float and int data arrays supported |
+| Curve        | PolyData       | Yes             | Yes            | Float and int data arrays supported |
+| Surface      | PolyData       | Yes             | Yes            | Float and int data arrays supported |
 | 2D Grid      | ImageData      | Yes             | No             |       |
 | Block model  | StructuredGrid | Yes             | No             |       |
 | Drillholes   | MultiBlock     | Yes             | No             |       |
 
-This table provides the list of entities that will be supported. Read from and write
+This table provides the list of supported entities. Read from and write
 to Geoh5 support is the goal for each entity.
 
 Example Use
@@ -45,17 +45,17 @@ project = geoh5vista.read_geoh5('test_file.geoh5')
 project
 ```
 
-Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``, then
-that object can be directly used for interactive 3D visualization from PyVista_:
+Once the data is loaded as a ``pyvista.MultiBlock`` dataset from ``geoh5vista``,
+that object can be directly used for interactive 3D visualization from PyVista:
 
-An interactive scene can be created and manipulated to create a compelling
-figure. First, grab the elements from the project:
+An interactive scene can be created and manipulated to create a figure.
+First, grab the elements from the project:
 
 ```python
 # Grab a few elements of interest and plot em up!
-vol = project['Block Model']
-topo = project['Topography']
-dacite = project['Dacite']
+vol = project["Block Model"]
+topo = project["Topography"]
+dacite = project["Dacite"]
 ```
 
 Then create a 3D scene with these spatial data and apply a filtering tool from
@@ -65,7 +65,7 @@ PyVista to the volumetric data:
 # Create a plotting window
 p = pv.Plotter(notebook=False)
 # Add our datasets
-p.add_mesh(topo, cmap='gist_earth', opacity=0.5)
+p.add_mesh(topo, cmap="gist_earth", opacity=0.5)
 p.add_mesh(dacite, color=dacite["gh5_colour"], opacity=0.6)
 # Add the volumetric dataset with a thresholding tool
 p.add_mesh_threshold(vol)
@@ -73,4 +73,19 @@ p.add_mesh_threshold(vol)
 p.show_bounds()
 # Render the scene in a pop out window
 p.show()
+```
+
+Writing PyVista objects to a Geoh5 file can be as simple as:
+
+```python
+
+# Write a single object to geoh5
+geoh5vista.write_geoh5(topo, "new_gh5_topo_file.geoh5")
+
+# Write a multiblock to geoh5
+new_project = pv.Multiblock()
+new_project["Topo"] = topo
+new_project["Dactite"] = dacite
+
+geoh5vista.write_geoh5(new_project, "new_project.geoh5")
 ```
