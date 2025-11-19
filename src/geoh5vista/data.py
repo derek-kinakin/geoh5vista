@@ -272,8 +272,56 @@ def get_vtk_array_association(data: pyvista.DataSet, name: str) -> str:
         return "VERTEX"
 
 
+def create_value_map(data: pyvista.DataSet, name: str) -> dict:
+    """Create a mapping dictionary for referenced data values.
+
+    Parameters
+    ----------
+    data : pyvista.DataSet
+        The VTK data object containing the array.
+    name : str
+    """
+    unique_values = np.unique(data[name])
+    values_dict = {int(n+1): i for n, i in enumerate(unique_values)}
+    values_dict[0] = "Unknown"
+    
+    return values_dict
+
+
+def get_data_type(data: pyvista.DataSet, name: str) -> str:
+    """Determine the data type for a VTK array when writing to geoh5.
+
+    Parameters
+    ----------
+    data : pyvista.DataSet
+        The VTK data object containing the array.
+    name : str
+        The name of the array.
+
+    Returns
+    -------
+        str
+            The determined data type: 'float', 'int', or 'referenced'.
+
+    """
+    array = data[name]
+    if np.issubdtype(array.dtype, np.floating):
+        return "float"
+    elif np.issubdtype(array.dtype, np.integer):
+        unique_values = np.unique(array)
+        if len(unique_values) < 20:
+            return "referenced"
+        else:
+            return "int"
+    else:
+        return "referenced"
+    
+
 def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
     """Add data from a VTK object to a geoh5py entity.
+
+    Modifies the geoh5py entity in place by adding data arrays from the
+    VTK object, excluding certain metadata arrays.
 
     Parameters
     ----------
@@ -285,27 +333,35 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
     """
     skip_names = ["gh5_colour", "gh5_name", "gh5_entity_type", "gh5_visible"]
     
-    if data is None:
-        return output
-
-    elif data.n_arrays == 0:
-        return output
+    if data is None or data.n_arrays == 0:
+        return
 
     else:
         data_array_names = [i for i in data.array_names if i not in skip_names]
         for name in data_array_names:
             association = get_vtk_array_association(data, name)
+            data_type = None
             # Implement data transfer logic here
-            output.add_data(
-                {name: {
-                    "association": association,
-                    "values": data[name]
-                }}
-            )
+            if data_type == "referenced":
+                data_dict = create_value_map(data, name)
+                output.add_data(
+                    {name: {
+                        "type": "referenced",
+                        "association": association,
+                        "values": data[name],
+                        "value_map":data_dict,
+                    }}
+                )
+            else:
+                output.add_data(
+                    {name: {
+                        "type": data_type,
+                        "association": association,
+                        "values": data[name]
+                    }}
+                )
 
-        return output
-
-
+    
 add_entity_metadata.__displayname__ = "Metadata to VTK"  # type: ignore
 add_data_to_vtk.__displayname__ = "Text Data to VTK"  # type: ignore
 add_drillhole_interval_data_to_vtk.__displayname__ = "Float Data to VTK"  # type: ignore
