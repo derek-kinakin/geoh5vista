@@ -57,8 +57,8 @@ def grid2d_geom_to_vtk(grd: Grid2D) -> pyvista.ImageData:
     return output
 
 
-def grid2d_to_vtk(grd: Grid2D) -> pyvista.ImageData:
-    """Convert a ``geoh5py.objects.grid2d.Grid2D`` to a ``pyvista.ImageData`` object.
+def grid2d_to_vtk(grd: Grid2D) -> pyvista.DataSet:
+    """Convert a ``geoh5py.objects.grid2d.Grid2D`` to a ``pyvista.DataSet`` object.
 
     This function converts the grid geometry and transfers all associated data.
 
@@ -69,7 +69,7 @@ def grid2d_to_vtk(grd: Grid2D) -> pyvista.ImageData:
 
     Returns
     -------
-    pyvista.ImageData
+    pyvista.DataSet
         The converted 2D grid.
 
     """
