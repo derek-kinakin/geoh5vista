@@ -40,7 +40,7 @@ def surface_geom_to_vtk(trisurf: Surface) -> pyvista.PolyData:
     return output
 
 
-def surface_to_vtk(trisurf: Surface) -> pyvista.PolyData:
+def surface_to_vtk(trisurf: Surface) -> pyvista.DataSet:
     """Convert a ``geoh5py.objects.surface.Surface`` to a ``pyvista.PolyData`` object.
 
     This function converts the surface geometry and transfers all associated
@@ -53,7 +53,7 @@ def surface_to_vtk(trisurf: Surface) -> pyvista.PolyData:
 
     Returns
     -------
-    pyvista.PolyData
+    pyvista.DataSet
         The converted surface.
 
     """

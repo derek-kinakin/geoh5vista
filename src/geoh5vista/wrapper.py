@@ -10,7 +10,7 @@ from geoh5py.workspace.workspace import Workspace
 from geoh5vista.blockmodel import blockmodel_to_vtk#, vtk_to_blockmodel
 from geoh5vista.curve import curve_to_vtk, vtk_to_curve
 from geoh5vista.drillholes import drillholes_to_vtk
-from geoh5vista.grid2d import grid2d_to_vtk#, vtk_to_grid2d
+from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.surface import surface_to_vtk, vtk_to_surface
 from geoh5vista.constants import SUPPORTED
@@ -236,7 +236,8 @@ VTKWRAPPERS = {
     "UnstructuredGrid_5": vtk_to_surface,
     "UnstructuredGrid_TRIANGLE": vtk_to_surface,
     ## Grid entities
-    #"ImageData_8": vtk_to_grid2d,
+    "ImageData_8": vtk_to_grid2d,
+    "ImageData_PIXEL": vtk_to_grid2d,
     ## Volume entities
     #"StructuredGrid_12": vtk_to_blockmodel,
     #"StructuredGrid_HEXAHEDRON": vtk_to_blockmodel,
