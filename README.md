@@ -30,6 +30,7 @@ Current Status of Supported Geoh5 Entities
 | 2D Grid      | ImageData      | Yes             | Yes            | Data arrays supported |
 | Block model  | StructuredGrid | Yes             | No             |       |
 | Drillholes   | MultiBlock     | Yes             | No             |       |
+| Slicer       | PolyData       | Yes             | No             | Geometry available as object metadata |
 
 This table provides the list of supported entities. Read from and write
 to Geoh5 support is the goal for each entity.
