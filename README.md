@@ -21,15 +21,15 @@ pip install git+https://github.com/derek-kinakin/geoh5vista.git
 Current Status of Supported Geoh5 Entities
 -------------------
 
-| Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes |
-| -------------|----------------|-----------------|----------------|-------|
-| Workspace    | MultiBlock     | Yes             | Yes            | A multiblock can be written to Geoh5|
-| Points       | PointSet       | Yes             | Yes            | Data arrays supported |
-| Curve        | PolyData       | Yes             | Yes            | Data arrays supported |
-| Surface      | PolyData       | Yes             | Yes            | Data arrays supported |
-| 2D Grid      | ImageData      | Yes             | Yes            | Data arrays supported |
-| Block model  | StructuredGrid | Yes             | No             |       |
-| Drillholes   | MultiBlock     | Yes             | No             |       |
+| Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes                                 |
+| -------------|----------------|-----------------|----------------|---------------------------------------|
+| Workspace    | MultiBlock     | Yes             | Yes            | A multiblock can be written to Geoh5  |
+| Points       | PointSet       | Yes             | Yes            | Data arrays supported                 |
+| Curve        | PolyData       | Yes             | Yes            | Data arrays supported                 |
+| Surface      | PolyData       | Yes             | Yes            | Data arrays supported                 |
+| 2D Grid      | ImageData      | Yes             | Yes            | Data arrays supported                 |
+| Block model  | StructuredGrid | Yes             | No             |                                       |
+| Drillholes   | MultiBlock     | Yes             | No             |                                       |
 | Slicer       | PolyData       | Yes             | No             | Geometry available as object metadata |
 
 This table provides the list of supported entities. Read from and write
