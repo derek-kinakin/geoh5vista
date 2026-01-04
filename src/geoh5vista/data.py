@@ -13,6 +13,7 @@ __displayname__ = "Data"
 
 import numpy as np
 import pyvista
+from typing import Union
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
@@ -50,13 +51,13 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
     # Visibility is a bit tricky since it can be a bool or a dict
     if isinstance(entity.visible, dict) and "Visible" in entity.visible:
         if entity.visible["Visible"].any():
-            output.field_data["gh5_visible"] = True
+            output.field_data["gh5_visible"] = True  # type: ignore
         else:
-            output.field_data["gh5_visible"] = False
+            output.field_data["gh5_visible"] = False # type: ignore
     elif isinstance(entity.visible, bool):
-        output.field_data["gh5_visible"] = entity.visible
+        output.field_data["gh5_visible"] = entity.visible # type: ignore
     else:
-        output.field_data["gh5_visible"] = True
+        output.field_data["gh5_visible"] = True # type: ignore
     return output
 
 
@@ -193,9 +194,7 @@ def add_drillhole_interval_data_to_vtk(
     return output
 
 
-def add_data_to_vtk_grid(
-    output: pyvista.StructuredGrid, entity: BlockModel
-) -> pyvista.StructuredGrid:
+def add_data_to_vtk_grid(output: Union[pyvista.StructuredGrid, pyvista.ImageData], entity: BlockModel) -> pyvista.DataSet:
     """Transfer data from a geoh5py grid entity to a VTK grid object.
 
     This function is specialized for grid objects like ``BlockModel``, where
@@ -211,7 +210,7 @@ def add_data_to_vtk_grid(
 
     Returns
     -------
-    pyvista.StructuredGrid
+    pyvista.DataSet
         The VTK grid object with added data.
 
     """

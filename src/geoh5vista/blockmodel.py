@@ -48,25 +48,12 @@ def create_blockmodel_rot_matrix(blkmdl: BlockModel) -> np.ndarray:
         The 2D rotation matrix.
 
     """
-    rotation = np.radians(blkmdl.rotation)
-
-    # Handle rotation matrix - ensure it's float64 and valid
-    #if rotation_matrix is None:
-    #    rotation_matrix = np.eye(3, dtype=np.float64)
-    #else:
-    #    rotation_matrix = np.array(rotation_matrix, dtype=np.float64)
-    
-    # create a rotation matrix from angle in radians
-    #rotation_mtx = np.array([[np.cos(rotation), -np.sin(rotation), 0],
-    #                         [np.sin(rotation), np.cos(rotation), 0],
-    #                         [0, 0, 1]])
+    rotation = np.deg2rad(blkmdl.rotation)
     rotation_mtx = xy_rotation_matrix(rotation)
     return rotation_mtx
 
 
-def blockmodel_grid_geom_to_vtk(
-    blkmdl: BlockModel, rotation_matrix: Optional[np.ndarray] = None
-) -> pyvista.StructuredGrid:
+def blockmodel_grid_geom_to_vtk(blkmdl: BlockModel, rotation_matrix: Optional[np.ndarray] = None) -> pyvista.StructuredGrid:
     """Convert the block model geometry to a ``pyvista.StructuredGrid``.
 
     Parameters
@@ -105,9 +92,7 @@ def blockmodel_grid_geom_to_vtk(
     return output
 
 
-def blockmodel_grid_geom_to_image_vtk(
-    blkmdl: BlockModel, rotation_matrix: Optional[np.ndarray] = None
-) -> pyvista.ImageData:
+def blockmodel_grid_geom_to_image_vtk(blkmdl: BlockModel, rotation_matrix: Optional[np.ndarray] = None) -> pyvista.ImageData:
     """Convert the block model geometry to a ``pyvista.ImageData``.
 
     Parameters
@@ -139,14 +124,14 @@ def blockmodel_grid_geom_to_image_vtk(
     origin = [(blkmdl.centroids[:,0].min()-spacing[0]/2),
               (blkmdl.centroids[:,1].min()-spacing[1]/2),
               (blkmdl.centroids[:,2].min()-spacing[2]/2)]
-    
+
     output.origin = origin
     
     return output
 
 
 def blockmodel_to_vtk(blkmdl: BlockModel) -> pyvista.DataSet:
-    """Convert a ``geoh5py.objects.block_model.BlockModel`` to a ``pyvista.StructuredGrid``.
+    """Convert a ``geoh5py.objects.block_model.BlockModel`` to a ``pyvista.DataSet``.
 
     This function converts the block model geometry and transfers all associated
     data.
@@ -158,12 +143,12 @@ def blockmodel_to_vtk(blkmdl: BlockModel) -> pyvista.DataSet:
 
     Returns
     -------
-    pyvista.StructuredGrid
+    pyvista.DataSet
         The converted block model.
 
     """
     rotation_mtx = create_blockmodel_rot_matrix(blkmdl)
-    output = blockmodel_grid_geom_to_vtk(blkmdl, rotation_matrix=rotation_mtx)
+    output = blockmodel_grid_geom_to_image_vtk(blkmdl, rotation_matrix=rotation_mtx)
     output = add_data_to_vtk_grid(output, blkmdl)
     output = add_entity_metadata(output, blkmdl)
     return output
