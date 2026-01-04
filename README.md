@@ -24,11 +24,11 @@ Current Status of Supported Geoh5 Entities
 | Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes                                 |
 | -------------|----------------|-----------------|----------------|---------------------------------------|
 | Workspace    | MultiBlock     | Yes             | Yes            | A multiblock can be written to Geoh5  |
-| Points       | PointSet       | Yes             | Yes            | Data arrays supported                 |
-| Curve        | PolyData       | Yes             | Yes            | Data arrays supported                 |
-| Surface      | PolyData       | Yes             | Yes            | Data arrays supported                 |
-| 2D Grid      | ImageData      | Yes             | Yes            | Data arrays supported                 |
-| Block model  | StructuredGrid | Yes             | No             |                                       |
+| Points       | PointSet       | Yes             | Yes            |                                       |
+| Curve        | PolyData       | Yes             | Yes            |                                       |
+| Surface      | PolyData       | Yes             | Yes            |                                       |
+| 2D Grid      | ImageData      | Yes             | Yes            | 2D grid with dimensions nU x nV x 1   |
+| Block model  | ImageData      | Yes             | No             | 3D grid with dimensions nU x nV x nZ  |
 | Drillholes   | MultiBlock     | Yes             | No             |                                       |
 | Slicer       | PolyData       | Yes             | No             | Geometry available as object metadata |
 
