@@ -16,6 +16,7 @@ SUPPORTED = [
     "Drillhole",
     "DrillholeGroup",
     "ConcatenatorDrillholeGroup",
+    "Slicer",
 ]
 
 GEOH5SKIP = [
@@ -39,7 +40,6 @@ GEOH5SKIP = [
     "VP Model",
     "UIJsonGroup",
     "InterpretationSection",
-    "Slicer",
     "BooleanData",
     "PropertyGroup",
     "CommentsData",

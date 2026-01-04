@@ -13,6 +13,7 @@ from geoh5vista.drillholes import drillholes_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.surface import surface_to_vtk, vtk_to_surface
+from geoh5vista.slicer import slicer_to_vtk_plane
 from geoh5vista.constants import SUPPORTED
 
 
@@ -138,6 +139,8 @@ GEOH5WRAPPERS = {
     "DrillholeGroup": drillholes_to_vtk,
     "ConcatenatorDrillholeGroup": drillholes_to_vtk,
     "ConcatenatedDrillhole": drillholes_to_vtk,
+    ## Slicer entities
+    "Slicer": slicer_to_vtk_plane,
 }
 
 
