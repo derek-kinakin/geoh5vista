@@ -316,7 +316,7 @@ def get_data_type(data: pyvista.DataSet, name: str) -> str:
         return "referenced"
     
 
-def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
+def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectBase:
     """Add data from a VTK object to a geoh5py entity.
 
     Modifies the geoh5py entity in place by adding data arrays from the
@@ -333,7 +333,7 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
     skip_names = ["gh5_colour", "gh5_name", "gh5_entity_type", "gh5_visible"]
     
     if data is None or data.n_arrays == 0:
-        return
+        return output
 
     else:
         data_array_names = [i for i in data.array_names if i not in skip_names]
@@ -359,6 +359,8 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> None:
                         "values": data[name]
                     }}
                 )
+
+    return output
 
     
 add_entity_metadata.__displayname__ = "Metadata to VTK"  # type: ignore
