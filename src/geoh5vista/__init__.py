@@ -13,7 +13,7 @@ from geoh5vista.wrapper import geoh5wrap, read_geoh5, vtkwrap, write_geoh5
 __author__ = "Derek Kinakin"
 __license__ = "BSD-3-Clause"
 __copyright__ = "2024, Derek Kinakin"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __displayname__ = "GEOH5-VTK"
 __name__ = "geoh5vista"
 

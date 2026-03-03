@@ -52,5 +52,6 @@ DATASKIP = [
     'DEPTH (Static-Survey)',
     'Dip',
     'Visual Parameters',
-    'UserComments'
+    'UserComments',
+    '__SAVED_CROSSPLOT_VISUAL_PARAMETERS__',
 ]

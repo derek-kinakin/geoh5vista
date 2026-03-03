@@ -17,6 +17,7 @@ from typing import Union
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
+from geoh5py.data.boolean_data import BooleanData
 from geoh5py.objects.block_model import BlockModel
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
@@ -89,6 +90,8 @@ def add_data_to_vtk(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.Data
         if data_obj_list:
             data = data_obj_list[0]
             if data.values is None:
+                continue
+            if isinstance(data, BooleanData):
                 continue
             if isinstance(data, ReferencedData):
                 data_value_map = data.value_map
