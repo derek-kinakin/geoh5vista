@@ -29,7 +29,7 @@ Current Status of Supported Geoh5 Entities
 | Surface      | PolyData       | Yes             | Yes            |                                       |
 | 2D Grid      | ImageData      | Yes             | Yes            | 2D grid with dimensions nU x nV x 1   |
 | Block model  | ImageData      | Yes             | No             | 3D grid with dimensions nU x nV x nZ  |
-| Drillholes   | MultiBlock     | Yes             | No             |                                       |
+| Drillholes   | PolyData       | Yes             | No             |                                       |
 | Slicer       | PolyData       | Yes             | No             | Geometry available as object metadata |
 
 This table provides the list of supported entities. Read from and write
