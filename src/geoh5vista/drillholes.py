@@ -32,7 +32,7 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
         All the drillholes as PolyData line objects.
 
     """
-    dh_multi = pyvista.PolyData()
+    dh_multi = pyvista.MultiBlock()
     for dh in dhgrp.children:
         if isinstance(dh, Drillhole) and len(dh.to_) > 0 and dh.trace_depth is not None:
             data_intervals = np.sort(
@@ -45,12 +45,12 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
             line["depth"] = data_intervals
             line = add_drillhole_interval_data_to_vtk(line, dh)
             line["dh_name"] = np.repeat(dh.name, line.n_points)
-            dh_multi = dh_multi.merge(line)
+            dh_multi.append(line, dh.name)
         elif isinstance(dh, Drillhole) and dh.trace is not None and dh.trace_depth is not None:
             line = pyvista.lines_from_points(dh.trace)
             line["depth"] = dh.trace_depth
             line["dh_name"] = np.repeat(dh.name, line.n_points)
-            dh_multi = dh_multi.merge(line)
+            dh_multi.append(line, dh.name)
 
     dh_multi.field_data["gh5_name"] = dhgrp.name
     dh_multi.field_data["gh5_colour"] = "black"
