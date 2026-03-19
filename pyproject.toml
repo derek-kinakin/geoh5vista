@@ -1,6 +1,6 @@
 [project]
 name = "geoh5vista"
-version = '0.1.1'
+version = '0.1.5'
 description = 'A Python library for converting geoh5py objects to PyVista data objects for 3D visualization and geometry processing.'
 readme = "README.md"
 requires-python = ">=3.11"
