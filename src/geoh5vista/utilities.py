@@ -91,7 +91,7 @@ def get_gh5_entity_colour(gh5_entity: ObjectBase) -> List[int]:
     if a.colour is None:
         return [0, 0, 0]
 
-    c = a.colour  # Colour order is BGR
-    true_color = [c[2], c[1], c[0]]  # Convert to RGB order
+    c = a.colour  # Colour order was BGR before geoh5py 0.12.1
+    true_color = [c[0], c[1], c[2]]  # Convert to RGB order
     return true_color
 

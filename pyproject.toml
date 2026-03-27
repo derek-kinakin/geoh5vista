@@ -12,13 +12,12 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-dependencies = ["geoh5py>=0.10.0", "pyvista>=0.46.0"]
+dependencies = ["geoh5py>=0.12.1", "pyvista>=0.47.1"]
 
 [project.urls]
 Documentation = "https://github.com/derek-kinakin/geoh5vista#readme"
@@ -44,9 +43,8 @@ geoh5vista = { path = ".", editable = true }
 [tool.pixi.tasks]
 
 [tool.pixi.dependencies]
-geoh5py = ">=0.11.0,<0.12"
-pyvista = ">=0.46.1,<0.47"
-
+geoh5py = ">=0.12.1,<0.13"
+pyvista = ">=0.47.1,<0.48"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
