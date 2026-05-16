@@ -42,8 +42,8 @@ geoh5vista = { path = ".", editable = true }
 [tool.pixi.tasks]
 
 [tool.pixi.dependencies]
-geoh5py = ">=0.12.1,<0.13"
-pyvista = ">=0.47.1,<0.48"
+geoh5py = ">=0.12.1,<0.14"
+pyvista = ">=0.47.1,<0.50"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
