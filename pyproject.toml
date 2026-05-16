@@ -14,7 +14,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
 dependencies = ["geoh5py>=0.12.1", "pyvista>=0.47.1"]
