@@ -44,7 +44,9 @@ GEOH5SKIP = [
     "PropertyGroup",
     "CommentsData",
     "ConcatenatedDrillhole",
-    "CustomGroup"
+    "CustomGroup",
+    "Maxwell plate",
+    "ioGAS Points"
 ]
 
 DATASKIP = [
@@ -54,4 +56,7 @@ DATASKIP = [
     'Visual Parameters',
     'UserComments',
     '__SAVED_CROSSPLOT_VISUAL_PARAMETERS__',
+    'ioGAS Points',
+    'Maxwell plate',
+    'Loop radius'
 ]

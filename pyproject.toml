@@ -3,7 +3,7 @@ name = "geoh5vista"
 version = '0.1.5'
 description = 'A Python library for converting geoh5py objects to PyVista data objects for 3D visualization and geometry processing.'
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 license = "MIT"
 keywords = ["geoscience", "geoh5", "pyvista", "3d-visualization", "geology"]
 authors = [
@@ -12,9 +12,8 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
 dependencies = ["geoh5py>=0.12.1", "pyvista>=0.47.1"]
@@ -31,6 +30,20 @@ line_length = 100
 force_sort_within_sections = true
 # Combines "as" imports on the same line
 combine_as_imports = true
+
+[tool.pixi.workspace]
+name = "geoh5vista"
+channels = ["conda-forge"]
+platforms = ["linux-64","win-64"]
+
+[tool.pixi.pypi-dependencies]
+geoh5vista = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+geoh5py = ">=0.12.1,<0.14"
+pyvista = ">=0.47.1,<0.50"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

@@ -115,7 +115,7 @@ def blockmodel_grid_geom_to_image_vtk(blkmdl: BlockModel, rotation_matrix: Optio
     """
     output = pyvista.ImageData()
 
-    spacing = (blkmdl.u_cells[0], blkmdl.v_cells[0], blkmdl.z_cells[0])
+    spacing = (np.abs(blkmdl.u_cells[0]), np.abs(blkmdl.v_cells[0]), np.abs(blkmdl.z_cells[0]))
     output.spacing = spacing
     
     # Use a vtkImageData
