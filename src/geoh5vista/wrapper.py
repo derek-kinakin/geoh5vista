@@ -112,6 +112,9 @@ def read_geoh5(
         with Workspace(workspace_path) as wp:
             entities = wp.fetch_children(wp.root, recursively=True)
             # entities = wp.objects # This approach doesn't include drillholes
+            # TODO: check if there is an issue with drillholes that don't have downhole surveys.
+            # It may be that the workspace reader fails if the drillholes where created from a collar
+            # only and don't have a downhole survey. This is because the reader expects a downhole survey to be present for drillholes, and if it's not, it may raise an error or fail to read the drillhole data correctly. To address this issue, you could implement a check in the workspace reader to handle drillholes without downhole surveys gracefully, perhaps by assigning default values or skipping those drillholes while still allowing the rest of the workspace to be read successfully.
 
             supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
 
