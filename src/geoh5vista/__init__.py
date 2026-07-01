@@ -1,6 +1,8 @@
 """``geoh5vista``: 3D visualization and geometry processing for Geoh5 format (geoh5) objects.
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
 from geoh5vista.blockmodel import blockmodel_to_vtk
 from geoh5vista.curve import curve_to_vtk, vtk_to_curve
 from geoh5vista.drillholes import drillholes_to_vtk
@@ -13,7 +15,11 @@ from geoh5vista.wrapper import geoh5wrap, read_geoh5, vtkwrap, write_geoh5
 __author__ = "Derek Kinakin"
 __license__ = "BSD-3-Clause"
 __copyright__ = "2024, Derek Kinakin"
-__version__ = "0.1.5"
+try:
+    __version__ = version("geoh5vista")
+except PackageNotFoundError:
+    # Fallback for non-installed, source-only execution contexts.
+    __version__ = "0.0.0"
 __displayname__ = "GEOH5-VTK"
 __name__ = "geoh5vista"
 
