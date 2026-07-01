@@ -36,8 +36,6 @@ def _validate_surface_geometry(vertices: np.ndarray | None, cells: np.ndarray | 
 
     if (cells < 0).any() or (cells >= vertices.shape[0]).any():
         raise ValueError("Surface cells contain out-of-range vertex indices.")
-    if ((cells[:, 0] == cells[:, 1]) | (cells[:, 1] == cells[:, 2]) | (cells[:, 0] == cells[:, 2])).any():
-        raise ValueError("Surface cells must reference 3 distinct vertices.")
 
     tri = vertices[cells]
     area2 = np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)

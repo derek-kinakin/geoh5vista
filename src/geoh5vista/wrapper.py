@@ -7,7 +7,7 @@ import pyvista
 from geoh5py.objects.object_base import ObjectBase
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.blockmodel import blockmodel_to_vtk#, vtk_to_blockmodel
+from geoh5vista.blockmodel import blockmodel_to_vtk, vtk_to_blockmodel
 from geoh5vista.curve import curve_to_vtk, vtk_to_curve
 from geoh5vista.drillholes import drillholes_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
@@ -247,6 +247,8 @@ VTKWRAPPERS = {
     ## Volume entities
     #"StructuredGrid_12": vtk_to_blockmodel,
     #"StructuredGrid_HEXAHEDRON": vtk_to_blockmodel,
+    "ImageData_12": vtk_to_blockmodel,
+    "ImageData_VOXEL": vtk_to_blockmodel,
 }
 
 
