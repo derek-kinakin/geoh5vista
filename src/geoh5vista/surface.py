@@ -12,11 +12,37 @@ __displayname__ = "Surface"
 
 
 import pyvista
+import numpy as np
 from typing import Union
 from geoh5py.objects.object_base import ObjectBase
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
+
+
+def _validate_surface_geometry(vertices: np.ndarray | None, cells: np.ndarray | None) -> None:
+    if vertices is None or cells is None:
+        raise ValueError("Surface must have vertices and cells defined.")
+
+    vertices = np.asarray(vertices, dtype=float)
+    cells = np.asarray(cells, dtype=int)
+
+    if vertices.ndim != 2 or vertices.shape[1] != 3 or vertices.shape[0] < 3:
+        raise ValueError("Surface vertices must have shape (n, 3) with n >= 3.")
+    if cells.ndim != 2 or cells.shape[1] != 3 or cells.shape[0] < 1:
+        raise ValueError("Surface cells must have shape (m, 3) with m >= 1.")
+    if not np.isfinite(vertices).all():
+        raise ValueError("Surface vertices must be finite numbers.")
+
+    if (cells < 0).any() or (cells >= vertices.shape[0]).any():
+        raise ValueError("Surface cells contain out-of-range vertex indices.")
+    if ((cells[:, 0] == cells[:, 1]) | (cells[:, 1] == cells[:, 2]) | (cells[:, 0] == cells[:, 2])).any():
+        raise ValueError("Surface cells must reference 3 distinct vertices.")
+
+    tri = vertices[cells]
+    area2 = np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    if not np.any(area2 > 0.0):
+        raise ValueError("Surface geometry is degenerate (zero-area triangles only).")
 
 
 def surface_geom_to_vtk(trisurf: Surface) -> pyvista.PolyData:
@@ -33,12 +59,8 @@ def surface_geom_to_vtk(trisurf: Surface) -> pyvista.PolyData:
         The surface geometry as a PolyData object.
 
     """
-    if trisurf.vertices is None or trisurf.cells is None:
-        raise ValueError("Surface must have vertices and cells defined.")
-    pts = trisurf.vertices
-    faces = trisurf.cells
-    output = pyvista.make_tri_mesh(pts, faces)
-    return output
+    _validate_surface_geometry(trisurf.vertices, trisurf.cells)
+    return pyvista.make_tri_mesh(trisurf.vertices, trisurf.cells)
 
 
 def surface_to_vtk(trisurf: Surface) -> pyvista.DataSet:
