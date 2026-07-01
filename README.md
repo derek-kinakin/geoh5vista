@@ -14,6 +14,14 @@ Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 Installation
 ------------
 
+From PyPi
+
+```python
+pip install geoh5vista
+```
+
+From Github
+
 ```python
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
@@ -84,9 +92,9 @@ Writing PyVista objects to a Geoh5 file can be as simple as:
 geoh5vista.write_geoh5(topo, "new_gh5_topo_file.geoh5")
 
 # Write a multiblock to geoh5
-new_project = pv.Multiblock()
+new_project = pv.MultiBlock()
 new_project["Topo"] = topo
-new_project["Dactite"] = dacite
+new_project["Dacite"] = dacite
 
 geoh5vista.write_geoh5(new_project, "new_project.geoh5")
 ```
