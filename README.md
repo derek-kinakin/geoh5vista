@@ -14,7 +14,7 @@ Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 Installation
 ------------
 
-From PyPi
+From PyPi (coming soon)
 
 ```python
 pip install geoh5vista
@@ -36,7 +36,7 @@ Current Status of Supported Geoh5 Entities
 | Curve        | PolyData       | Yes             | Yes            |                                       |
 | Surface      | PolyData       | Yes             | Yes            |                                       |
 | 2D Grid      | ImageData      | Yes             | Yes            | 2D grid with dimensions nU x nV x 1   |
-| Block model  | ImageData      | Yes             | Yes            | 3D grid with dimensions nU x nV x nZ  |
+| Block model  | ImageData or StructuredGrid     | Yes             | Yes            | 3D grid with dimensions nU x nV x nZ  |
 | Drillholes   | PolyData       | Yes             | No             |                                       |
 | Slicer       | PolyData       | Yes             | No             | Geometry available as object metadata |
 
