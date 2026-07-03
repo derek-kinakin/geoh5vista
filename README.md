@@ -1,9 +1,9 @@
 geoh5vista: a Geoh5 <> PyVista (VTK) interface
 ===========================================
 
-A PyVista (and VTK) interface for the `Geoh5` file format providing Python 3D visualization and useable mesh data structures for processing datasets in the geoh5 specification.
+A PyVista (and VTK) interface for the `Geoh5` file format providing Python 3D visualization and useable data structures for processing datasets in the geoh5 specification. This library allows geologists to access the powerful tools available in the PyVista ecosystem for their data stored in the `Geoh5` format.
 
-The structure and interfaces of this project are heavily inspired by (and borrowed from) the 'omfvista' package, which provides a similar interface for the 'omf' format.
+The structure and interfaces of this project are heavily inspired by the 'omfvista' package, which provides a similar interface for the 'omf' format.
 
 omfvista package: <https://github.com/OpenGeoVis/omfvista>
 
@@ -29,19 +29,19 @@ pip install git+https://github.com/derek-kinakin/geoh5vista.git
 Current Status of Supported Geoh5 Entities
 -------------------
 
-| Geoh5 Entity | PyVista Object | Read from Geoh5 | Write to Geoh5 | Notes                                 |
-| -------------|----------------|-----------------|----------------|---------------------------------------|
-| Workspace    | MultiBlock     | Yes             | Yes            | A multiblock can be written to Geoh5  |
-| Points       | PointSet       | Yes             | Yes            |                                       |
-| Curve        | PolyData       | Yes             | Yes            |                                       |
-| Surface      | PolyData       | Yes             | Yes            |                                       |
-| 2D Grid      | ImageData      | Yes             | Yes            | 2D grid with dimensions nU x nV x 1   |
-| Block model  | ImageData or StructuredGrid     | Yes             | Yes            | 3D grid with dimensions nU x nV x nZ  |
-| Drillholes   | PolyData       | Yes             | No             |                                       |
-| Slicer       | PolyData       | Yes             | No             | Geometry available as object metadata |
-
 This table provides the list of supported entities. Read from and write
 to Geoh5 support is the goal for each entity.
+
+| Geoh5 Entity | PyVista Object             | Read from Geoh5 | Write to Geoh5 | Notes                                                         |
+| -------------|----------------------------|-----------------|----------------|---------------------------------------------------------------|
+| Workspace    | MultiBlock                 | Yes             | Yes            | A multiblock containing several object can be written to Geoh5|
+| Points       | PointSet                   | Yes             | Yes            |                                                               |
+| Curve        | PolyData                   | Yes             | Yes            |                                                               |
+| Surface      | PolyData                   | Yes             | Yes            |                                                               |
+| 2D Grid      | ImageData                  | Yes             | Yes            | 2D grid with dimensions nU x nV x 1                           |
+| Block model  | ImageData or StructuredGrid| Yes             | Yes            | 3D grid with dimensions nU x nV x nZ                          |
+| Drillholes   | PolyData                   | Yes             | No             | Drillholes can be round-tripped back to geoh5 as curves       |
+| Slicer       | PolyData                   | Yes             | No             | Geometry available as object metadata                         |
 
 Example Use
 -----------
