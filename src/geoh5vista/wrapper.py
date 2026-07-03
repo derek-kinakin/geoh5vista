@@ -1,6 +1,8 @@
 """This module provides a high-level wrapper for converting geoh5py objects to PyVista objects."""
 
-from typing import List, Optional, Union
+from __future__ import annotations
+
+from typing import Final
 from pathlib import Path
 
 import pyvista
@@ -17,17 +19,26 @@ from geoh5vista.slicer import slicer_to_vtk_plane
 from geoh5vista.constants import SUPPORTED
 
 
-__all__ = [
+__all__ = (
     "geoh5wrap",
     "read_geoh5",
     "vtkwrap",
     "write_geoh5",
-]
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES",
+)
 
-__displayname__ = "Wrapper"
+
+MODULE_DISPLAY_NAME: Final[str] = "Wrapper"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "geoh5wrap": "Geoh5 Wrap",
+    "read_geoh5": "Read Geoh5",
+    "vtkwrap": "VTK Wrap",
+    "write_geoh5": "Write Geoh5",
+}
 
 
-def geoh5wrap(data: ObjectBase) -> Optional[pyvista.DataSet]:
+def geoh5wrap(data: ObjectBase) -> pyvista.DataSet | None:
     """Wrap a geoh5py data object as a PyVista data object.
 
     This is the primary function that an end user will harness. It takes
@@ -60,7 +71,7 @@ def geoh5wrap(data: ObjectBase) -> Optional[pyvista.DataSet]:
             raise RuntimeError(f"Data of type ({key}) is not  currently supported.")
 
 
-def entities_to_vtk(entity_list: List[ObjectBase]) -> pyvista.MultiBlock:
+def entities_to_vtk(entity_list: list[ObjectBase]) -> pyvista.MultiBlock:
     """Convert a list of geoh5py entities to a ``pyvista.MultiBlock`` object.
 
     Parameters
@@ -86,7 +97,7 @@ def entities_to_vtk(entity_list: List[ObjectBase]) -> pyvista.MultiBlock:
 
 
 def read_geoh5(
-    workspace_path: Union[str, Path], load_only_visible: bool = False
+    workspace_path: str | Path, load_only_visible: bool = False
 ) -> pyvista.MultiBlock:
     """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
 
@@ -94,7 +105,7 @@ def read_geoh5(
     ----------
     workspace_path : str or pathlib.Path
         The path to the geoh5 workspace file.
-    load_visible : bool, optional
+    load_only_visible : bool, optional
         If ``True``, only entities that are marked as visible in the
         workspace will be loaded. Default is ``False``.
 
@@ -147,7 +158,11 @@ GEOH5WRAPPERS = {
 }
 
 
-def vtkwrap(data: Optional[pyvista.DataSet], workspace_path: Union[str, Path], name: Optional[str] = None) -> None:
+def vtkwrap(
+        data: pyvista.DataSet | None, 
+        workspace_path: str | Path, 
+        name: str | None = None
+) -> None:
     if data is None:
         return None
     elif isinstance(data, pyvista.PointSet):
@@ -166,8 +181,8 @@ def vtkwrap(data: Optional[pyvista.DataSet], workspace_path: Union[str, Path], n
 
 
 def vtk_to_entities(
-    data: Union[List[pyvista.DataSet], pyvista.MultiBlock, pyvista.DataSet]
-) -> List[pyvista.DataSet]:
+    data: list[pyvista.DataSet] | pyvista.MultiBlock | pyvista.DataSet
+) -> list[pyvista.DataSet]:
     """Ensure that data is a list of pyvista DataSet objects."""
 
     if isinstance(data, pyvista.MultiBlock):
@@ -185,7 +200,9 @@ def vtk_to_entities(
 
 
 def _get_entity_name(
-    item: pyvista.DataSet, data_list: List[pyvista.DataSet], entity_name: Optional[str]
+    item: pyvista.DataSet,
+    data_list: list[pyvista.DataSet],
+    entity_name: str | None
 ) -> str:
     """Determine the name for a geoh5 entity."""
     if entity_name:
@@ -200,9 +217,9 @@ def _get_entity_name(
 
 
 def write_geoh5(
-    data: Union[List[pyvista.DataSet], pyvista.MultiBlock, pyvista.DataSet],
-    workspace_path: Union[str, Path],
-    entity_name: Optional[str] = None,
+    data: list[pyvista.DataSet] | pyvista.MultiBlock | pyvista.DataSet,
+    workspace_path: str | Path,
+    entity_name: str | None = None,
 ) -> None:
     """Write PyVista objects to a geoh5 workspace."""
     data_list = vtk_to_entities(data)
@@ -250,10 +267,3 @@ VTKWRAPPERS = {
     "ImageData_12": vtk_to_blockmodel,
     "ImageData_VOXEL": vtk_to_blockmodel,
 }
-
-
-# Now set up the display names for the docs
-read_geoh5.__displayname__ = "Load a GEOH5 Workspace File" # type: ignore
-geoh5wrap.__displayname__ = "GEOH5 Entity Wrapper" # type: ignore
-write_geoh5.__displayname__ = "Write a GEOH5 Workspace File" # type: ignore
-vtkwrap.__displayname__ = "VTK Object Wrapper" # type: ignore

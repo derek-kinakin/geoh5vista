@@ -1,23 +1,33 @@
 """This module provides functions for converting geoh5py Surface objects to and from PyVista data objects."""
 
-
-__all__ = [
-    "surface_geom_to_vtk",
-    "surface_to_vtk",
-    "vtk_geom_to_surface",
-    "vtk_to_surface"
-]
-
-__displayname__ = "Surface"
-
+from __future__ import annotations
 
 import pyvista
 import numpy as np
-from typing import Union
+from typing import Final
 from geoh5py.objects.object_base import ObjectBase
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
+
+
+__all__ = (
+    "surface_geom_to_vtk",
+    "surface_to_vtk",
+    "vtk_geom_to_surface",
+    "vtk_to_surface",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES"
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Surface"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "surface_geom_to_vtk": "Surface Geometry to VTK",
+    "surface_to_vtk": "Surface to VTK",
+    "vtk_geom_to_surface": "VTK Geometry to Surface",
+    "vtk_to_surface": "VTK to Surface",
+}
 
 
 def _validate_surface_geometry(vertices: np.ndarray | None, cells: np.ndarray | None) -> None:
@@ -88,12 +98,12 @@ def surface_to_vtk(trisurf: Surface) -> pyvista.DataSet:
     return output
 
 
-def vtk_geom_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Surface:
+def vtk_geom_to_surface(vtk: pyvista.PolyData | pyvista.UnstructuredGrid, workspace: Workspace, name: str) -> Surface:
     """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.surface.Surface`` object.
 
     Parameters
     ----------
-    vtk : pyvista.PolyData
+    vtk : pyvista.PolyData | pyvista.UnstructuredGrid
         The VTK object to convert. It must be a triangular mesh.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new surface to.
@@ -120,7 +130,7 @@ def vtk_geom_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], 
     return surface
 
 
-def vtk_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> ObjectBase:
+def vtk_to_surface(vtk: pyvista.PolyData | pyvista.UnstructuredGrid, workspace: Workspace, name: str) -> ObjectBase:
     """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.surface.Surface`` object.
 
     This is a wrapper for ``vtk_geom_to_surface`` and is intended to be the
@@ -129,7 +139,7 @@ def vtk_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], works
 
     Parameters
     ----------
-    vtk : pyvista.PolyData
+    vtk : pyvista.PolyData | pyvista.UnstructuredGrid
         The VTK object to convert.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new surface to.
@@ -145,10 +155,3 @@ def vtk_to_surface(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], works
     surface = vtk_geom_to_surface(vtk=vtk, workspace=workspace, name=name)
     surface = add_data_to_geoh5(surface, vtk)
     return surface
-
-
-# Now set up the display names for the docs
-surface_to_vtk.__displayname__ = "Surface to VTK" # type: ignore
-surface_geom_to_vtk.__displayname__ = "Surface Geometry to VTK" # type: ignore
-vtk_geom_to_surface.__displayname__ = "VTK Geometry to Surface" # type: ignore
-vtk_to_surface.__displayname__ = "VTK to Surface" # type: ignore

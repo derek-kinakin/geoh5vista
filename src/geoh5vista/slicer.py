@@ -1,22 +1,29 @@
 """This module provides functions for converting geoh5py Slicer objects to PyVista data objects."""
 
-
-__all__ = [
-    "slicer_to_vtk_plane",
-]
-
-__displayname__ = "Slicer"
-
+from __future__ import annotations
 
 import re
 import pyvista
 import xml.etree.ElementTree as ET
-from typing import Tuple, List, Optional
+from typing import Final
 from geoh5py.objects.slicer import Slicer
 from geoh5vista.data import add_entity_metadata
 
+__all__ = (
+    "slicer_to_vtk_plane",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES"
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Slicer"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "slicer_to_vtk_plane": "Slicer to VTK Plane",
+}
+
+
 # Archived: improved regex-based extraction
-def extract_slicer_position_orientation(slicer_params) -> Tuple[Optional[List[float]], Optional[List[float]]]:
+def _extract_slicer_position_orientation(slicer_params) -> tuple[list[float] | None, list[float] | None]:
     """
     Extract position and orientation data from geoh5py Slicer visual parameters.
     
@@ -56,7 +63,7 @@ def extract_slicer_position_orientation(slicer_params) -> Tuple[Optional[List[fl
         return None, None
 
 # Archived: original fallback method
-def extract_slicer_position_orientation_fallback(slicer_params) -> Tuple[Optional[List[float]], Optional[List[float]]]:
+def _extract_slicer_position_orientation_fallback(slicer_params) -> tuple[list[float] | None, list[float] | None]:
     """
     Fallback method using line-by-line parsing (your original approach).
     
@@ -97,7 +104,7 @@ def extract_slicer_position_orientation_fallback(slicer_params) -> Tuple[Optiona
         return None, None
 
 # Archived method using XML parsing
-def extract_slicer_position_orientation_xml(slicer_params) -> Tuple[Optional[List[float]], Optional[List[float]]]:
+def _extract_slicer_position_orientation_xml(slicer_params) -> tuple[list[float] | None, list[float] | None]:
     """
     Extract position and orientation data using proper XML parsing.
     
@@ -151,7 +158,7 @@ def extract_slicer_position_orientation_xml(slicer_params) -> Tuple[Optional[Lis
         return None, None
 
 # Current preferred method using ElementTree Element
-def extract_slicer_position_orientation_from_element(element: ET.Element) -> Tuple[Optional[List[float]], Optional[List[float]]]:
+def _extract_slicer_position_orientation_from_element(element: ET.Element) -> tuple[list[float] | None, list[float] | None]:
     """
     Extract position and orientation data directly from an XML Element object.
     
@@ -212,7 +219,7 @@ def slicer_to_vtk_plane(slicer: Slicer) -> pyvista.DataSet:
     slicer_params = slicer.get_data("Visual Parameters")[0].xml # type: ignore
 
     # Try the XML-based extraction
-    position_values, orientation_values = extract_slicer_position_orientation_from_element(slicer_params)
+    position_values, orientation_values = _extract_slicer_position_orientation_from_element(slicer_params)
  
     # Ensure we have valid values before proceeding
     if position_values is None or orientation_values is None:
@@ -228,5 +235,4 @@ def slicer_to_vtk_plane(slicer: Slicer) -> pyvista.DataSet:
     output = add_entity_metadata(output, slicer)
     output.field_data["normal"] = orientation_values
     output.field_data["origin"] = position_values
-
     return output

@@ -1,19 +1,10 @@
 """This module provides functions for transferring data between geoh5py and PyVista objects."""
 
-
-__all__ = [
-    "add_entity_metadata",
-    "add_data_to_vtk",
-    "add_drillhole_interval_data_to_vtk",
-    "add_data_to_vtk_grid",
-    "add_data_to_geoh5"
-]
-
-__displayname__ = "Data"
+from __future__ import annotations
 
 import numpy as np
 import pyvista
-from typing import Union
+from typing import Final
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
@@ -23,6 +14,31 @@ from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
 from geoh5vista.constants import DATASKIP
 from geoh5vista.utilities import get_gh5_entity_colour
+
+
+__all__ = (
+    "add_entity_metadata",
+    "add_data_to_vtk",
+    "add_drillhole_interval_data_to_vtk",
+    "add_data_to_vtk_grid",
+    "add_data_to_geoh5",
+    "add_grid_data_to_geoh5",
+    "get_vtk_array_association",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES",
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Data"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "add_entity_metadata": "Add Entity Metadata",
+    "add_data_to_vtk": "Add Data to VTK",
+    "add_drillhole_interval_data_to_vtk": "Add Drillhole Interval Data to VTK",
+    "add_data_to_vtk_grid": "Add Data to VTK Grid",
+    "add_data_to_geoh5": "Add Data to GeoH5",
+    "add_grid_data_to_geoh5": "Add Grid Data to GeoH5",
+    "get_vtk_array_association": "Get VTK Array Association",
+}
 
 
 def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
@@ -197,7 +213,7 @@ def add_drillhole_interval_data_to_vtk(
     return output
 
 
-def add_data_to_vtk_grid(output: Union[pyvista.StructuredGrid, pyvista.ImageData], entity: BlockModel) -> pyvista.DataSet:
+def add_data_to_vtk_grid(output: pyvista.StructuredGrid | pyvista.ImageData, entity: BlockModel) -> pyvista.DataSet:
     """Transfer data from a geoh5py grid entity to a VTK grid object.
 
     This function is specialized for grid objects like ``BlockModel``, where
@@ -206,7 +222,7 @@ def add_data_to_vtk_grid(output: Union[pyvista.StructuredGrid, pyvista.ImageData
 
     Parameters
     ----------
-    output : pyvista.StructuredGrid
+    output : pyvista.StructuredGrid | pyvista.ImageData
         The VTK grid object to add the data to.
     entity : geoh5py.objects.block_model.BlockModel
         The geoh5py grid entity to source the data from.
@@ -431,10 +447,3 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
                 )
 
     return output
-
-    
-add_entity_metadata.__displayname__ = "Metadata to VTK"  # type: ignore
-add_data_to_vtk.__displayname__ = "Text Data to VTK"  # type: ignore
-add_drillhole_interval_data_to_vtk.__displayname__ = "Float Data to VTK"  # type: ignore
-add_data_to_vtk_grid.__displayname__ = "Referenced Data to VTK"  # type: ignore
-add_grid_data_to_geoh5.__displayname__ = "Integer Data to VTK"  # type: ignore

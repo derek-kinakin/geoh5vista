@@ -1,20 +1,34 @@
 """This module provides functions for converting geoh5py Grid2D objects to and from PyVista data objects."""
 
-
-__all__ = [
-    "grid2d_to_vtk"
-]
-
-__displayname__ = "Grid2D"
+from __future__ import annotations
 
 import numpy as np
 import pyvista
-from typing import Union
+from typing import Final
 from geoh5py.objects.grid2d import Grid2D
 from geoh5py.workspace.workspace import Workspace
 
 from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
+
+
+__all__ = (
+    "grid2d_geom_to_vtk",
+    "grid2d_to_vtk",
+    "vtk_geom_to_grid2d",
+    "vtk_to_grid2d",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES"
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Grid2D"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "grid2d_geom_to_vtk": "Grid2D Geometry to VTK",
+    "grid2d_to_vtk": "Grid2D to VTK",
+    "vtk_geom_to_grid2d": "VTK Geometry to Grid2D",
+    "vtk_to_grid2d": "VTK to Grid2D",
+}
 
 
 def grid2d_geom_to_vtk(grd: Grid2D) -> pyvista.ImageData:
@@ -84,12 +98,12 @@ def grid2d_to_vtk(grd: Grid2D) -> pyvista.DataSet:
     return output
 
 
-def vtk_geom_to_grid2d(vtk: Union[pyvista.ImageData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Grid2D:
+def vtk_geom_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, workspace: Workspace, name: str) -> Grid2D:
     """Convert a ``pyvista.ImageData`` object to a ``geoh5py.objects.surface.Surface`` object.
 
     Parameters
     ----------
-    vtk : pyvista.ImageData
+    vtk : pyvista.ImageData | pyvista.UnstructuredGrid
         The VTK object to convert. It must be a 2D ImageData object.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new surface to.
@@ -131,7 +145,7 @@ def vtk_geom_to_grid2d(vtk: Union[pyvista.ImageData, pyvista.UnstructuredGrid], 
     return grid2d
 
 
-def vtk_to_grid2d(vtk: Union[pyvista.ImageData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Grid2D:
+def vtk_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, workspace: Workspace, name: str) -> Grid2D:
     """Convert a ``pyvista.ImageData`` object to a ``geoh5py.objects.grid2d.Grid2D`` object.
 
     This is a wrapper for ``vtk_geom_to_grid2d`` and is intended to be the
@@ -140,7 +154,7 @@ def vtk_to_grid2d(vtk: Union[pyvista.ImageData, pyvista.UnstructuredGrid], works
 
     Parameters
     ----------
-    vtk : pyvista.ImageData
+    vtk : pyvista.ImageData | pyvista.UnstructuredGrid
         The VTK object to convert.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new grid2d to.
@@ -156,9 +170,3 @@ def vtk_to_grid2d(vtk: Union[pyvista.ImageData, pyvista.UnstructuredGrid], works
     grid2d = vtk_geom_to_grid2d(vtk=vtk, workspace=workspace, name=name)
     grid2d = add_data_to_geoh5(grid2d, vtk)
     return grid2d 
-
-
-grid2d_geom_to_vtk.__displayname__ = "Grid2D Geometry to VTK" # type: ignore
-grid2d_to_vtk.__displayname__ = "Grid2D to VTK" # type: ignore
-vtk_geom_to_grid2d.__displayname__ = "VTK Geometry to Grid2D" # type: ignore
-vtk_to_grid2d.__displayname__ = "VTK to Grid2D" # type: ignore

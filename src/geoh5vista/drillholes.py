@@ -1,25 +1,34 @@
 """This module provides functions for converting geoh5py Drillhole objects to and from PyVista data objects."""
 
-
-__all__ = [
-    "drillholes_to_vtk",
-]
-
-__displayname__ = "Drillholes"
+from __future__ import annotations
 
 import numpy as np
 import pyvista
+from typing import Final
 
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5vista.data import add_drillhole_interval_data_to_vtk
 
 
-def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
-    """Convert a ``geoh5py.groups.drillhole.DrillholeGroup`` to a ``pyvista.MultiBlock``.
+__all__ = (
+    "drillholes_to_vtk",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES"
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Drillholes"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "drillholes_to_vtk": "Drillholes to VTK",
+}
+
+
+def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.PolyData:
+    """Convert a ``geoh5py.groups.drillhole.DrillholeGroup`` to a ``pyvista.PolyData``.
 
     Each drillhole in the group is converted to a ``pyvista.PolyData`` line
-    object, and the collection is returned as a ``pyvista.MultiBlock``.
+    object, and the collection is returned as a ``pyvista.PolyData``.
 
     Parameters
     ----------
@@ -28,7 +37,7 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
 
     Returns
     -------
-    pyvista.Polydata
+    pyvista.PolyData
         All the drillholes as PolyData line objects.
 
     """
@@ -56,7 +65,3 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.MultiBlock:
     dh_multi.field_data["gh5_colour"] = "black"
     dh_multi.field_data["gh5_entity_type"] = "Drillholes"
     return dh_multi
-
-
-# Now set up the display names for the docs
-drillholes_to_vtk.__displayname__ = "Drillholes to VTK" # type: ignore

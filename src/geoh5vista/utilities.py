@@ -1,13 +1,27 @@
-from typing import List
+"""Utilities for geoh5vista."""
 
+from __future__ import annotations
+
+from typing import Final
 import numpy as np
 from geoh5py.objects.object_base import ObjectBase
 
-__all__ = [
+
+__all__ = (
     "check_orientation",
     "check_orthogonal",
     "get_gh5_entity_colour",
-]
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES"
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Utilities"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "check_orientation": "Check Orientation",
+    "check_orthogonal": "Check Orthogonal",
+    "get_gh5_entity_colour": "Get GH5 Entity Colour",
+}
 
 
 def check_orientation(
@@ -69,17 +83,17 @@ def check_orthogonal(
     return True
 
 
-def get_gh5_entity_colour(gh5_entity: ObjectBase) -> List[int]:
+def get_gh5_entity_colour(gh5_entity: ObjectBase) -> list[int]:
     """Get the color of a geoh5py entity from its visual parameters.
 
     Parameters
     ----------
-    ga_entity : geoh5py.objects.base_object.BaseObject
+    gh5_entity : geoh5py.objects.base_object.BaseObject
         The geoh5py entity to get the color of.
 
     Returns
     -------
-    list
+    list[int]
         The RGB color as a list of three integers.
 
     """
@@ -94,4 +108,3 @@ def get_gh5_entity_colour(gh5_entity: ObjectBase) -> List[int]:
     c = a.colour  # Colour order was BGR before geoh5py 0.12.1
     true_color = [c[0], c[1], c[2]]  # Convert to RGB order
     return true_color
-

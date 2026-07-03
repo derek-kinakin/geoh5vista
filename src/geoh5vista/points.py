@@ -1,17 +1,31 @@
 """This module provides functions for converting geoh5py Point objects to and from PyVista data objects."""
 
+from __future__ import annotations
+
 import pyvista
+from typing import Final
 from geoh5py.objects.points import Points
 from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
 
-__all__ = [
+
+__all__ = (
     "points_geom_to_vtk",
     "points_to_vtk",
     "vtk_geom_to_points",
-    "vtk_to_points"
-]
-__displayname__ = "Points"
+    "vtk_to_points",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES"
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Points"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "points_geom_to_vtk": "Points Geometry to VTK",
+    "points_to_vtk": "Points to VTK",
+    "vtk_geom_to_points": "VTK Geometry to Points",
+    "vtk_to_points": "VTK to Points",
+}
 
 
 def points_geom_to_vtk(pts: Points) -> pyvista.PointSet:
@@ -108,9 +122,3 @@ def vtk_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Poi
     points = vtk_geom_to_points(vtk=vtk, workspace=workspace, name=name)
     points = add_data_to_geoh5(points, vtk)
     return points
-
-
-points_geom_to_vtk.__displayname__ = "Points Geometry to VTK"  # type: ignore
-points_to_vtk.__displayname__ = "Points to VTK"  # type: ignore
-vtk_geom_to_points.__displayname__ = "VTK Geometry to Points" # type: ignore
-vtk_to_points.__displayname__ = "VTK to Points" # type: ignore

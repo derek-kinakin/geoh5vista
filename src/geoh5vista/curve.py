@@ -1,22 +1,32 @@
 """This module provides functions for converting geoh5py Curve objects to and from PyVista data objects."""
 
-
-__all__ = [
-    "curve_to_vtk",
-    "curve_geom_to_vtk",
-    "vtk_geom_to_curve",
-    "vtk_to_curve"
-]
-
-__displayname__ = "Curve"
-
+from __future__ import annotations
 
 import numpy as np
 import pyvista
-from typing import Union
+from typing import Final
 from geoh5py.objects.curve import Curve
 from geoh5py.workspace.workspace import Workspace
 from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
+
+
+__all__ = (
+    "curve_geom_to_vtk",
+    "curve_to_vtk",
+    "vtk_geom_to_curve",
+    "vtk_to_curve",
+    "MODULE_DISPLAY_NAME",
+    "FUNCTION_DISPLAY_NAMES",
+)
+
+
+MODULE_DISPLAY_NAME: Final[str] = "Curve"
+FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
+    "curve_geom_to_vtk": "Curve Geometry to VTK",
+    "curve_to_vtk": "Curve to VTK",
+    "vtk_geom_to_curve": "VTK Geometry to Curve",
+    "vtk_to_curve": "VTK to Curve",
+}
 
 
 def curve_geom_to_vtk(crv: Curve) -> pyvista.PolyData:
@@ -62,7 +72,7 @@ def curve_to_vtk(crv: Curve) -> pyvista.PolyData:
         The converted curve.
 
     """
-   
+
     # Now add data to lines:
     output = curve_geom_to_vtk(crv)
     output = add_data_to_vtk(output, crv)
@@ -71,12 +81,14 @@ def curve_to_vtk(crv: Curve) -> pyvista.PolyData:
     return output
 
 
-def vtk_geom_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Curve:
-    """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.curve.Curve`` object.
+def vtk_geom_to_curve(
+    vtk: pyvista.PolyData | pyvista.UnstructuredGrid, workspace: Workspace, name: str
+) -> Curve:
+    """Convert a ``pyvista.PolyData`` or ``pyvista.UnstructuredGrid`` object to a ``geoh5py.objects.curve.Curve`` object.
 
     Parameters
     ----------
-    vtk : pyvista.PolyData
+    vtk : pyvista.PolyData | pyvista.UnstructuredGrid
         The VTK object to convert. It must have lines.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new curve to.
@@ -105,8 +117,10 @@ def vtk_geom_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], wo
     return curve
 
 
-def vtk_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspace: Workspace, name: str) -> Curve:
-    """Convert a ``pyvista.PolyData`` object to a ``geoh5py.objects.curve.Curve`` object.
+def vtk_to_curve(
+    vtk: pyvista.PolyData | pyvista.UnstructuredGrid, workspace: Workspace, name: str
+) -> Curve:
+    """Convert a ``pyvista.PolyData`` or ``pyvista.UnstructuredGrid`` object to a ``geoh5py.objects.curve.Curve`` object.
 
     This is a wrapper for ``vtk_geom_to_curve`` and is intended to be the
     main entry point for this conversion. In the future, it will also handle
@@ -114,7 +128,7 @@ def vtk_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspa
 
     Parameters
     ----------
-    vtk : pyvista.PolyData
+    vtk : pyvista.PolyData | pyvista.UnstructuredGrid
         The VTK object to convert.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new curve to.
@@ -130,9 +144,3 @@ def vtk_to_curve(vtk: Union[pyvista.PolyData, pyvista.UnstructuredGrid], workspa
     curve = vtk_geom_to_curve(vtk=vtk, workspace=workspace, name=name)
     curve = add_data_to_geoh5(curve, vtk)
     return curve
-
-
-curve_geom_to_vtk.__displayname__ = "Curve to VTK" # type: ignore
-curve_to_vtk.__displayname__ = "Curve to VTK" # type: ignore
-vtk_geom_to_curve.__displayname__ = "VTK Geometry to Curve" # type: ignore
-vtk_to_curve.__displayname__ = "VTK to Curve" # type: ignore
