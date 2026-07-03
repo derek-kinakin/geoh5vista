@@ -14,7 +14,7 @@ Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 Installation
 ------------
 
-From PyPi (coming soon)
+From PyPI
 
 ```python
 pip install geoh5vista
