@@ -5,7 +5,6 @@
 pixi.toml
 .pixi/
 .vscode/
-.github/
 .envrc
 .coverage
 coverage.xml
@@ -13,9 +12,6 @@ pixi.lock
 assets/
 build/
 dist/
-docs/
-examples/
-tests/
 archive/
 src/geoh5vista.egg-info/
 # pixi environments

@@ -26,6 +26,23 @@ From Github
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
 
+Repository Setup for Development
+--------------------------------
+
+```bash
+git clone https://github.com/derek-kinakin/geoh5vista.git
+cd geoh5vista
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .[dev]
+pytest
+```
+
+The repository now includes a GitHub Actions workflow at
+`.github/workflows/ci.yml` that runs tests on pushes to `main` and on pull
+requests.
+
 Current Status of Supported Geoh5 Entities
 -------------------
 
