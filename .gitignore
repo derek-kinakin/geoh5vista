@@ -2,6 +2,7 @@
 **/*.pyc
 **/__pycache__/
 # pixi environments
+pixi.toml
 .pixi/
 .vscode/
 .github/
@@ -17,3 +18,6 @@ examples/
 tests/
 archive/
 src/geoh5vista.egg-info/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
