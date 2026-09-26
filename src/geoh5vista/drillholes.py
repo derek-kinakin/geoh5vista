@@ -61,7 +61,7 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.PolyData:
             line["dh_name"] = np.repeat(dh.name, line.n_points)
             dh_multi += line
 
-    dh_multi.field_data["gh5_name"] = dhgrp.name
-    dh_multi.field_data["gh5_colour"] = "black"
-    dh_multi.field_data["gh5_entity_type"] = "Drillholes"
+    dh_multi.user_dict["gh5_name"] = dhgrp.name
+    dh_multi.user_dict["gh5_colour"] = "black"
+    dh_multi.user_dict["gh5_entity_type"] = "Drillholes"
     return dh_multi
