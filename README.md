@@ -43,6 +43,16 @@ to Geoh5 support is the goal for each entity.
 | Drillholes   | PolyData                   | Yes             | No             | Drillholes can be round-tripped back to geoh5 as curves       |
 | Slicer       | PolyData                   | Yes             | No             | Geometry available as object metadata                         |
 
+Geoh5 Entity Metadata Support
+-------------------
+
+The following metadata are read from the geoh5 entities and attached to the PyVista objects in the "user_dict":
+
+* Entity name (ob.user_dict["gh5_name"]) as a string
+* Entity colour (ob.user_dict["gh5_colour"]) as a list [R,G,B]
+* Entity type (ob.user_dict["gh5_entity_type"]) as "Points", "Curve", "Surface", "Grid2D", "Grid3D", or "Drillhole"
+* Entity visibility (ob.user_dict["gh5_name"]) as True/False
+
 Example Use
 -----------
 
@@ -75,7 +85,7 @@ PyVista to the volumetric data:
 p = pv.Plotter(notebook=False)
 # Add our datasets
 p.add_mesh(topo, cmap="gist_earth", opacity=0.5)
-p.add_mesh(dacite, color=dacite["gh5_colour"], opacity=0.6)
+p.add_mesh(dacite, color=dacite.user_dict["gh5_colour"], opacity=0.6)
 # Add the volumetric dataset with a thresholding tool
 p.add_mesh_threshold(vol)
 # Add the bounds axis
