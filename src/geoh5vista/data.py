@@ -42,7 +42,7 @@ FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
 
 
 def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
-    """Add geoh5 entity metadata to a VTK object's field data.
+    """Add geoh5 entity metadata to a VTK object as a user_dict.
 
     This includes the entity's name, color (from visual parameters), and
     class name.
@@ -61,20 +61,24 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
 
     """
     colour = get_gh5_entity_colour(entity)
-    output.field_data["gh5_colour"] = colour
-    output.field_data["gh5_name"] = entity.name
-    output.field_data["gh5_entity_type"] = entity.__class__.__name__
+    entity_name = entity.name
+    entity_type = entity.__class__.__name__
 
     # Visibility is a bit tricky since it can be a bool or a dict
     if isinstance(entity.visible, dict) and "Visible" in entity.visible:
         if entity.visible["Visible"].any():
-            output.field_data["gh5_visible"] = True  # type: ignore
+            entity_visible = True  # type: ignore
         else:
-            output.field_data["gh5_visible"] = False # type: ignore
+            entity_visible = False # type: ignore
     elif isinstance(entity.visible, bool):
-        output.field_data["gh5_visible"] = entity.visible # type: ignore
+        entity_visible = entity.visible # type: ignore
     else:
-        output.field_data["gh5_visible"] = True # type: ignore
+        entity_visible = True # type: ignore
+
+    output.user_dict["gh5_colour"] = colour
+    output.user_dict["gh5_name"] = entity_name
+    output.user_dict["gh5_entity_type"] = entity_type
+    output.user_dict["gh5_visible"] = entity_visible
     return output
 
 
@@ -414,14 +418,16 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
         data_array_names = [i for i in data.array_names if i not in skip_names]
         for name in data_array_names:
             association = get_vtk_array_association(data, name)
-            data_type = get_data_type(data, name)
-            # Implement data transfer logic here
-
-            # Order data values to match the geoh5py grid cell ordering (C-order) from VTK's F-order
-            n_u, n_v, n_z = output.shape
-            values = data[name]
-            values_vtk = values.reshape((n_v, n_u, n_z), order="F")
-            values_geoh5 = values_vtk.transpose(1, 0, 2).flatten(order="C")
+            # Association should be CELL, if not we should skip this data.
+            if association == "VERTEX":
+                continue
+            else:
+                data_type = get_data_type(data, name)
+                # Order data values to match the geoh5py grid cell ordering (C-order) from VTK's F-order
+                n_u, n_v, n_z = output.shape
+                values = data[name]
+                values_vtk = values.reshape((n_v, n_u, n_z), order="F")
+                values_geoh5 = values_vtk.transpose(1, 0, 2).flatten(order="C")
 
             if data_type == "REFERENCED":
                 data_dict = create_value_map(data, name)
