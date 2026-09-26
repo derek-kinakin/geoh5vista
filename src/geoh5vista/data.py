@@ -358,13 +358,12 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectBase:
         The VTK data object to source the data from.
 
     """
-    skip_names = ["gh5_colour", "gh5_name", "gh5_entity_type", "gh5_visible"]
     
     if data is None or data.n_arrays == 0:
         return output
 
     else:
-        data_array_names = [i for i in data.array_names if i not in skip_names]
+        data_array_names = [i for i in data.array_names]
         for name in data_array_names:
             association = get_vtk_array_association(data, name)
             data_type = get_data_type(data, name)
@@ -409,13 +408,12 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
         The VTK data object to source the data from.
 
     """
-    skip_names = ["gh5_colour", "gh5_name", "gh5_entity_type", "gh5_visible"]
     
     if data is None or data.n_arrays == 0:
         return output
 
     else:
-        data_array_names = [i for i in data.array_names if i not in skip_names]
+        data_array_names = [i for i in data.array_names]
         for name in data_array_names:
             association = get_vtk_array_association(data, name)
             # Association should be CELL, if not we should skip this data.
