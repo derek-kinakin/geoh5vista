@@ -1,9 +1,9 @@
 """Constants used in geoh5vista."""
 
 __all__ = [
-    "SUPPORTED",
+    "DATASKIP",
     "GEOH5SKIP",
-    "DATASKIP"
+    "SUPPORTED"
 ]
 
 

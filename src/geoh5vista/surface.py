@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-import pyvista
-import numpy as np
 from typing import Final
+
+import numpy as np
+import pyvista
 from geoh5py.objects.object_base import ObjectBase
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
 
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
 
 __all__ = (
+    "FUNCTION_DISPLAY_NAMES",
+    "MODULE_DISPLAY_NAME",
     "surface_geom_to_vtk",
     "surface_to_vtk",
     "vtk_geom_to_surface",
-    "vtk_to_surface",
-    "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES"
+    "vtk_to_surface"
 )
 
 

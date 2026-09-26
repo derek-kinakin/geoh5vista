@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-import pyvista
 from typing import Final
+
+import pyvista
 from geoh5py.objects.points import Points
 from geoh5py.workspace.workspace import Workspace
-from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
 
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
 
 __all__ = (
+    "FUNCTION_DISPLAY_NAMES",
+    "MODULE_DISPLAY_NAME",
     "points_geom_to_vtk",
     "points_to_vtk",
     "vtk_geom_to_points",
-    "vtk_to_points",
-    "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES"
+    "vtk_to_points"
 )
 
 

@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from typing import Final
+
 import numpy as np
 from geoh5py.objects.object_base import ObjectBase
 
-
 __all__ = (
+    "FUNCTION_DISPLAY_NAMES",
+    "MODULE_DISPLAY_NAME",
     "check_orientation",
     "check_orthogonal",
-    "get_gh5_entity_colour",
-    "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES"
+    "get_gh5_entity_colour"
 )
 
 

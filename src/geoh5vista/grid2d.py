@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
+from typing import Final
+
 import numpy as np
 import pyvista
-from typing import Final
 from geoh5py.objects.grid2d import Grid2D
+from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
-from geoh5vista.data import add_data_to_vtk, add_entity_metadata, add_data_to_geoh5
-
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
 
 __all__ = (
+    "FUNCTION_DISPLAY_NAMES",
+    "MODULE_DISPLAY_NAME",
     "grid2d_geom_to_vtk",
     "grid2d_to_vtk",
     "vtk_geom_to_grid2d",
-    "vtk_to_grid2d",
-    "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES"
+    "vtk_to_grid2d"
 )
 
 

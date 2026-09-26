@@ -3,29 +3,29 @@
 from __future__ import annotations
 
 from typing import Final
+
 import numpy as np
 import pyvista
-
-from geoh5py.objects.object_base import ObjectBase
 from geoh5py.objects.block_model import BlockModel
-from geoh5py.workspace.workspace import Workspace
+from geoh5py.objects.object_base import ObjectBase
 from geoh5py.shared.utils import xy_rotation_matrix
+from geoh5py.workspace.workspace import Workspace
+
 from geoh5vista.data import (
     add_data_to_vtk_grid,
     add_entity_metadata,
     add_grid_data_to_geoh5,
 )
 
-
 __all__ = (
-    "get_blockmodel_shape",
-    "blockmodel_grid_geom_to_structured_vtk",
+    "FUNCTION_DISPLAY_NAMES",
+    "MODULE_DISPLAY_NAME",
     "blockmodel_grid_geom_to_image_vtk",
+    "blockmodel_grid_geom_to_structured_vtk",
     "blockmodel_to_vtk",
+    "get_blockmodel_shape",
     "vtk_geom_to_blockmodel",
     "vtk_to_blockmodel",
-    "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES",
 )
 
 

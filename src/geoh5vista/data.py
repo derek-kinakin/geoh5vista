@@ -2,30 +2,31 @@
 
 from __future__ import annotations
 
+from typing import Final
+
 import numpy as np
 import pyvista
-from typing import Final
+from geoh5py.data.boolean_data import BooleanData
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
-from geoh5py.data.boolean_data import BooleanData
 from geoh5py.objects.block_model import BlockModel
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
+
 from geoh5vista.constants import DATASKIP
 from geoh5vista.utilities import get_gh5_entity_colour
 
-
 __all__ = (
-    "add_entity_metadata",
-    "add_data_to_vtk",
-    "add_drillhole_interval_data_to_vtk",
-    "add_data_to_vtk_grid",
+    "FUNCTION_DISPLAY_NAMES",
+    "MODULE_DISPLAY_NAME",
     "add_data_to_geoh5",
+    "add_data_to_vtk",
+    "add_data_to_vtk_grid",
+    "add_drillhole_interval_data_to_vtk",
+    "add_entity_metadata",
     "add_grid_data_to_geoh5",
     "get_vtk_array_association",
-    "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES",
 )
 
 

@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-import numpy as np
-import pyvista
 from typing import Final
 
-from geoh5py.objects.drillhole import Drillhole
+import numpy as np
+import pyvista
 from geoh5py.groups.drillhole import DrillholeGroup
+from geoh5py.objects.drillhole import Drillhole
+
 from geoh5vista.data import add_drillhole_interval_data_to_vtk
 
-
 __all__ = (
-    "drillholes_to_vtk",
+    "FUNCTION_DISPLAY_NAMES",
     "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES"
+    "drillholes_to_vtk"
 )
 
 

@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import re
-import pyvista
 import xml.etree.ElementTree as ET
 from typing import Final
+
+import pyvista
 from geoh5py.objects.slicer import Slicer
+
 from geoh5vista.data import add_entity_metadata
 
 __all__ = (
-    "slicer_to_vtk_plane",
+    "FUNCTION_DISPLAY_NAMES",
     "MODULE_DISPLAY_NAME",
-    "FUNCTION_DISPLAY_NAMES"
+    "slicer_to_vtk_plane"
 )
 
 
