@@ -65,7 +65,7 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
     entity_colour = get_gh5_entity_colour(entity)
     entity_name = entity.name
     entity_type = entity.__class__.__name__
-    entity_uid = entity.uid
+    entity_uid = str(entity.uid)
 
     # Visibility is a bit tricky since it can be a bool or a dict
     if isinstance(entity.visible, dict) and "Visible" in entity.visible:
