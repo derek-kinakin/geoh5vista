@@ -295,7 +295,7 @@ def get_vtk_array_association(data: pyvista.DataSet, name: str) -> str:
     elif name in data.cell_data:
         return "CELL"
     else:
-        return "VERTEX"
+        return None
 
 
 def create_value_map(data: pyvista.DataSet, name: str) -> dict:
