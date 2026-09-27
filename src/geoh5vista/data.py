@@ -362,12 +362,13 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectBase:
         The VTK data object to source the data from.
 
     """
+    # Get only cell or point data arrays
+    data_array_names = [i for i in data.array_names if get_vtk_array_association(data, i) in ["CELL", "VERTEX"]]
     
-    if data is None or data.n_arrays == 0:
+    if not data_array_names or data.n_arrays == 0:
         return output
 
     else:
-        data_array_names = [i for i in data.array_names]
         for name in data_array_names:
             association = get_vtk_array_association(data, name)
             data_type = get_data_type(data, name)
@@ -412,24 +413,20 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
         The VTK data object to source the data from.
 
     """
+    # Get only cell data arrays
+    data_array_names = [i for i in data.array_names if get_vtk_array_association(data, i) in ["CELL"]]
     
-    if data is None or data.n_arrays == 0:
+    if not data_array_names or data.n_arrays == 0:
         return output
 
     else:
-        data_array_names = [i for i in data.array_names]
         for name in data_array_names:
-            association = get_vtk_array_association(data, name)
-            # Association should be CELL, if not we should skip this data.
-            if association == "VERTEX":
-                continue
-            else:
-                data_type = get_data_type(data, name)
-                # Order data values to match the geoh5py grid cell ordering (C-order) from VTK's F-order
-                n_u, n_v, n_z = output.shape
-                values = data[name]
-                values_vtk = values.reshape((n_v, n_u, n_z), order="F")
-                values_geoh5 = values_vtk.transpose(1, 0, 2).flatten(order="C")
+            data_type = get_data_type(data, name)
+            # Order data values to match the geoh5py grid cell ordering (C-order) from VTK's F-order
+            n_u, n_v, n_z = output.shape
+            values = data[name]
+            values_vtk = values.reshape((n_v, n_u, n_z), order="F")
+            values_geoh5 = values_vtk.transpose(1, 0, 2).flatten(order="C")
 
             if data_type == "REFERENCED":
                 data_dict = create_value_map(data, name)
@@ -440,7 +437,7 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
                 output.add_data(
                     {name: {
                         "type": "REFERENCED",
-                        "association": association,
+                        "association": "CELL",
                         "values": ref_data,
                         "value_map":data_dict,
                     }}
@@ -449,7 +446,7 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
                 output.add_data(
                     {name: {
                         "type": data_type,
-                        "association": association,
+                        "association": "CELL",
                         "values": values_geoh5
                     }}
                 )
