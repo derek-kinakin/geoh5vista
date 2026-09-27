@@ -15,7 +15,6 @@ build/
 dist/
 docs/
 examples/
-tests/
 archive/
 src/geoh5vista.egg-info/
 # pixi environments
