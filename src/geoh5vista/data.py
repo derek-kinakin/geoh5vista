@@ -61,9 +61,11 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
         The VTK data object with added metadata.
 
     """
-    colour = get_gh5_entity_colour(entity)
+    
+    entity_colour = get_gh5_entity_colour(entity)
     entity_name = entity.name
     entity_type = entity.__class__.__name__
+    entity_uid = entity.uid
 
     # Visibility is a bit tricky since it can be a bool or a dict
     if isinstance(entity.visible, dict) and "Visible" in entity.visible:
@@ -76,10 +78,11 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
     else:
         entity_visible = True # type: ignore
 
-    output.user_dict["gh5_colour"] = colour
+    output.user_dict["gh5_colour"] = entity_colour
     output.user_dict["gh5_name"] = entity_name
     output.user_dict["gh5_entity_type"] = entity_type
     output.user_dict["gh5_visible"] = entity_visible
+    output.user_dict["gh5_uid"] = entity_uid
     return output
 
 
