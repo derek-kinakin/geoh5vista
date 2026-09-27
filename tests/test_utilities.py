@@ -32,6 +32,20 @@ from geoh5vista.utilities import normalize_visibility
         ({"Visible": np.array([True])}, True),
         ({"Visible": np.int8(0)}, False),
         ({"Visible": False}, False),
+        (
+            np.array(
+                [(b"{view-1}", 0), (b"{view-2}", 0)],
+                dtype=[("ViewID", "S36"), ("Visible", np.int32)],
+            ),
+            False,
+        ),
+        (
+            np.array(
+                [(b"{view-1}", 0), (b"{view-2}", 1)],
+                dtype=[("ViewID", "S36"), ("Visible", np.int32)],
+            ),
+            True,
+        ),
     ],
 )
 def test_normalize_visibility(value, expected):

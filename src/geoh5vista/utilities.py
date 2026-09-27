@@ -124,6 +124,7 @@ def normalize_visibility(value: Any) -> bool:
     * ``None`` (not set) -> ``True``.
     * Python/NumPy booleans and integers -> ``False`` if zero, else ``True``.
     * Dicts with a ``"Visible"`` key -> the ``"Visible"`` entry normalized.
+    * Structured arrays with a ``"Visible"`` field -> normalize that field.
     * Arrays/sequences -> ``True`` if any element is non-zero; empty -> ``False``.
     * Any other value -> ``True`` with a ``UserWarning``.
 
@@ -147,6 +148,8 @@ def normalize_visibility(value: Any) -> bool:
         return bool(value)
     elif isinstance(value, (np.ndarray, list, tuple)):
         arr = np.asarray(value)
+        if arr.dtype.names and "Visible" in arr.dtype.names:
+            return normalize_visibility(arr["Visible"])
         if arr.size == 0:
             return False
         if arr.dtype.kind in "biu":
