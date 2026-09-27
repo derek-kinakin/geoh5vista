@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Final
+import warnings
+from typing import Any, Final
 
 import numpy as np
 from geoh5py.objects.object_base import ObjectBase
@@ -12,7 +13,8 @@ __all__ = (
     "MODULE_DISPLAY_NAME",
     "check_orientation",
     "check_orthogonal",
-    "get_gh5_entity_colour"
+    "get_gh5_entity_colour",
+    "normalize_visibility",
 )
 
 
@@ -21,6 +23,7 @@ FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
     "check_orientation": "Check Orientation",
     "check_orthogonal": "Check Orthogonal",
     "get_gh5_entity_colour": "Get GH5 Entity Colour",
+    "normalize_visibility": "Normalize Visibility",
 }
 
 
@@ -108,3 +111,51 @@ def get_gh5_entity_colour(gh5_entity: ObjectBase) -> list[int]:
     c = a.colour  # Colour order was BGR before geoh5py 0.12.1
     true_color = [c[0], c[1], c[2]]  # Convert to RGB order
     return true_color
+
+
+def normalize_visibility(value: Any) -> bool:
+    """Convert a geoh5py visibility value to a Python ``bool``.
+
+    geoh5py may report visibility in several forms depending on the entity
+    type and how it was loaded (e.g. ``np.int8(0)`` when read from file).
+
+    Rules:
+
+    * ``None`` (not set) -> ``True``.
+    * Python/NumPy booleans and integers -> ``False`` if zero, else ``True``.
+    * Dicts with a ``"Visible"`` key -> the ``"Visible"`` entry normalized.
+    * Arrays/sequences -> ``True`` if any element is non-zero; empty -> ``False``.
+    * Any other value -> ``True`` with a ``UserWarning``.
+
+    Parameters
+    ----------
+    value : Any
+        The visibility value, typically ``entity.visible``.
+
+    Returns
+    -------
+    bool
+        ``True`` if the entity should be considered visible.
+
+    """
+    if value is None:
+        return True
+    if isinstance(value, dict):
+        if "Visible" in value:
+            return normalize_visibility(value["Visible"])
+    elif isinstance(value, (bool, int, np.bool_, np.integer)):
+        return bool(value)
+    elif isinstance(value, (np.ndarray, list, tuple)):
+        arr = np.asarray(value)
+        if arr.size == 0:
+            return False
+        if arr.dtype.kind in "biu":
+            return bool(arr.any())
+
+    warnings.warn(
+        f"Unrecognized visibility value {value!r} ({type(value).__name__}); "
+        "treating as visible.",
+        UserWarning,
+        stacklevel=2,
+    )
+    return True

@@ -15,7 +15,7 @@ from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
 
 from geoh5vista.constants import DATASKIP
-from geoh5vista.utilities import get_gh5_entity_colour
+from geoh5vista.utilities import get_gh5_entity_colour, normalize_visibility
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -67,16 +67,7 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
     entity_type = entity.__class__.__name__
     entity_uid = str(entity.uid)
 
-    # Visibility is a bit tricky since it can be a bool or a dict
-    if isinstance(entity.visible, dict) and "Visible" in entity.visible:
-        if entity.visible["Visible"].any():
-            entity_visible = True  # type: ignore
-        else:
-            entity_visible = False # type: ignore
-    elif isinstance(entity.visible, bool):
-        entity_visible = entity.visible # type: ignore
-    else:
-        entity_visible = True # type: ignore
+    entity_visible = normalize_visibility(entity.visible)
 
     output.user_dict["gh5_colour"] = entity_colour
     output.user_dict["gh5_name"] = entity_name

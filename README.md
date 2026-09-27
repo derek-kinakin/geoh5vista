@@ -51,7 +51,7 @@ The following metadata are read from the geoh5 entities and attached to the PyVi
 * Entity name (ob.user_dict["gh5_name"]) as a string
 * Entity colour (ob.user_dict["gh5_colour"]) as a list [R,G,B]
 * Entity type (ob.user_dict["gh5_entity_type"]) as "Points", "Curve", "Surface", "Grid2D", "Grid3D", or "Drillhole"
-* Entity visibility (ob.user_dict["gh5_name"]) as True/False
+* Entity visibility (ob.user_dict["gh5_visible"]) as True/False. Integer/NumPy visibility values from geoh5py are normalized (0 = hidden); unrecognized values are treated as visible with a warning.
 
 Example Use
 -----------

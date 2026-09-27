@@ -17,6 +17,7 @@ from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.slicer import slicer_to_vtk_plane
 from geoh5vista.surface import surface_to_vtk, vtk_to_surface
+from geoh5vista.utilities import normalize_visibility
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -136,7 +137,7 @@ def read_geoh5(
                 supported_entities = [
                     e
                     for e in supported_entities
-                    if e.visible["Visible"].any()
+                    if normalize_visibility(e.visible)
                 ]
 
             return entities_to_vtk(supported_entities)
