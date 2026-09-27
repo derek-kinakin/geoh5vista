@@ -211,8 +211,8 @@ def _get_entity_name(
     if entity_name:
         return entity_name
 
-    if "gh5_name" in item.field_data:
-        return item.field_data["gh5_name"]
+    if "gh5_name" in item.user_dict:
+        return item.user_dict["gh5_name"]
     
     name = f"{item.__class__.__name__}_{data_list.index(item)}"
     print(f"Object name not found. Using default name: {name}")
