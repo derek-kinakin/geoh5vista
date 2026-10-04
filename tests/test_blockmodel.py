@@ -9,10 +9,10 @@ from geoh5py.objects.block_model import BlockModel
 
 from geoh5vista.blockmodel import (
     get_blockmodel_shape,
-    blockmodel_grid_geom_to_structured_vtk,
+    blockmodel_grid_geom_to_image_vtk,
     blockmodel_to_vtk,
     vtk_geom_to_blockmodel,
-    _create_blockmodel_rot_matrix
+    vtk_to_blockmodel,
 )
 
 # ---------------------------------------------------------------------------
@@ -96,48 +96,200 @@ def test_get_blockmodel_shape(geoh5_blockmodel: BlockModel):
 
 
 # ---------------------------------------------------------------------------
-# blockmodel_grid_geom_to_vtk — StructuredGrid path
+# Unsupported variable-spacing geometry
 # ---------------------------------------------------------------------------
 
-def test_blockmodel_grid_geom_to_vtk_returns_structured_grid(geoh5_blockmodel: BlockModel):
-    result = blockmodel_grid_geom_to_structured_vtk(geoh5_blockmodel)
-    assert isinstance(result, pyvista.StructuredGrid)
-
-
-def test_blockmodel_grid_geom_to_vtk_cell_count(geoh5_blockmodel: BlockModel):
-    result = blockmodel_grid_geom_to_structured_vtk(geoh5_blockmodel)
-    assert result.n_cells == N_CELLS
-
-
-def test_blockmodel_grid_geom_to_vtk_dimensions(geoh5_blockmodel: BlockModel):
-    # Node dimensions = cell count + 1 in each axis
-    result = blockmodel_grid_geom_to_structured_vtk(geoh5_blockmodel)
-    assert result.dimensions == (N_U + 1, N_V + 1, N_Z + 1)
-
-
-def test_blockmodel_grid_geom_to_vtk_point_extent(geoh5_blockmodel: BlockModel):
-    # With origin=(0,0,0) and unit cells the grid spans exactly the delimiters
-    result = blockmodel_grid_geom_to_structured_vtk(geoh5_blockmodel)
-    np.testing.assert_allclose(result.points.min(axis=0), [0.0, 0.0, 0.0], atol=1e-6)
-    np.testing.assert_allclose(result.points.max(axis=0), [N_U, N_V, N_Z], atol=1e-6)
-
-
-def test_blockmodel_grid_geom_to_vtk_rotation_moves_points(
-    geoh5_blockmodel: BlockModel, geoh5_blockmodel_rotated: BlockModel
+@pytest.mark.parametrize("axis", ["u", "v", "z"])
+@pytest.mark.parametrize("reopen", [False, True])
+@pytest.mark.parametrize(
+    "converter", [blockmodel_to_vtk, blockmodel_grid_geom_to_image_vtk]
+)
+def test_variable_spacing_rejected(
+    tmp_path: Path, axis: str, reopen: bool, converter
 ):
-    """A rotated model should produce a different set of grid points."""
-    result_base = blockmodel_grid_geom_to_structured_vtk(geoh5_blockmodel)
+    path = tmp_path / "variable.geoh5"
+    delimiters = {
+        "u_cell_delimiters": U_DELIMITERS.copy(),
+        "v_cell_delimiters": V_DELIMITERS.copy(),
+        "z_cell_delimiters": Z_DELIMITERS.copy(),
+    }
+    delimiters[f"{axis}_cell_delimiters"][-1] += 1.0
+    with Workspace.create(path) as ws:
+        bm = BlockModel.create(
+            ws, name="variable", origin=(650000.123, 5500000.234, 1000.0),
+            **delimiters,
+        )
+        if not reopen:
+            with pytest.raises(ValueError, match=f"variable cell spacing along the {axis} axis"):
+                converter(bm)
+    if reopen:
+        with Workspace(path) as ws:
+            with pytest.raises(ValueError, match=f"variable cell spacing along the {axis} axis"):
+                converter(ws.get_entity("variable")[0])
 
-    # Build the rotation matrix the same way the library does
-    rot = _create_blockmodel_rot_matrix(geoh5_blockmodel_rotated)
-    result_rotated_actual = blockmodel_grid_geom_to_structured_vtk(geoh5_blockmodel_rotated, rotation_matrix=rot)
 
-    assert not np.allclose(result_base.points, result_rotated_actual.points)
+def test_uniform_spacing_can_differ_between_axes(tmp_path: Path):
+    with Workspace.create(tmp_path / "anisotropic.geoh5") as ws:
+        bm = BlockModel.create(
+            ws, origin=ORIGIN,
+            u_cell_delimiters=U_DELIMITERS * 10,
+            v_cell_delimiters=V_DELIMITERS * 20,
+            z_cell_delimiters=Z_DELIMITERS * 5,
+        )
+        result = blockmodel_to_vtk(bm)
+        assert isinstance(result, pyvista.ImageData)
+        assert result.spacing == (10.0, 20.0, 5.0)
+        assert result.n_cells == N_CELLS
+
+
+@pytest.mark.parametrize(
+    "delimiters",
+    [
+        np.array([0.0, 0.0, 1.0]),
+        np.array([0.0, np.nan, 2.0]),
+        np.array([0.0, 1.0, np.inf]),
+    ],
+)
+def test_invalid_spacing_rejected(tmp_path: Path, delimiters: np.ndarray):
+    with Workspace.create(tmp_path / "invalid.geoh5") as ws:
+        bm = BlockModel.create(
+            ws, u_cell_delimiters=delimiters,
+            v_cell_delimiters=V_DELIMITERS,
+            z_cell_delimiters=Z_DELIMITERS,
+        )
+        with pytest.raises(ValueError, match="finite, nonzero cell spacing along the u axis"):
+            blockmodel_to_vtk(bm)
+
+
+def test_small_but_real_spacing_variation_rejected(tmp_path: Path):
+    with Workspace.create(tmp_path / "near_uniform.geoh5") as ws:
+        bm = BlockModel.create(
+            ws, u_cell_delimiters=np.array([0.0, 10.0, 20.00005]),
+            v_cell_delimiters=V_DELIMITERS,
+            z_cell_delimiters=Z_DELIMITERS,
+        )
+        with pytest.raises(ValueError, match="variable cell spacing along the u axis"):
+            blockmodel_to_vtk(bm)
+
+
+@pytest.mark.parametrize("converter", [vtk_geom_to_blockmodel, vtk_to_blockmodel])
+def test_structured_grid_export_rejected(
+    vtk_image_data: pyvista.ImageData, tmp_path: Path, converter
+):
+    grid = vtk_image_data.cast_to_structured_grid()
+    with Workspace.create(tmp_path / "unsupported.geoh5") as ws:
+        with pytest.raises(TypeError, match="StructuredGrid conversion is not supported"):
+            converter(grid, ws, "unsupported")
+        assert ws.get_entity("unsupported") == [None]
 
 
 # ---------------------------------------------------------------------------
 # blockmodel_to_vtk — ImageData path (the primary read function)
 # ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("rotation", [0.0, 30.0, 90.0, -30.0])
+@pytest.mark.parametrize("origin", [ORIGIN, (650000.123456, 5500000.234567, 1200.345678)])
+@pytest.mark.parametrize("offset", [(0.0, 0.0, 0.0), (100.0, -40.0, -50.0)])
+@pytest.mark.parametrize(
+    "signs",
+    [(1, 1, 1), (1, 1, -1), (-1, 1, 1), (1, -1, 1), (-1, -1, -1)],
+)
+def test_blockmodel_centers_match_geoh5py(
+    tmp_path: Path, rotation: float, origin: tuple, offset: tuple, signs: tuple
+):
+    path = tmp_path / "geometry.geoh5"
+    with Workspace.create(path) as ws:
+        bm = BlockModel.create(
+            ws, name="geometry", origin=origin, rotation=rotation,
+            u_cell_delimiters=offset[0] + U_DELIMITERS * 10 * signs[0],
+            v_cell_delimiters=offset[1] + V_DELIMITERS * 20 * signs[1],
+            z_cell_delimiters=offset[2] + Z_DELIMITERS * 5 * signs[2],
+        )
+        bm.add_data({
+            "cell_id": {
+                "association": "CELL",
+                "values": np.arange(N_CELLS, dtype=np.int32),
+            },
+        })
+
+        def assert_geometry(model, label):
+            mesh = blockmodel_to_vtk(model)
+            assert isinstance(mesh, pyvista.ImageData)
+            assert mesh.dimensions == (N_U + 1, N_V + 1, N_Z + 1)
+            assert mesh.spacing == (10.0, 20.0, 5.0)
+            ids = mesh.cell_data["cell_id"]
+            np.testing.assert_array_equal(np.sort(ids), np.arange(N_CELLS))
+            np.testing.assert_allclose(
+                mesh.cell_centers().points, model.centroids[ids],
+                rtol=0, atol=1e-8,
+            )
+            np.testing.assert_allclose(
+                mesh.points[0], model.uvw_to_xyz(np.array([offset]))[0],
+                rtol=0, atol=1e-8,
+            )
+            export_path = tmp_path / f"export_{label}.geoh5"
+            with Workspace.create(export_path) as export_ws:
+                exported = vtk_to_blockmodel(mesh, export_ws, "exported")
+                np.testing.assert_allclose(
+                    exported.centroids, model.centroids, rtol=0, atol=1e-8
+                )
+                np.testing.assert_array_equal(
+                    exported.get_data("cell_id")[0].values, np.arange(N_CELLS)
+                )
+                exported_centroids = exported.centroids.copy()
+            with Workspace(export_path) as export_ws:
+                exported = export_ws.get_entity("exported")[0]
+                np.testing.assert_allclose(
+                    exported.centroids, exported_centroids, rtol=0, atol=1e-8
+                )
+                restored = blockmodel_to_vtk(exported)
+                np.testing.assert_allclose(
+                    restored.cell_centers().points, mesh.cell_centers().points,
+                    rtol=0, atol=1e-8,
+                )
+                np.testing.assert_array_equal(
+                    restored.cell_data["cell_id"], mesh.cell_data["cell_id"]
+                )
+
+        assert_geometry(bm, "created")
+    with Workspace(path) as ws:
+        assert_geometry(ws.get_entity("geometry")[0], "reopened")
+
+
+@pytest.mark.parametrize("apply_rotation", [False, True])
+def test_geometry_helper_optional_rotation(tmp_path: Path, apply_rotation: bool):
+    from geoh5py.shared.utils import xy_rotation_matrix
+
+    origin = (650000.123456, 5500000.234567, 1200.345678)
+    with Workspace.create(tmp_path / "helper.geoh5") as ws:
+        bm = BlockModel.create(
+            ws, origin=origin, rotation=30.0,
+            u_cell_delimiters=100.0 + U_DELIMITERS * 10,
+            v_cell_delimiters=-40.0 + V_DELIMITERS * 20,
+            z_cell_delimiters=-50.0 - Z_DELIMITERS * 5,
+        )
+        rotation = xy_rotation_matrix(np.deg2rad(30.0))
+        mesh = blockmodel_grid_geom_to_image_vtk(
+            bm, rotation_matrix=rotation if apply_rotation else None
+        )
+        u, v, z = np.meshgrid(
+            bm.local_axis_centers("u"),
+            bm.local_axis_centers("v"),
+            bm.local_axis_centers("z"),
+            indexing="ij",
+        )
+        local = np.column_stack([axis.ravel(order="F") for axis in (u, v, z)])
+        expected = local @ rotation.T if apply_rotation else local
+        np.testing.assert_allclose(
+            mesh.cell_centers().points, expected + np.array(origin),
+            rtol=0, atol=1e-8,
+        )
+        np.testing.assert_allclose(
+            mesh.direction_matrix,
+            (rotation if apply_rotation else np.eye(3)) @ np.diag([1, 1, -1]),
+            rtol=0, atol=1e-15,
+        )
+
 
 def test_blockmodel_to_vtk_returns_image_data(geoh5_blockmodel: BlockModel):
     result = blockmodel_to_vtk(geoh5_blockmodel)
@@ -262,6 +414,75 @@ def test_vtk_geom_to_blockmodel_cell_sizes(vtk_image_data: pyvista.ImageData, tm
         np.testing.assert_allclose(result.u_cells, np.full(N_U, CELL_SIZE), atol=1e-6)
         np.testing.assert_allclose(result.v_cells, np.full(N_V, CELL_SIZE), atol=1e-6)
         np.testing.assert_allclose(np.abs(result.z_cells), np.full(N_Z, CELL_SIZE), atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "direction",
+    [
+        np.array([[1., 0., 0.], [0., 0., -1.], [0., 1., 0.]]),
+        np.array([[1., 0.2, 0.], [0., 1., 0.], [0., 0., 1.]]),
+        np.diag([2., 1., 1.]),
+        np.diag([1., 0., 0.]),
+        np.diag([1., 1., np.nan]),
+    ],
+)
+def test_export_rejects_unsupported_directions(tmp_path: Path, direction: np.ndarray):
+    mesh = pyvista.ImageData(dimensions=(3, 4, 5))
+    mesh.SetDirectionMatrix(direction.ravel().tolist())
+    with Workspace.create(tmp_path / "invalid_direction.geoh5") as ws:
+        with pytest.raises(ValueError):
+            vtk_geom_to_blockmodel(mesh, ws, "invalid")
+        assert ws.get_entity("invalid") == [None]
+
+
+@pytest.mark.parametrize("dimensions", [(1, 4, 5), (3, 1, 5), (3, 4, 1)])
+def test_export_requires_3d_cells(tmp_path: Path, dimensions: tuple):
+    mesh = pyvista.ImageData(dimensions=dimensions)
+    with Workspace.create(tmp_path / "invalid_dimensions.geoh5") as ws:
+        with pytest.raises(ValueError, match="at least one cell in each axis"):
+            vtk_geom_to_blockmodel(mesh, ws, "invalid")
+
+
+@pytest.mark.parametrize("spacing", [(0., 1., 1.), (1., np.inf, 1.)])
+def test_export_rejects_invalid_spacing(tmp_path: Path, spacing: tuple):
+    mesh = pyvista.ImageData(dimensions=(3, 4, 5))
+    mesh.SetSpacing(*spacing)
+    with Workspace.create(tmp_path / "invalid_spacing.geoh5") as ws:
+        with pytest.raises(ValueError, match="finite geometry and nonzero spacing"):
+            vtk_geom_to_blockmodel(mesh, ws, "invalid")
+
+
+def test_export_negative_spacing(tmp_path: Path):
+    mesh = pyvista.ImageData(dimensions=(3, 4, 5))
+    mesh.SetSpacing(-10., 20., -5.)
+    with Workspace.create(tmp_path / "negative_spacing.geoh5") as ws:
+        exported = vtk_geom_to_blockmodel(mesh, ws, "negative_spacing")
+        restored = blockmodel_to_vtk(exported)
+        np.testing.assert_allclose(
+            restored.cell_centers().points, mesh.cell_centers().points,
+            rtol=0, atol=1e-8,
+        )
+
+
+def test_export_nonzero_extent(tmp_path: Path):
+    from geoh5py.shared.utils import xy_rotation_matrix
+
+    mesh = pyvista.ImageData(
+        dimensions=(3, 4, 5),
+        origin=(650000.123456, 5500000.234567, 1200.345678),
+        spacing=(10., 20., 5.),
+        direction_matrix=xy_rotation_matrix(np.deg2rad(30.)) @ np.diag([1., 1., -1.]),
+    )
+    mesh.extent = (2, 4, -3, 0, 4, 8)
+    mesh.cell_data["cell_id"] = np.arange(mesh.n_cells, dtype=np.int32)
+    with Workspace.create(tmp_path / "extent.geoh5") as ws:
+        exported = vtk_to_blockmodel(mesh, ws, "extent")
+        restored = blockmodel_to_vtk(exported)
+        np.testing.assert_allclose(
+            restored.cell_centers().points, mesh.cell_centers().points,
+            rtol=0, atol=1e-8,
+        )
+        np.testing.assert_array_equal(restored["cell_id"], mesh["cell_id"])
 
 
 # ---------------------------------------------------------------------------

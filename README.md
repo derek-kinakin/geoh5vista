@@ -39,9 +39,29 @@ to Geoh5 support is the goal for each entity.
 | Curve        | PolyData                   | Yes             | Yes            |                                                               |
 | Surface      | PolyData                   | Yes             | Yes            |                                                               |
 | 2D Grid      | ImageData                  | Yes             | Yes            | 2D grid with dimensions nU x nV x 1                           |
-| Block model  | ImageData or StructuredGrid| Yes             | Yes            | 3D grid with dimensions nU x nV x nZ                          |
+| Block model  | ImageData                  | Yes             | Yes            | Uniform spacing within each axis; 3D grid with dimensions nU x nV x nZ |
 | Drillholes   | PolyData                   | Yes             | No             | Drillholes can be round-tripped back to geoh5 as curves       |
 | Slicer       | PolyData                   | Yes             | No             | Geometry available as object metadata                         |
+
+Block models may use different spacing for U, V, and Z, but spacing must be
+uniform within each axis. Variable-spacing block models and StructuredGrid
+exports are unsupported and raise explicit errors. The earlier StructuredGrid
+block-model implementation has been removed, including
+`blockmodel_grid_geom_to_structured_vtk`; use `blockmodel_to_vtk` or
+`blockmodel_grid_geom_to_image_vtk` for supported models.
+
+Block-model imports preserve rotation, nonzero delimiter offsets, and
+descending-axis cell-data alignment. ImageData uses the transformed first
+delimiter corner as its origin, positive spacing, and signed axis directions.
+The geometry helper applies no rotation when `rotation_matrix=None`;
+`blockmodel_to_vtk` applies the model's rotation automatically.
+
+Block-model exports preserve horizontal rotation, signed axis directions, and
+cell-data alignment. Tilted, sheared, or scaled direction matrices are rejected.
+Export normalizes delimiters to start at zero and moves their offset into the
+model origin. A reversed U axis is represented by an equivalent rotation and
+signed V spacing, so geometry and data are preserved, but the original origin,
+delimiter offsets, and rotation representation may differ after a round trip.
 
 Geoh5 Entity Metadata Support
 -------------------

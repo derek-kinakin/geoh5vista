@@ -416,7 +416,7 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
             # Order data values to match the geoh5py grid cell ordering (C-order) from VTK's F-order
             n_u, n_v, n_z = output.shape
             values = data[name]
-            values_vtk = values.reshape((n_v, n_u, n_z), order="F")
+            values_vtk = values.reshape((n_u, n_v, n_z), order="F")
             values_geoh5 = values_vtk.transpose(1, 0, 2).flatten(order="C")
 
             if data_type == "REFERENCED":
