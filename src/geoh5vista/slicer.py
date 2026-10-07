@@ -235,6 +235,6 @@ def slicer_to_vtk_plane(slicer: Slicer) -> pyvista.DataSet:
                            )
     
     output = add_entity_metadata(output, slicer)
-    output.field_data["normal"] = orientation_values
-    output.field_data["origin"] = position_values
+    output.user_dict["normal"] = orientation_values
+    output.user_dict["origin"] = position_values
     return output
