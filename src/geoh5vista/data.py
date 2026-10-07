@@ -302,7 +302,7 @@ def create_value_map(data: pyvista.DataSet, name: str) -> dict:
     # Check if there is already and "Unknown" entry in the unique values;
     # if so, set move it to position 0 and create the values dict from 0
     if "Unknown" in unique_values:
-        unique_values = np.array([v for v in unique_values if v != "Unknown"])
+        unique_values = [v for v in unique_values if v != "Unknown"]
         unique_values = np.insert(unique_values, 0, "Unknown")
         values_dict = {int(n): i for n, i in enumerate(unique_values)}
     else:
