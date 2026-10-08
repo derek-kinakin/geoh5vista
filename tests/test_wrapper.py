@@ -39,7 +39,7 @@ def test_read_geoh5_load_only_visible(mixed_visibility_workspace: Path):
     assert blocks[0].user_dict["gh5_visible"] is True
 
 
-def test_read_geoh5_rejects_variable_spacing(tmp_path: Path):
+def test_read_geoh5_variable_spacing_returns_structured_grid(tmp_path: Path):
     path = tmp_path / "variable.geoh5"
     with Workspace.create(path) as ws:
         BlockModel.create(
@@ -48,17 +48,22 @@ def test_read_geoh5_rejects_variable_spacing(tmp_path: Path):
             v_cell_delimiters=np.array([0.0, 1.0, 2.0]),
             z_cell_delimiters=np.array([0.0, 1.0, 2.0]),
         )
-    with pytest.raises(ValueError, match="variable cell spacing along the u axis"):
-        read_geoh5(path)
+    assert isinstance(read_geoh5(path)["variable"], pyvista.StructuredGrid)
 
 
-def test_write_geoh5_rejects_structured_grid(tmp_path: Path):
-    grid = pyvista.ImageData(dimensions=(3, 4, 5)).cast_to_structured_grid()
-    path = tmp_path / "unsupported.geoh5"
-    with pytest.raises(TypeError, match="StructuredGrid conversion is not supported"):
-        write_geoh5(grid, path, entity_name="unsupported")
-    with Workspace(path) as ws:
-        assert ws.get_entity("unsupported") == [None]
+def test_write_geoh5_structured_grid(tmp_path: Path):
+    grid = pyvista.RectilinearGrid(
+        np.array([0.0, 1.0, 3.0]),
+        np.array([0.0, 2.0, 5.0, 9.0]),
+        np.array([0.0, 1.0, 4.0]),
+    ).cast_to_structured_grid().rotate_z(30, inplace=False)
+    grid.cell_data["grade"] = np.arange(grid.n_cells, dtype=float)
+    path = tmp_path / "structured.geoh5"
+    write_geoh5(grid, path, entity_name="structured")
+    restored = read_geoh5(path)["structured"]
+    assert isinstance(restored, pyvista.StructuredGrid)
+    np.testing.assert_allclose(restored.points, grid.points, rtol=0, atol=1e-8)
+    np.testing.assert_array_equal(restored["grade"], grid["grade"])
 
 
 @pytest.mark.parametrize("rotation", [0.0, 30.0, -90.0])

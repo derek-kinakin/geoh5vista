@@ -21,6 +21,7 @@ __all__ = (
     "FUNCTION_DISPLAY_NAMES",
     "MODULE_DISPLAY_NAME",
     "blockmodel_grid_geom_to_image_vtk",
+    "blockmodel_grid_geom_to_structured_vtk",
     "blockmodel_to_vtk",
     "get_blockmodel_shape",
     "vtk_geom_to_blockmodel",
@@ -32,6 +33,7 @@ MODULE_DISPLAY_NAME: Final[str] = "BlockModel"
 FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
     "get_blockmodel_shape": "BlockModel Shape",
     "blockmodel_grid_geom_to_image_vtk": "BlockModel Geometry to Image VTK",
+    "blockmodel_grid_geom_to_structured_vtk": "BlockModel Geometry to Structured VTK",
     "blockmodel_to_vtk": "BlockModel to VTK",
     "vtk_geom_to_blockmodel": "VTK Geometry to BlockModel",
     "vtk_to_blockmodel": "VTK to BlockModel",
@@ -129,13 +131,17 @@ def blockmodel_grid_geom_to_image_vtk(
     return output
 
 
-def _validate_uniform_spacing(blkmdl: BlockModel) -> None:
-    """Require finite, nonzero cell spacing that is uniform within each axis."""
-    for axis, cells in (
+def _blockmodel_axis_cells(blkmdl: BlockModel):
+    return (
         ("u", blkmdl.u_cells),
         ("v", blkmdl.v_cells),
         ("z", blkmdl.z_cells),
-    ):
+    )
+
+
+def _validate_cell_spacing(blkmdl: BlockModel) -> None:
+    """Require finite, nonzero, monotonic cell spacing within each axis."""
+    for axis, cells in _blockmodel_axis_cells(blkmdl):
         if (
             cells.size == 0
             or not np.all(np.isfinite(cells))
@@ -145,16 +151,94 @@ def _validate_uniform_spacing(blkmdl: BlockModel) -> None:
                 f"BlockModel '{blkmdl.name}' must have finite, nonzero cell spacing "
                 f"along the {axis} axis."
             )
-        if not np.allclose(cells, cells[0], rtol=1e-10, atol=1e-12):
+        if not (np.all(cells > 0) or np.all(cells < 0)):
             raise ValueError(
-                f"BlockModel '{blkmdl.name}' has variable cell spacing along the "
-                f"{axis} axis. Only uniform spacing within each axis is supported."
+                f"BlockModel '{blkmdl.name}' must have monotonic cell delimiters "
+                f"along the {axis} axis."
             )
 
 
-def blockmodel_to_vtk(blkmdl: BlockModel) -> pyvista.ImageData:
-    """Convert a uniformly spaced block model to a ``pyvista.ImageData``.
+def _has_uniform_spacing(blkmdl: BlockModel) -> bool:
+    return all(
+        np.allclose(cells, cells[0], rtol=1e-10, atol=1e-12)
+        for _, cells in _blockmodel_axis_cells(blkmdl)
+    )
 
+
+def _validate_uniform_spacing(blkmdl: BlockModel) -> None:
+    """Require finite, nonzero cell spacing that is uniform within each axis."""
+    _validate_cell_spacing(blkmdl)
+    for axis, cells in _blockmodel_axis_cells(blkmdl):
+        if not np.allclose(cells, cells[0], rtol=1e-10, atol=1e-12):
+            raise ValueError(
+                f"BlockModel '{blkmdl.name}' has variable cell spacing along the "
+                f"{axis} axis. Use blockmodel_grid_geom_to_structured_vtk for "
+                "variable spacing."
+            )
+
+
+def _descending_axes(blkmdl: BlockModel) -> tuple[bool, bool, bool]:
+    return tuple(bool(cells[0] < 0) for _, cells in _blockmodel_axis_cells(blkmdl))
+
+
+def blockmodel_grid_geom_to_structured_vtk(
+    blkmdl: BlockModel, rotation_matrix: np.ndarray | None = None
+) -> pyvista.StructuredGrid:
+    """Convert block model geometry to a ``pyvista.StructuredGrid``.
+
+    Cell spacing may vary within each axis. Descending delimiter axes are
+    reversed in VTK index order so that every hexahedron is positively oriented.
+
+    Parameters
+    ----------
+    blkmdl : geoh5py.objects.block_model.BlockModel
+        The block model to convert.
+    rotation_matrix : np.ndarray | None, optional
+        A 3x3 rotation matrix to apply to the grid points. If None, no
+        rotation is applied. Default is None.
+
+    Returns
+    -------
+    pyvista.StructuredGrid
+        The block model geometry as a structured grid.
+
+    Raises
+    ------
+    ValueError
+        If cell spacing is not finite, nonzero, and monotonic within each axis.
+
+    """
+    _validate_cell_spacing(blkmdl)
+    delimiters = [
+        np.asarray(values, dtype=np.float64)
+        for values in (
+            blkmdl.u_cell_delimiters,
+            blkmdl.v_cell_delimiters,
+            blkmdl.z_cell_delimiters,
+        )
+    ]
+    delimiters = [
+        values[::-1] if descending else values
+        for values, descending in zip(delimiters, _descending_axes(blkmdl))
+    ]
+    axes = np.meshgrid(*delimiters, indexing="ij")
+    local = np.column_stack([axis.ravel(order="F") for axis in axes])
+    rotation = np.eye(3) if rotation_matrix is None else rotation_matrix
+    model_origin = np.asarray(blkmdl.origin.tolist(), dtype=np.float64)
+
+    output = pyvista.StructuredGrid()
+    output.points = local @ np.asarray(rotation, dtype=np.float64).T + model_origin
+    output.dimensions = np.array(blkmdl.shape) + 1
+    return output
+
+
+def blockmodel_to_vtk(
+    blkmdl: BlockModel,
+) -> pyvista.ImageData | pyvista.StructuredGrid:
+    """Convert a block model to a PyVista grid.
+
+    Uniformly spaced models are returned as ``pyvista.ImageData``. Models with
+    variable spacing within any axis are returned as ``pyvista.StructuredGrid``.
     This function converts the block model geometry and transfers all associated
     data.
 
@@ -165,33 +249,99 @@ def blockmodel_to_vtk(blkmdl: BlockModel) -> pyvista.ImageData:
 
     Returns
     -------
-    pyvista.ImageData
+    pyvista.ImageData | pyvista.StructuredGrid
         The converted block model.
 
     Raises
     ------
     ValueError
-        If cell spacing is not uniform within each axis.
+        If cell spacing is not finite, nonzero, and monotonic within each axis.
 
     """
+    _validate_cell_spacing(blkmdl)
     rotation_mtx = _create_blockmodel_rot_matrix(blkmdl)
-    output = blockmodel_grid_geom_to_image_vtk(blkmdl, rotation_matrix=rotation_mtx)
+    if _has_uniform_spacing(blkmdl):
+        output = blockmodel_grid_geom_to_image_vtk(blkmdl, rotation_matrix=rotation_mtx)
+        output = add_data_to_vtk_grid(output, blkmdl)
+    else:
+        output = blockmodel_grid_geom_to_structured_vtk(
+            blkmdl, rotation_matrix=rotation_mtx
+        )
+        output = add_data_to_vtk_grid(
+            output, blkmdl, reverse_axes=_descending_axes(blkmdl)
+        )
 
-    output = add_data_to_vtk_grid(output, blkmdl)
     output = add_entity_metadata(output, blkmdl)
     return output
 
 
+def _structured_geom_to_blockmodel_args(vtk: pyvista.StructuredGrid) -> dict:
+    """Recover BlockModel geometry from a rectilinear structured lattice."""
+    dimensions = tuple(int(dimension) for dimension in vtk.dimensions)
+    points = np.asarray(vtk.points, dtype=np.float64)
+    if not np.all(np.isfinite(points)):
+        raise ValueError("BlockModel conversion requires finite geometry.")
+
+    nodes = points.reshape((*dimensions, 3), order="F")
+    origin = nodes[0, 0, 0]
+    u_vector = nodes[-1, 0, 0] - origin
+    if np.linalg.norm(u_vector[:2]) == 0:
+        raise ValueError(
+            "BlockModel conversion requires a horizontal U axis with nonzero length."
+        )
+    angle = np.arctan2(u_vector[1], u_vector[0])
+    rotation_matrix = xy_rotation_matrix(angle)
+    local = (nodes - origin) @ rotation_matrix
+
+    u_cell_delimiters = local[:, 0, 0, 0]
+    v_cell_delimiters = local[0, :, 0, 1]
+    z_cell_delimiters = local[0, 0, :, 2]
+    expected = np.stack(
+        np.meshgrid(u_cell_delimiters, v_cell_delimiters, z_cell_delimiters, indexing="ij"),
+        axis=-1,
+    )
+    scale = max(1.0, float(np.max(np.abs(points))))
+    tolerance = 1e-10 * scale
+    if not np.allclose(local, expected, rtol=0, atol=tolerance):
+        raise ValueError(
+            "BlockModel conversion requires a rectilinear StructuredGrid with "
+            "orthogonal horizontal U/V axes and a vertical Z axis; tilted, "
+            "sheared, or warped grids are not supported."
+        )
+
+    for axis, delimiters in (
+        ("u", u_cell_delimiters),
+        ("v", v_cell_delimiters),
+        ("z", z_cell_delimiters),
+    ):
+        cells = np.diff(delimiters)
+        if not (np.all(cells > tolerance) or np.all(cells < -tolerance)):
+            raise ValueError(
+                "BlockModel conversion requires strictly monotonic, nonzero cell "
+                f"spacing along the {axis} axis."
+            )
+
+    return {
+        "origin": origin,
+        "u_cell_delimiters": u_cell_delimiters,
+        "v_cell_delimiters": v_cell_delimiters,
+        "z_cell_delimiters": z_cell_delimiters,
+        "rotation": float(np.rad2deg(angle)),
+    }
+
+
 def vtk_geom_to_blockmodel(
-    vtk: pyvista.ImageData, workspace: Workspace, name: str
+    vtk: pyvista.ImageData | pyvista.StructuredGrid, workspace: Workspace, name: str
 ) -> BlockModel:
-    """Convert a ``pyvista.ImageData`` to a ``geoh5py.objects.block_model.BlockModel``.
+    """Convert a PyVista grid to a ``geoh5py.objects.block_model.BlockModel``.
 
     Parameters
     ----------
-    vtk : pyvista.ImageData
+    vtk : pyvista.ImageData | pyvista.StructuredGrid
         A 3D grid with horizontal U/V axes and a vertical Z axis.
         Rotation and axis reflections are supported; tilt and shear are not.
+        StructuredGrid inputs may have variable spacing within each axis, but
+        their points must form an orthogonal rectilinear lattice.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new block model to.
     name : str
@@ -205,21 +355,27 @@ def vtk_geom_to_blockmodel(
     Raises
     ------
     TypeError
-        If the input is not ImageData. StructuredGrid conversion is unsupported.
+        If the input is not ImageData or StructuredGrid.
     ValueError
         If the grid is not three-dimensional or its geometry cannot be
         represented by a BlockModel.
 
     """
 
-    if not isinstance(vtk, pyvista.ImageData):
+    if not isinstance(vtk, (pyvista.ImageData, pyvista.StructuredGrid)):
         raise TypeError(
-            "BlockModel conversion only supports pyvista.ImageData with uniform "
-            "spacing within each axis; StructuredGrid conversion is not supported."
+            "BlockModel conversion only supports pyvista.ImageData or "
+            "pyvista.StructuredGrid."
         )
 
     if any(dimension < 2 for dimension in vtk.dimensions):
         raise ValueError("BlockModel conversion requires at least one cell in each axis.")
+
+    if isinstance(vtk, pyvista.StructuredGrid):
+        return BlockModel.create(
+            workspace, name=name, **_structured_geom_to_blockmodel_args(vtk)
+        )
+
     spacing = np.asarray(vtk.spacing, dtype=np.float64)
     origin = np.asarray(vtk.origin, dtype=np.float64)
     direction = vtk.direction_matrix
@@ -267,16 +423,16 @@ def vtk_geom_to_blockmodel(
 
 
 def vtk_to_blockmodel(
-    vtk: pyvista.ImageData, workspace: Workspace, name: str
+    vtk: pyvista.ImageData | pyvista.StructuredGrid, workspace: Workspace, name: str
 ) -> ObjectBase:
-    """Convert a ``pyvista.ImageData`` to a ``geoh5py.objects.block_model.BlockModel``.
+    """Convert a PyVista grid to a ``geoh5py.objects.block_model.BlockModel``.
 
     This is a wrapper for ``vtk_geom_to_blockmodel`` and is intended to be the
     main entry point for geometry and data conversion.
 
     Parameters
     ----------
-    vtk : pyvista.ImageData
+    vtk : pyvista.ImageData | pyvista.StructuredGrid
         The VTK object to convert. It must have the required dimensions for a block model (nU x nV x nZ).
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new block model to.

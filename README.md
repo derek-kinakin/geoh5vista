@@ -39,16 +39,24 @@ to Geoh5 support is the goal for each entity.
 | Curve        | PolyData                   | Yes             | Yes            |                                                               |
 | Surface      | PolyData                   | Yes             | Yes            |                                                               |
 | 2D Grid      | ImageData                  | Yes             | Yes            | 2D grid with dimensions nU x nV x 1                           |
-| Block model  | ImageData                  | Yes             | Yes            | Uniform spacing within each axis; 3D grid with dimensions nU x nV x nZ |
+| Block model  | ImageData / StructuredGrid | Yes             | Yes            | ImageData for uniform spacing within each axis; StructuredGrid for variable spacing |
 | Drillholes   | PolyData                   | Yes             | No             | Drillholes can be round-tripped back to geoh5 as curves       |
 | Slicer       | PolyData                   | Yes             | No             | Geometry available as object metadata                         |
 
-Block models may use different spacing for U, V, and Z, but spacing must be
-uniform within each axis. Variable-spacing block models and StructuredGrid
-exports are unsupported and raise explicit errors. The earlier StructuredGrid
-block-model implementation has been removed, including
-`blockmodel_grid_geom_to_structured_vtk`; use `blockmodel_to_vtk` or
-`blockmodel_grid_geom_to_image_vtk` for supported models.
+Block models with uniform spacing within each axis are read as `ImageData`;
+U, V, and Z spacing may differ from each other. Models with variable spacing
+within any axis are read as `StructuredGrid` with explicit, rotated point
+coordinates. Use `blockmodel_to_vtk` to select the representation
+automatically, or `blockmodel_grid_geom_to_image_vtk` /
+`blockmodel_grid_geom_to_structured_vtk` for geometry only.
+
+StructuredGrid block models support common dataset attributes and filters such
+as `cell_data`, `user_dict`, `bounds`, slicing, clipping, thresholding,
+contouring, cell centres, and structured subsets. ImageData-only attributes and
+filters, such as `spacing`, `origin`, `direction_matrix`, image smoothing,
+FFT, and morphology, are not available. For positive cell volumes, descending
+delimiter axes are reversed in StructuredGrid index order; cell data are
+reordered to remain spatially aligned.
 
 Block-model imports preserve rotation, nonzero delimiter offsets, and
 descending-axis cell-data alignment. ImageData uses the transformed first
@@ -62,6 +70,11 @@ Export normalizes delimiters to start at zero and moves their offset into the
 model origin. A reversed U axis is represented by an equivalent rotation and
 signed V spacing, so geometry and data are preserved, but the original origin,
 delimiter offsets, and rotation representation may differ after a round trip.
+
+StructuredGrid exports infer rotation and delimiters from the current point
+coordinates. Points must form an orthogonal rectilinear lattice with horizontal
+U/V axes and a vertical Z axis; tilted, sheared, warped, or degenerate grids are
+rejected. The first grid node becomes the model origin.
 
 Geoh5 Entity Metadata Support
 -------------------

@@ -212,7 +212,11 @@ def add_drillhole_interval_data_to_vtk(
     return output
 
 
-def add_data_to_vtk_grid(output: pyvista.StructuredGrid | pyvista.ImageData, entity: BlockModel) -> pyvista.DataSet:
+def add_data_to_vtk_grid(
+    output: pyvista.StructuredGrid | pyvista.ImageData,
+    entity: BlockModel,
+    reverse_axes: tuple[bool, bool, bool] | None = None,
+) -> pyvista.DataSet:
     """Transfer data from a geoh5py grid entity to a VTK grid object.
 
     This function is specialized for grid objects like ``BlockModel``, where
@@ -225,6 +229,8 @@ def add_data_to_vtk_grid(output: pyvista.StructuredGrid | pyvista.ImageData, ent
         The VTK grid object to add the data to.
     entity : geoh5py.objects.block_model.BlockModel
         The geoh5py grid entity to source the data from.
+    reverse_axes : tuple[bool, bool, bool] | None, optional
+        U/V/Z axes whose VTK index order is reversed relative to geoh5.
 
     Returns
     -------
@@ -248,9 +254,13 @@ def add_data_to_vtk_grid(output: pyvista.StructuredGrid | pyvista.ImageData, ent
             continue
         n_u, n_v, n_z = entity.shape
 
-        values_3d = values.reshape((n_v, n_u, n_z), order="C")
+        values_3d = values.reshape((n_v, n_u, n_z), order="C").transpose(1, 0, 2)
+        if reverse_axes is not None:
+            values_3d = np.flip(
+                values_3d, axis=tuple(i for i, reverse in enumerate(reverse_axes) if reverse)
+            )
 
-        values_vtk = values_3d.transpose(1, 0, 2).flatten(order="F")
+        values_vtk = values_3d.flatten(order="F")
 
         if isinstance(data, ReferencedData):
             data_value_map = data.value_map

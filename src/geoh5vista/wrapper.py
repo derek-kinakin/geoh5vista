@@ -169,11 +169,6 @@ def vtkwrap(
 ) -> None:
     if data is None:
         return None
-    elif isinstance(data, pyvista.StructuredGrid):
-        raise TypeError(
-            "StructuredGrid conversion is not supported. BlockModel conversion "
-            "requires pyvista.ImageData with uniform spacing within each axis."
-        )
     elif isinstance(data, pyvista.PointSet):
         key = "PointSet"
     else:
@@ -273,4 +268,6 @@ VTKWRAPPERS = {
     ## Volume entities
     "ImageData_12": vtk_to_blockmodel,
     "ImageData_VOXEL": vtk_to_blockmodel,
+    "StructuredGrid_12": vtk_to_blockmodel,
+    "StructuredGrid_HEXAHEDRON": vtk_to_blockmodel,
 }
