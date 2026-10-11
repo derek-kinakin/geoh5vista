@@ -44,11 +44,13 @@ for item in topography:
 
 for item in geology:
     mesh = project[item]
-    p.add_mesh(mesh, color=mesh.user_dict["gh5_colour"], label=mesh.user_dict["gh5_name"], opacity=1)
+    display = mesh.user_dict["geoh5"]["display"]
+    p.add_mesh(mesh, color=display["colour"], label=display["name"], opacity=1)
 
 for item in data:
     mesh = project[item]
-    p.add_mesh(mesh, color=mesh.user_dict["gh5_colour"], label=mesh.user_dict["gh5_name"])
+    display = mesh.user_dict["geoh5"]["display"]
+    p.add_mesh(mesh, color=display["colour"], label=display["name"])
 
 for item in drillholes:
     for hole in project[item]:

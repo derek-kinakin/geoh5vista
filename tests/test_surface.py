@@ -123,12 +123,12 @@ def test_surface_to_vtk_transfers_int_data(geoh5_surface: Surface):
 
 def test_surface_to_vtk_metadata_name(geoh5_surface: Surface):
     result = surface_to_vtk(geoh5_surface)
-    assert result.user_dict["gh5_name"] == "test_surface"
+    assert result.user_dict["geoh5"]["display"]["name"] == "test_surface"
 
 
 def test_surface_to_vtk_metadata_entity_type(geoh5_surface: Surface):
     result = surface_to_vtk(geoh5_surface)
-    assert result.user_dict["gh5_entity_type"] == "Surface"
+    assert result.user_dict["geoh5"]["source"]["entity_type"] == "Surface"
 
 
 def test_surface_to_vtk_no_data_does_not_raise(tmp_path: Path):

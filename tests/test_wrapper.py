@@ -25,7 +25,10 @@ def mixed_visibility_workspace(tmp_path: Path) -> Path:
 
 
 def _names(blocks) -> set[str]:
-    return {blocks[i].user_dict["gh5_name"] for i in range(blocks.n_blocks)}
+    return {
+        blocks[i].user_dict["geoh5"]["display"]["name"]
+        for i in range(blocks.n_blocks)
+    }
 
 
 def test_read_geoh5_loads_all_by_default(mixed_visibility_workspace: Path):
@@ -36,7 +39,7 @@ def test_read_geoh5_loads_all_by_default(mixed_visibility_workspace: Path):
 def test_read_geoh5_load_only_visible(mixed_visibility_workspace: Path):
     blocks = read_geoh5(mixed_visibility_workspace, load_only_visible=True)
     assert _names(blocks) == {"shown"}
-    assert blocks[0].user_dict["gh5_visible"] is True
+    assert blocks[0].user_dict["geoh5"]["display"]["visible"] is True
 
 
 def test_read_geoh5_variable_spacing_returns_structured_grid(tmp_path: Path):

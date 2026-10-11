@@ -163,7 +163,7 @@ def test_variable_spacing_structured_geometry_data_and_roundtrip(
         mesh = blockmodel_to_vtk(model)
         assert isinstance(mesh, pyvista.StructuredGrid)
         assert mesh.dimensions == (3, 4, 5)
-        assert mesh.user_dict["gh5_entity_type"] == "BlockModel"
+        assert mesh.user_dict["geoh5"]["source"]["entity_type"] == "BlockModel"
         ids = mesh.cell_data["cell_id"]
         np.testing.assert_array_equal(np.sort(ids), np.arange(model.n_cells))
         np.testing.assert_allclose(
@@ -186,7 +186,7 @@ def test_variable_spacing_structured_geometry_data_and_roundtrip(
             exported.centroids, model_centroids[exported_ids], rtol=0, atol=1e-8
         )
     with Workspace(export_path) as ws:
-        restored = blockmodel_to_vtk(ws.get_entity("exported")[0])
+        restored = blockmodel_to_vtk(ws.get_entity("variable")[0])
         assert isinstance(restored, pyvista.StructuredGrid)
         np.testing.assert_allclose(
             restored.points, mesh.points, rtol=0, atol=1e-8
@@ -387,7 +387,7 @@ def test_blockmodel_centers_match_geoh5py(
                 )
                 exported_centroids = exported.centroids.copy()
             with Workspace(export_path) as export_ws:
-                exported = export_ws.get_entity("exported")[0]
+                exported = export_ws.get_entity("geometry")[0]
                 np.testing.assert_allclose(
                     exported.centroids, exported_centroids, rtol=0, atol=1e-8
                 )
@@ -507,12 +507,12 @@ def test_blockmodel_to_vtk_data_reindex_specific_cells(geoh5_blockmodel: BlockMo
 
 def test_blockmodel_to_vtk_metadata_name(geoh5_blockmodel: BlockModel):
     result = blockmodel_to_vtk(geoh5_blockmodel)
-    assert result.user_dict["gh5_name"] == "test_bm"
+    assert result.user_dict["geoh5"]["display"]["name"] == "test_bm"
 
 
 def test_blockmodel_to_vtk_metadata_entity_type(geoh5_blockmodel: BlockModel):
     result = blockmodel_to_vtk(geoh5_blockmodel)
-    assert result.user_dict["gh5_entity_type"] == "BlockModel"
+    assert result.user_dict["geoh5"]["source"]["entity_type"] == "BlockModel"
 
 
 def test_blockmodel_to_vtk_no_data_does_not_raise(tmp_path: Path):

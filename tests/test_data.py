@@ -135,7 +135,7 @@ def test_restore_entity_metadata_invalid_values(tmp_path: Path, metadata, messag
     with Workspace.create(tmp_path / "invalid.geoh5") as ws:
         target = Points.create(workspace=ws, name="target", vertices=VERTICES)
         target.visible = True
-        with pytest.raises(ValueError, match=message):
+        with pytest.raises(TypeError, match=message):
             restore_entity_metadata(target, mesh)
         assert target.name == "target"
         assert target.visible is True

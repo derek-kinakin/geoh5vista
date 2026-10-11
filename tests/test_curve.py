@@ -103,12 +103,12 @@ def test_curve_to_vtk_transfers_int_data(geoh5_curve: Curve):
 
 def test_curve_to_vtk_metadata_name(geoh5_curve: Curve):
     result = curve_to_vtk(geoh5_curve)
-    assert result.user_dict["gh5_name"] == "test_curve"
+    assert result.user_dict["geoh5"]["display"]["name"] == "test_curve"
 
 
 def test_curve_to_vtk_metadata_entity_type(geoh5_curve: Curve):
     result = curve_to_vtk(geoh5_curve)
-    assert result.user_dict["gh5_entity_type"] == "Curve"
+    assert result.user_dict["geoh5"]["source"]["entity_type"] == "Curve"
 
 
 def test_curve_to_vtk_no_data_does_not_raise(tmp_path: Path):

@@ -87,12 +87,12 @@ def test_points_to_vtk_transfers_int_data(geoh5_points: Points):
 
 def test_points_to_vtk_metadata_name(geoh5_points: Points):
     result = points_to_vtk(geoh5_points)
-    assert result.user_dict["gh5_name"] == "test_points"
+    assert result.user_dict["geoh5"]["display"]["name"] == "test_points"
 
 
 def test_points_to_vtk_metadata_entity_type(geoh5_points: Points):
     result = points_to_vtk(geoh5_points)
-    assert result.user_dict["gh5_entity_type"] == "Points"
+    assert result.user_dict["geoh5"]["source"]["entity_type"] == "Points"
 
 
 def test_points_to_vtk_no_data_does_not_raise(tmp_path: Path):
