@@ -10,7 +10,7 @@ from geoh5py.objects.object_base import ObjectBase
 from geoh5py.objects.surface import Surface
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata, restore_entity_metadata
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -155,4 +155,5 @@ def vtk_to_surface(vtk: pyvista.PolyData | pyvista.UnstructuredGrid, workspace: 
     """
     surface = vtk_geom_to_surface(vtk=vtk, workspace=workspace, name=name)
     surface = add_data_to_geoh5(surface, vtk)
+    surface = restore_entity_metadata(surface, vtk)
     return surface

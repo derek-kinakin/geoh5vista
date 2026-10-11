@@ -10,7 +10,7 @@ from geoh5py.objects.grid2d import Grid2D
 from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata, restore_entity_metadata
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -169,4 +169,5 @@ def vtk_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, workspace: 
     """
     grid2d = vtk_geom_to_grid2d(vtk=vtk, workspace=workspace, name=name)
     grid2d = add_data_to_geoh5(grid2d, vtk)
+    grid2d = restore_entity_metadata(grid2d, vtk)
     return grid2d 

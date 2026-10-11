@@ -8,7 +8,7 @@ import pyvista
 from geoh5py.objects.points import Points
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata, restore_entity_metadata
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -122,4 +122,5 @@ def vtk_to_points(vtk: pyvista.PointSet, workspace: Workspace, name: str) -> Poi
     """
     points = vtk_geom_to_points(vtk=vtk, workspace=workspace, name=name)
     points = add_data_to_geoh5(points, vtk)
+    points = restore_entity_metadata(points, vtk)
     return points

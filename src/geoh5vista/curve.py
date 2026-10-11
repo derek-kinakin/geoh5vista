@@ -9,7 +9,7 @@ import pyvista
 from geoh5py.objects.curve import Curve
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata
+from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata, restore_entity_metadata
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -144,4 +144,5 @@ def vtk_to_curve(
     """
     curve = vtk_geom_to_curve(vtk=vtk, workspace=workspace, name=name)
     curve = add_data_to_geoh5(curve, vtk)
+    curve = restore_entity_metadata(curve, vtk)
     return curve

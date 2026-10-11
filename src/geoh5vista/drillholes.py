@@ -61,7 +61,18 @@ def drillholes_to_vtk(dhgrp: DrillholeGroup) -> pyvista.PolyData:
             line["dh_name"] = np.repeat(dh.name, line.n_points)
             dh_multi += line
 
-    dh_multi.user_dict["gh5_name"] = dhgrp.name
-    dh_multi.user_dict["gh5_colour"] = "black"
-    dh_multi.user_dict["gh5_entity_type"] = "Drillholes"
+    dh_multi.user_dict["geoh5"] = {
+        "schema_version": 1,
+        "source": {
+            "uid": str(dhgrp.uid),
+            "entity_type": "Drillholes",
+            "parent_uid": str(dhgrp.parent.uid) if dhgrp.parent else None,
+        },
+        "display": {
+            "name": dhgrp.name,
+            "colour": [255, 255, 255],
+            "visible": True,
+        },
+    }
+    
     return dh_multi

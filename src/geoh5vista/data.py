@@ -116,20 +116,23 @@ def restore_entity_metadata(
 
     metadata = data.user_dict["geoh5"]
     if not isinstance(metadata, dict):
-        raise ValueError("geoh5 metadata must be a dictionary.")
+        raise TypeError("geoh5 metadata must be a dictionary.")
+    
     version = metadata.get("schema_version")
     if type(version) is not int or version != 1:
-        raise ValueError("geoh5.schema_version must be the integer 1.")
+        raise TypeError("geoh5.schema_version must be the integer 1.")
 
     display = metadata.get("display", {})
     if not isinstance(display, dict):
-        raise ValueError("geoh5.display must be a dictionary.")
+        raise TypeError("geoh5.display must be a dictionary.")
 
     restored_name = name if name is not None else display.get("name")
     if (name is not None or "name" in display) and not isinstance(restored_name, str):
-        raise ValueError("geoh5.display.name must be a string.")
+        raise TypeError("geoh5.display.name must be a string.")
+    
     if "visible" in display and not isinstance(display["visible"], bool):
-        raise ValueError("geoh5.display.visible must be a boolean.")
+        raise TypeError("geoh5.display.visible must be a boolean.")
+    
     if "colour" in display:
         colour = display["colour"]
         if (
@@ -137,7 +140,7 @@ def restore_entity_metadata(
             or len(colour) != 3
             or not all(type(value) is int and 0 <= value <= 255 for value in colour)
         ):
-            raise ValueError(
+            raise TypeError(
                 "geoh5.display.colour must contain three RGB integers between 0 and 255."
             )
 

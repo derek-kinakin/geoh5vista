@@ -15,6 +15,7 @@ from geoh5vista.data import (
     add_data_to_vtk_grid,
     add_entity_metadata,
     add_grid_data_to_geoh5,
+    restore_entity_metadata,
 )
 
 __all__ = (
@@ -450,4 +451,5 @@ def vtk_to_blockmodel(
     blockmodel = add_grid_data_to_geoh5(
         blockmodel, vtk
     )
+    blockmodel = restore_entity_metadata(blockmodel, vtk)
     return blockmodel
