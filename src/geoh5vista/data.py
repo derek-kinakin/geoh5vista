@@ -27,6 +27,7 @@ __all__ = (
     "add_entity_metadata",
     "add_grid_data_to_geoh5",
     "get_vtk_array_association",
+    "restore_entity_metadata",
 )
 
 
@@ -39,14 +40,15 @@ FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
     "add_data_to_geoh5": "Add Data to GeoH5",
     "add_grid_data_to_geoh5": "Add Grid Data to GeoH5",
     "get_vtk_array_association": "Get VTK Array Association",
+    "restore_entity_metadata": "Restore Entity Metadata",
 }
 
 
 def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
     """Add geoh5 entity metadata to a VTK object as a user_dict.
 
-    This includes the entity's name, color (from visual parameters), and
-    class name.
+    The metadata is stored in ``output.user_dict["geoh5"]`` as a nested
+    dictionary containing schema version, source, and display information.
 
     Parameters
     ----------
@@ -61,19 +63,94 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
         The VTK data object with added metadata.
 
     """
-    
-    entity_colour = get_gh5_entity_colour(entity)
-    entity_name = entity.name
-    entity_type = entity.__class__.__name__
-    entity_uid = str(entity.uid)
+    output.user_dict["geoh5"] = {
+        "schema_version": 1,
+        "source": {
+            "uid": str(entity.uid),
+            "entity_type": entity.__class__.__name__,
+            "parent_uid": str(entity.parent.uid) if entity.parent else None,
+        },
+        "display": {
+            "name": entity.name,
+            "colour": get_gh5_entity_colour(entity),
+            "visible": normalize_visibility(entity.visible),
+        },
+    }
 
-    entity_visible = normalize_visibility(entity.visible)
+    return output
 
-    output.user_dict["gh5_colour"] = entity_colour
-    output.user_dict["gh5_name"] = entity_name
-    output.user_dict["gh5_entity_type"] = entity_type
-    output.user_dict["gh5_visible"] = entity_visible
-    output.user_dict["gh5_uid"] = entity_uid
+
+def restore_entity_metadata(
+    output: ObjectBase, data: pyvista.DataSet, *, name: str | None = None
+) -> ObjectBase:
+    """Restore geoh5 display metadata onto an existing geoh5 entity.
+
+    Reads schema version 1 from ``data.user_dict["geoh5"]``. Missing
+    metadata or display fields leave the corresponding entity defaults
+    unchanged. All supported fields are validated before applying changes.
+    Source UID, parent UID, and entity type are not restored.
+
+    Parameters
+    ----------
+    output : geoh5py.objects.object_base.ObjectBase
+        The newly created entity to update in place.
+    data : pyvista.DataSet
+        The PyVista object containing geoh5 metadata.
+    name : str or None, optional
+        An explicit name overriding the stored display name.
+        Only applied when geoh5 metadata is present.
+
+    Returns
+    -------
+    geoh5py.objects.object_base.ObjectBase
+        The updated entity.
+
+    Raises
+    ------
+    ValueError
+        If the metadata schema or a supported display value is invalid.
+
+    """
+    if "geoh5" not in data.user_dict:
+        return output
+
+    metadata = data.user_dict["geoh5"]
+    if not isinstance(metadata, dict):
+        raise ValueError("geoh5 metadata must be a dictionary.")
+    version = metadata.get("schema_version")
+    if type(version) is not int or version != 1:
+        raise ValueError("geoh5.schema_version must be the integer 1.")
+
+    display = metadata.get("display", {})
+    if not isinstance(display, dict):
+        raise ValueError("geoh5.display must be a dictionary.")
+
+    restored_name = name if name is not None else display.get("name")
+    if (name is not None or "name" in display) and not isinstance(restored_name, str):
+        raise ValueError("geoh5.display.name must be a string.")
+    if "visible" in display and not isinstance(display["visible"], bool):
+        raise ValueError("geoh5.display.visible must be a boolean.")
+    if "colour" in display:
+        colour = display["colour"]
+        if (
+            not isinstance(colour, (list, tuple))
+            or len(colour) != 3
+            or not all(type(value) is int and 0 <= value <= 255 for value in colour)
+        ):
+            raise ValueError(
+                "geoh5.display.colour must contain three RGB integers between 0 and 255."
+            )
+
+    if restored_name is not None:
+        output.name = restored_name
+    if "visible" in display:
+        output.visible = display["visible"]
+    if "colour" in display:
+        visual_parameters = output.visual_parameters
+        if visual_parameters is None:
+            visual_parameters = output.add_default_visual_parameters()
+        visual_parameters.colour = list(display["colour"])
+
     return output
 
 

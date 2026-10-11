@@ -79,12 +79,22 @@ rejected. The first grid node becomes the model origin.
 Geoh5 Entity Metadata Support
 -------------------
 
-The following metadata are read from the geoh5 entities and attached to the PyVista objects in the "user_dict":
+`add_entity_metadata` stores metadata in `ob.user_dict["geoh5"]` using
+schema version 1. The `source` dictionary contains the original UID, entity
+class (`entity_type`), and parent UID. The `display` dictionary contains
+`name`, `colour` (RGB integers), and `visible` (a boolean).
+Integer/NumPy visibility values from geoh5py are normalized (0 = hidden);
+unrecognized values are treated as visible with a warning.
 
-* Entity name (ob.user_dict["gh5_name"]) as a string
-* Entity colour (ob.user_dict["gh5_colour"]) as a list [R,G,B]
-* Entity type (ob.user_dict["gh5_entity_type"]) as "Points", "Curve", "Surface", "Grid2D", "Grid3D", or "Drillhole"
-* Entity visibility (ob.user_dict["gh5_visible"]) as True/False. Integer/NumPy visibility values from geoh5py are normalized (0 = hidden); unrecognized values are treated as visible with a warning.
+`geoh5vista.data.restore_entity_metadata(entity, mesh, name=None)` restores
+the display fields onto an already-created geoh5 entity. An explicit `name`
+overrides the stored name. Missing metadata or display fields leave the
+entity unchanged for those fields; invalid recognized values or unsupported
+schema versions raise `ValueError` before display changes are applied.
+Colour restoration creates Visual Parameters if needed and otherwise
+updates the existing child's colour without replacing its other settings.
+Source identity, parent relationships, and entity class are not restored.
+This helper is not yet called automatically by the exporters.
 
 Example Use
 -----------

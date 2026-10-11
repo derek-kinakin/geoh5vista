@@ -89,8 +89,8 @@ def entities_to_vtk(entity_list: list[ObjectBase]) -> pyvista.MultiBlock:
     data = pyvista.MultiBlock()
     for item in entity_list:
         e = geoh5wrap(item)
-        if e is not None and "gh5_name" in e.user_dict:
-            data.append(e, name=e.user_dict["gh5_name"])
+        if e is not None and "name" in e.user_dict["geoh5"]["display"]:
+            data.append(e, name=e.user_dict["geoh5"]["display"]["name"])
         else:
             pass
     return data
