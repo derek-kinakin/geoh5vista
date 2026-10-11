@@ -105,7 +105,8 @@ def get_gh5_entity_colour(gh5_entity: ObjectBase) -> list[int]:
         return [0, 0, 0]  # Return a default color if no visual parameters
 
     a = data_list[0]
-    if a.colour is None:
+    # If a does not have a colour attribute, return the default color.
+    if not hasattr(a, "colour") or a.colour is None:
         return [0, 0, 0]
 
     c = a.colour  # Colour order was BGR before geoh5py 0.12.1

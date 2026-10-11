@@ -16,6 +16,7 @@ SUPPORTED = [
     "Drillhole",
     "DrillholeGroup",
     "ConcatenatorDrillholeGroup",
+    "ConcatenatedDrillhole",
     "Slicer",
 ]
 
@@ -43,7 +44,6 @@ GEOH5SKIP = [
     "BooleanData",
     "PropertyGroup",
     "CommentsData",
-    "ConcatenatedDrillhole",
     "CustomGroup",
     "Maxwell plate",
     "ioGAS Points"

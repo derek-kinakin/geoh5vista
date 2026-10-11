@@ -51,8 +51,10 @@ for item in data:
     p.add_mesh(mesh, color=mesh.user_dict["gh5_colour"], label=mesh.user_dict["gh5_name"])
 
 for item in drillholes:
-    mesh = project[item]
-    p.add_mesh(mesh, line_width=3, color="black")
+    for hole in project[item]:
+        if hole["trace"].n_points:
+            p.add_mesh(hole["trace"], line_width=3, color="black")
+        p.add_mesh(hole["collar"], point_size=5, color="black")
 
 blkmdl = project[block_models[0]]
 ore_blocks = blkmdl.extract_cells(blkmdl.cell_data["geomodel"] == 14)

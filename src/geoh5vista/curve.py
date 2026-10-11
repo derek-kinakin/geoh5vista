@@ -144,5 +144,5 @@ def vtk_to_curve(
     """
     curve = vtk_geom_to_curve(vtk=vtk, workspace=workspace, name=name)
     curve = add_data_to_geoh5(curve, vtk)
-    curve = restore_entity_metadata(curve, vtk)
+    curve = restore_entity_metadata(curve, vtk, name=name)
     return curve

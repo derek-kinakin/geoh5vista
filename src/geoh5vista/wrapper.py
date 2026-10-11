@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 import pyvista
 from geoh5py.objects.object_base import ObjectBase
+from geoh5py.objects.drillhole import Drillhole
+from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5py.workspace.workspace import Workspace
 
 from geoh5vista.blockmodel import blockmodel_to_vtk, vtk_to_blockmodel
 from geoh5vista.constants import SUPPORTED
 from geoh5vista.curve import curve_to_vtk, vtk_to_curve
-from geoh5vista.drillholes import drillholes_to_vtk
+from geoh5vista.drillholes import drillhole_to_vtk, drillholes_to_vtk
 from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
 from geoh5vista.points import points_to_vtk, vtk_to_points
 from geoh5vista.slicer import slicer_to_vtk_plane
@@ -38,7 +40,7 @@ FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
 }
 
 
-def geoh5wrap(data: ObjectBase) -> pyvista.DataSet | None:
+def geoh5wrap(data: ObjectBase | DrillholeGroup) -> pyvista.DataSet | pyvista.MultiBlock | None:
     """Wrap a geoh5py data object as a PyVista data object.
 
     This is the primary function that an end user will harness. It takes
@@ -65,13 +67,17 @@ def geoh5wrap(data: ObjectBase) -> pyvista.DataSet | None:
         return None
     else:
         key = data.__class__.__name__  # get the class name
-        try:
-            return GEOH5WRAPPERS[key](data)
-        except KeyError:
+        converter = GEOH5WRAPPERS.get(key)
+        if converter is None:
             raise RuntimeError(f"Data of type ({key}) is not  currently supported.")
+        return converter(data)
 
 
-def entities_to_vtk(entity_list: list[ObjectBase]) -> pyvista.MultiBlock:
+def entities_to_vtk(
+    entity_list: list[ObjectBase | DrillholeGroup], *,
+    drillhole_representation: Literal["composite", "merged"] = "composite",
+    curve_tolerance: float = 0.01, load_only_visible: bool = False,
+) -> pyvista.MultiBlock:
     """Convert a list of geoh5py entities to a ``pyvista.MultiBlock`` object.
 
     Parameters
@@ -85,19 +91,33 @@ def entities_to_vtk(entity_list: list[ObjectBase]) -> pyvista.MultiBlock:
         A MultiBlock object containing the converted entities.
 
     """
-    # Iterate over the elements and add converted VTK objects a MultiBlock
     data = pyvista.MultiBlock()
     for item in entity_list:
-        e = geoh5wrap(item)
-        if e is not None and "name" in e.user_dict["geoh5"]["display"]:
-            data.append(e, name=e.user_dict["geoh5"]["display"]["name"])
+        if load_only_visible and not normalize_visibility(item.visible):
+            continue
+        if isinstance(item, DrillholeGroup):
+            e = drillholes_to_vtk(
+                item, representation=drillhole_representation,
+                curve_tolerance=curve_tolerance, load_only_visible=load_only_visible,
+            )
+        elif isinstance(item, Drillhole):
+            e = drillhole_to_vtk(
+                item, curve_tolerance=curve_tolerance, representation=drillhole_representation,
+            )
         else:
-            pass
+            e = geoh5wrap(item)
+        if e is not None:
+            name = e.user_dict["geoh5"]["display"]["name"]
+            if name in data.keys():
+                name = f"{name} [{item.uid}]"
+            data.append(e, name=name)
     return data
 
 
 def read_geoh5(
-    workspace_path: str | Path, load_only_visible: bool = False
+    workspace_path: str | Path, load_only_visible: bool = False,
+    *, drillhole_representation: Literal["composite", "merged"] = "composite",
+    curve_tolerance: float = 0.01,
 ) -> pyvista.MultiBlock:
     """Load a geoh5 workspace and convert its entities to a ``pyvista.MultiBlock``.
 
@@ -108,6 +128,11 @@ def read_geoh5(
     load_only_visible : bool, optional
         If ``True``, only entities that are marked as visible in the
         workspace will be loaded. Default is ``False``.
+    drillhole_representation : {"composite", "merged"}, optional
+        Preserve individual holes and sampling tables by default. ``merged``
+        requests a line visualization and rejects incompatible tables.
+    curve_tolerance : float, optional
+        Maximum drillhole circular-arc chord error in workspace distance units.
 
     Returns
     -------
@@ -115,6 +140,8 @@ def read_geoh5(
         A MultiBlock object containing the converted entities.
 
     """
+    if drillhole_representation not in ("composite", "merged"):
+        raise ValueError("drillhole_representation must be 'composite' or 'merged'.")
     # Check for workspace existence
     if not Path(workspace_path).exists():
         raise FileNotFoundError(f"Workspace file {workspace_path} not found.")
@@ -122,16 +149,11 @@ def read_geoh5(
         #wp = Workspace(workspace_path)
         with Workspace(workspace_path) as wp:
             entities = wp.fetch_children(wp.root, recursively=True)
-            # entities = wp.objects # This approach doesn't include drillholes
-            # TODO: check if there is an issue with drillholes that don't have downhole surveys.
-            # It may be that the workspace reader fails if the drillholes where created from a collar
-            # only and don't have a downhole survey. This is because the reader expects a downhole survey 
-            # to be present for drillholes, and if it's not, it may raise an error or fail to read the 
-            # drillhole data correctly. To address this issue, you could implement a check in the workspace 
-            # reader to handle drillholes without downhole surveys gracefully, perhaps by assigning default 
-            # values or skipping those drillholes while still allowing the rest of the workspace to be read successfully.
-
             supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
+            supported_entities = [
+                e for e in supported_entities
+                if not (isinstance(e, Drillhole) and isinstance(e.parent, DrillholeGroup))
+            ]
 
             if load_only_visible:
                 supported_entities = [
@@ -140,7 +162,10 @@ def read_geoh5(
                     if normalize_visibility(e.visible)
                 ]
 
-            return entities_to_vtk(supported_entities)
+            return entities_to_vtk(
+                supported_entities, drillhole_representation=drillhole_representation,
+                curve_tolerance=curve_tolerance, load_only_visible=load_only_visible,
+            )
 
 
 GEOH5WRAPPERS = {
@@ -153,10 +178,10 @@ GEOH5WRAPPERS = {
     ## Volume entities
     "BlockModel": blockmodel_to_vtk,
     ## Container entities
-    "Drillhole": drillholes_to_vtk,
+    "Drillhole": drillhole_to_vtk,
     "DrillholeGroup": drillholes_to_vtk,
     "ConcatenatorDrillholeGroup": drillholes_to_vtk,
-    "ConcatenatedDrillhole": drillholes_to_vtk,
+    "ConcatenatedDrillhole": drillhole_to_vtk,
     ## Slicer entities
     "Slicer": slicer_to_vtk_plane,
 }
@@ -169,7 +194,12 @@ def vtkwrap(
 ) -> None:
     if data is None:
         return None
-    elif isinstance(data, pyvista.PointSet):
+    if isinstance(data, pyvista.MultiBlock) or (
+        data.user_dict.get("geoh5", {}).get("drillhole", {}).get("role")
+        in ("collar", "trace", "intervals", "points")
+    ):
+        raise ValueError("Drillhole composite export is not supported.")
+    if isinstance(data, pyvista.PointSet):
         key = "PointSet"
     else:
         cell_type = data.get_cell(0).type # Check that the cell types are consistent
@@ -191,7 +221,7 @@ def vtk_to_entities(
 
     if isinstance(data, pyvista.MultiBlock):
         if data.is_nested:
-            data = data.flatten()
+            data = data.flatten(user_dict_mode="nested")
         return [data[k] for k in data.keys()]
 
     elif isinstance(data, pyvista.DataSet):
@@ -212,6 +242,10 @@ def _get_entity_name(
     if entity_name:
         return entity_name
 
+    display = item.user_dict.get("geoh5", {}).get("display", {})
+    if "name" in display:
+        return display["name"]
+
     if "gh5_name" in item.user_dict:
         return item.user_dict["gh5_name"]
     
@@ -227,6 +261,12 @@ def write_geoh5(
 ) -> None:
     """Write PyVista objects to a geoh5 workspace."""
     data_list = vtk_to_entities(data)
+    if any(item.user_dict.get("geoh5", {}).get("drillhole", {}).get("role")
+           in ("collar", "trace", "intervals", "points") for item in data_list):
+        raise ValueError(
+            "Drillhole composite export is not supported. Use an explicit merged "
+            "representation to export line geometry as curves."
+        )
 
     workspace_exists = Path(workspace_path).exists()
     print(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Final, TypeVar
 
 import numpy as np
 import pyvista
@@ -10,6 +10,7 @@ from geoh5py.data.boolean_data import BooleanData
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
+from geoh5py.groups.base import Group
 from geoh5py.objects.block_model import BlockModel
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
@@ -44,7 +45,10 @@ FUNCTION_DISPLAY_NAMES: Final[dict[str, str]] = {
 }
 
 
-def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.DataSet:
+_DataObject = TypeVar("_DataObject", bound=pyvista.DataObject)
+
+
+def add_entity_metadata(output: _DataObject, entity: ObjectBase | Group) -> _DataObject:
     """Add geoh5 entity metadata to a VTK object as a user_dict.
 
     The metadata is stored in ``output.user_dict["geoh5"]`` as a nested
@@ -52,14 +56,14 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
 
     Parameters
     ----------
-    output : pyvista.DataSet
+    output : pyvista.DataObject
         The VTK data object to add the metadata to.
-    entity : geoh5py.objects.object_base.ObjectBase
+    entity : geoh5py.objects.object_base.ObjectBase or geoh5py.groups.base.Group
         The geoh5py entity to source the metadata from.
 
     Returns
     -------
-    pyvista.DataSet
+    pyvista.DataObject
         The VTK data object with added metadata.
 
     """
@@ -72,7 +76,8 @@ def add_entity_metadata(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.
         },
         "display": {
             "name": entity.name,
-            "colour": get_gh5_entity_colour(entity),
+            "colour": get_gh5_entity_colour(entity) if isinstance(entity, ObjectBase)
+            else [255, 255, 255],
             "visible": normalize_visibility(entity.visible),
         },
     }
@@ -206,12 +211,14 @@ def add_data_to_vtk(output: pyvista.DataSet, entity: ObjectBase) -> pyvista.Data
 def add_drillhole_interval_data_to_vtk(
     output: pyvista.PolyData, entity: Drillhole
 ) -> pyvista.PolyData:
-    """Transfer interval-based drillhole data to a VTK line object.
+    """Transfer independent drillhole tables to a supplied line view.
 
-    This function maps interval data (e.g., geology, assays) from a
-    ``Drillhole`` entity onto the cells of a VTK line representation of
-    that drillhole. It uses the cell midpoints to determine which
-    interval each cell belongs to.
+    The line must have sequential two-point cells, increasing measured
+    depths, and vertices at every interval boundary within its extent.
+    Point observations are transferred only at exact matching depths.
+    Overlapping observations in one array raise ``ValueError`` rather
+    than overwriting values. Prefer the composite drillhole converter
+    for lossless import.
 
     Parameters
     ----------
@@ -233,62 +240,10 @@ def add_drillhole_interval_data_to_vtk(
 
     """
 
-    if "depth" not in output.point_data:
-        raise ValueError("The line object must have a 'depth' point data array.")
+    from geoh5vista.drillholes import _merged_hole, drillhole_to_vtk
 
-    point_depths = output.point_data["depth"]
-    cell_depth_midpoints = (point_depths[:-1] + point_depths[1:]) / 2.0
-
-    fields = [f for f in entity.get_data_list() if f not in DATASKIP]
-
-    if entity.from_ is None or entity.to_ is None:
-        return output
-
-    from_data = entity.from_[0]
-    to_data = entity.to_[0]
-
-    if from_data.values is None or to_data.values is None:
-        return output
-
-    interval_from = from_data.values
-    interval_to = to_data.values
-
-    for f in fields:
-        data_obj_list = entity.get_data(f)
-        if not data_obj_list:
-            continue
-
-        data = data_obj_list[0]
-        if data.values is None:
-            continue
-        data_values = data.values
-
-        if isinstance(data, FloatData):
-            new_cell_data = np.full(output.n_cells, np.nan, dtype=float)
-        elif isinstance(data, IntegerData):
-            new_cell_data = np.full(output.n_cells, -1, dtype=int)
-        elif isinstance(data, ReferencedData):
-            new_cell_data = np.full(output.n_cells, -1, dtype=int)
-        else:
-            continue
-
-        for i in range(len(interval_from)):
-            start, end = interval_from[i], interval_to[i]
-            mask = (cell_depth_midpoints >= start) & (cell_depth_midpoints < end)
-            new_cell_data[mask] = data_values[i]
-
-        output.cell_data[f] = new_cell_data
-
-        if isinstance(data, ReferencedData):
-            value_map = data.value_map
-            names_array = np.full(output.n_cells, "N/A", dtype=object)
-            valid_mask = new_cell_data != -1
-            if value_map is not None:
-                names_array[valid_mask] = value_map.map_values(
-                    new_cell_data[valid_mask]
-                )
-            output.cell_data[f"{f}_names"] = names_array
-
+    converted = _merged_hole(entity, drillhole_to_vtk(entity), output=output.copy(deep=True))
+    output.copy_from(converted)
     return output
 
 
