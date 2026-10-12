@@ -115,7 +115,7 @@ def entities_to_vtk(
 
 
 def read_geoh5(
-    workspace_path: str | Path, load_only_visible: bool = False,
+    workspace_path: str | Path, load_only_visible: bool = False, mode: str = "r+",
     *, drillhole_representation: Literal["composite", "merged"] = "composite",
     curve_tolerance: float = 0.01,
 ) -> pyvista.MultiBlock:
@@ -128,6 +128,8 @@ def read_geoh5(
     load_only_visible : bool, optional
         If ``True``, only entities that are marked as visible in the
         workspace will be loaded. Default is ``False``.
+    mode : str, optional
+        The mode ("r+","r","w", etc.) in which to open the workspace. Default is ``"r+"``.
     drillhole_representation : {"composite", "merged"}, optional
         Preserve individual holes and sampling tables by default. ``merged``
         requests a line visualization and rejects incompatible tables.
@@ -147,7 +149,7 @@ def read_geoh5(
         raise FileNotFoundError(f"Workspace file {workspace_path} not found.")
     else:
         #wp = Workspace(workspace_path)
-        with Workspace(workspace_path) as wp:
+        with Workspace(workspace_path, mode=mode) as wp:
             entities = wp.fetch_children(wp.root, recursively=True)
             supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
             supported_entities = [
