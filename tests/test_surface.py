@@ -11,6 +11,7 @@ from geoh5vista.surface import (
     surface_geom_to_vtk,
     surface_to_vtk,
     vtk_geom_to_surface,
+    vtk_to_surface,
 )
 
 # ---------------------------------------------------------------------------
@@ -184,3 +185,53 @@ def test_round_trip_geometry(tmp_path: Path):
         result = vtk_geom_to_surface(vtk, ws, "surf_rt")
         np.testing.assert_allclose(result.vertices, VERTICES)
         np.testing.assert_array_equal(result.cells, CELLS)
+
+
+# ---------------------------------------------------------------------------
+# Multi-component arrays (e.g. Normals) — VTK → geoh5 data transfer
+# ---------------------------------------------------------------------------
+
+def test_vtk_to_surface_splits_normals_into_components(tmp_path: Path):
+    mesh = pyvista.make_tri_mesh(VERTICES, CELLS).compute_normals()
+    point_normals = np.asarray(mesh.point_data["Normals"])
+    cell_normals = np.asarray(mesh.cell_data["Normals"])
+
+    with Workspace.create(tmp_path / "normals.geoh5") as ws:
+        result = vtk_to_surface(mesh, ws, "normals")
+        data = {
+            (child.name, child.association.name): child.values for child in result.children
+        }
+
+    assert "Normals" not in {name for name, _ in data}
+    for i, axis in enumerate("xyz"):
+        np.testing.assert_allclose(data[(f"Normals_{axis}", "VERTEX")], point_normals[:, i])
+    cell_entries = {name: values for (name, assoc), values in data.items() if assoc == "CELL"}
+    assert len(cell_entries) == 3
+    for i, axis in enumerate("xyz"):
+        matches = [v for n, v in cell_entries.items() if n.startswith(f"Normals_{axis}")]
+        np.testing.assert_allclose(matches[0], cell_normals[:, i])
+
+
+def test_vtk_to_surface_splits_uint8_rgb_into_components(tmp_path: Path):
+    """geoh5 Surfaces cannot hold colour data, so RGB is written per component."""
+    mesh = pyvista.make_tri_mesh(VERTICES, CELLS)
+    rgb = np.array([[255, 0, 0], [0, 255, 0], [0, 0, 255], [10, 20, 30]], dtype=np.uint8)
+    mesh.point_data["RGB"] = rgb
+
+    with Workspace.create(tmp_path / "colour.geoh5") as ws:
+        result = vtk_to_surface(mesh, ws, "colour")
+        for i, axis in enumerate("xyz"):
+            data = result.get_data(f"RGB_{axis}")[0]
+            assert data.association.name == "VERTEX"
+            np.testing.assert_array_equal(data.values, rgb[:, i])
+
+
+def test_vtk_to_surface_splits_generic_multicomponent_array(tmp_path: Path):
+    mesh = pyvista.make_tri_mesh(VERTICES, CELLS)
+    uv = np.arange(8, dtype=float).reshape(4, 2)
+    mesh.point_data["uv"] = uv
+
+    with Workspace.create(tmp_path / "uv.geoh5") as ws:
+        result = vtk_to_surface(mesh, ws, "uv")
+        np.testing.assert_allclose(result.get_data("uv_0")[0].values, uv[:, 0])
+        np.testing.assert_allclose(result.get_data("uv_1")[0].values, uv[:, 1])

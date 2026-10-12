@@ -141,3 +141,21 @@ def test_round_trip_geometry(tmp_path: Path):
     with Workspace.create(dst) as ws:
         result = vtk_geom_to_points(vtk, ws, "pts_rt")
         np.testing.assert_allclose(result.vertices, VERTICES)
+
+
+def test_vtk_to_points_writes_uint8_rgb_as_colour_and_splits_vectors(tmp_path: Path):
+    from geoh5vista.points import vtk_to_points
+
+    mesh = pyvista.PolyData(VERTICES)
+    rgb = np.array([[255, 0, 0], [0, 255, 0], [0, 0, 255], [10, 20, 30]], dtype=np.uint8)
+    normals = np.eye(4, 3)
+    mesh.point_data["RGB"] = rgb
+    mesh.point_data["Normals"] = normals
+
+    with Workspace.create(tmp_path / "colour.geoh5") as ws:
+        result = vtk_to_points(mesh, ws, "colour")
+        colour = result.get_data("RGB")[0].values
+        np.testing.assert_array_equal(np.c_[colour["r"], colour["g"], colour["b"]], rgb)
+        assert not result.get_data("Normals")
+        for i, axis in enumerate("xyz"):
+            np.testing.assert_allclose(result.get_data(f"Normals_{axis}")[0].values, normals[:, i])

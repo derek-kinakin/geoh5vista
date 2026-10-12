@@ -76,6 +76,17 @@ coordinates. Points must form an orthogonal rectilinear lattice with horizontal
 U/V axes and a vertical Z axis; tilted, sheared, warped, or degenerate grids are
 rejected. The first grid node becomes the model origin.
 
+Multi-component arrays
+-------------------
+
+geoh5 data stores one value per vertex or cell, so multi-component VTK point
+and cell arrays are split on export. Three-component arrays such as `Normals`
+become `<name>_x`, `<name>_y` and `<name>_z`; other widths use `<name>_0`,
+`<name>_1`, and so on. Unsigned 8-bit RGB/RGBA arrays are written as native
+geoh5 colour data on entities that support it (Points, Curve, Grid2D,
+BlockModel); on Surfaces they are split into components like other arrays.
+Split components are not recombined on import.
+
 Geoh5 Entity Metadata Support
 -------------------
 

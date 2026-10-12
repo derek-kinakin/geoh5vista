@@ -7,6 +7,7 @@ from typing import Final, TypeVar
 import numpy as np
 import pyvista
 from geoh5py.data.boolean_data import BooleanData
+from geoh5py.data.colour import Colour
 from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
@@ -343,7 +344,11 @@ def create_value_map(data: pyvista.DataSet, name: str) -> dict:
         The VTK data object containing the array.
     name : str
     """
-    unique_values = np.unique(data[name])
+    return _value_map_from_values(data[name])
+
+
+def _value_map_from_values(values: np.ndarray) -> dict:
+    unique_values = np.unique(values)
     # Check if there is already and "Unknown" entry in the unique values;
     # if so, set move it to position 0 and create the values dict from 0
     if "Unknown" in unique_values:
@@ -384,11 +389,85 @@ def get_data_type(data: pyvista.DataSet, name: str) -> str:
         return "FLOAT"
     
 
+_XYZ_SUFFIXES: Final[tuple[str, ...]] = ("x", "y", "z")
+
+
+def _is_colour_array(values: np.ndarray, output: ObjectBase | None = None) -> bool:
+    """Return True for RGB/RGBA arrays (unsigned 8-bit, 3 or 4 columns) the entity can store as colour."""
+    if not (values.ndim == 2 and values.shape[1] in (3, 4) and values.dtype == np.uint8):
+        return False
+    allowed_parents = getattr(Colour, "_allowed_parent", None)
+    return output is None or allowed_parents is None or type(output).__name__ in allowed_parents
+
+
+def _split_components(name: str, values: np.ndarray) -> list[tuple[str, np.ndarray]]:
+    """Split a multi-component array into named 1D component arrays.
+
+    geoh5 data entries are one value per vertex or cell, so an ``(n, k)``
+    array (e.g. ``Normals``) is written as ``k`` entries. Three-component
+    arrays use ``_x``, ``_y``, ``_z`` suffixes; others use ``_0`` ... ``_k-1``.
+    """
+    values = np.asarray(values)
+    if values.ndim == 1:
+        return [(name, values)]
+    values = values.reshape(values.shape[0], -1)
+    if values.shape[1] == 1:
+        return [(name, values[:, 0])]
+    suffixes = _XYZ_SUFFIXES if values.shape[1] == 3 else range(values.shape[1])
+    return [(f"{name}_{suffix}", values[:, i]) for i, suffix in enumerate(suffixes)]
+
+
+def _array_data_type(values: np.ndarray) -> str:
+    if np.issubdtype(values.dtype, np.floating):
+        return "FLOAT"
+    if np.issubdtype(values.dtype, np.integer):
+        return "INTEGER"
+    if np.issubdtype(values.dtype, np.str_):
+        return "REFERENCED"
+    return "FLOAT"
+
+
+def _add_array_to_geoh5(output: ObjectBase, name: str, values: np.ndarray, association: str) -> None:
+    """Add one VTK array to a geoh5 entity, handling colour and multi-component arrays."""
+    values = np.asarray(values)
+    if _is_colour_array(values, output):
+        output.add_data(
+            {name: {"type": "COLOUR", "association": association, "values": values}}
+        )
+        return
+
+    for component_name, component in _split_components(name, values):
+        data_type = _array_data_type(component)
+        if data_type == "REFERENCED":
+            data_dict = _value_map_from_values(component)
+            data_dict_inverted = {v: k for k, v in data_dict.items()}
+            # Map the string values to integer keys of the value map
+            ref_data = np.vectorize(data_dict_inverted.get)(component)
+            output.add_data(
+                {component_name: {
+                    "type": "REFERENCED",
+                    "association": association,
+                    "values": ref_data,
+                    "value_map": data_dict,
+                }}
+            )
+        else:
+            output.add_data(
+                {component_name: {
+                    "type": data_type,
+                    "association": association,
+                    "values": component,
+                }}
+            )
+
+
 def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectBase:
     """Add data from a VTK object to a geoh5py entity.
 
-    Modifies the geoh5py entity in place by adding data arrays from the
-    VTK object, excluding certain metadata arrays.
+    Modifies the geoh5py entity in place by adding point and cell data
+    arrays from the VTK object. Multi-component arrays (e.g. ``Normals``)
+    are split into one geoh5 data entry per component, and unsigned 8-bit
+    RGB/RGBA arrays are written as geoh5 colour data.
 
     Parameters
     ----------
@@ -398,39 +477,9 @@ def add_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectBase:
         The VTK data object to source the data from.
 
     """
-    # Get only cell or point data arrays
-    data_array_names = [i for i in data.array_names if get_vtk_array_association(data, i) in ["CELL", "VERTEX"]]
-    
-    if not data_array_names or data.n_arrays == 0:
-        return output
-
-    else:
-        for name in data_array_names:
-            association = get_vtk_array_association(data, name)
-            data_type = get_data_type(data, name)
-            # Implement data transfer logic here
-            if data_type == "REFERENCED":
-                data_dict = create_value_map(data, name)
-                data_dict_inverted = {v: k for k, v in data_dict.items()}
-                # Create an array of integers that maps the string values to integer indices based on the data_dict
-                mapper = np.vectorize(data_dict_inverted.get)
-                ref_data = mapper(data[name])
-                output.add_data(
-                    {name: {
-                        "type": "REFERENCED",
-                        "association": association,
-                        "values": ref_data,
-                        "value_map":data_dict,
-                    }}
-                )
-            else:
-                output.add_data(
-                    {name: {
-                        "type": data_type,
-                        "association": association,
-                        "values": data[name]
-                    }}
-                )
+    for association, arrays in (("VERTEX", data.point_data), ("CELL", data.cell_data)):
+        for name in arrays.keys():
+            _add_array_to_geoh5(output, name, arrays[name], association)
 
     return output
 
@@ -449,42 +498,19 @@ def add_grid_data_to_geoh5(output: ObjectBase, data: pyvista.DataSet) -> ObjectB
         The VTK data object to source the data from.
 
     """
-    # Get only cell data arrays
-    data_array_names = [i for i in data.array_names if get_vtk_array_association(data, i) in ["CELL"]]
-    
-    if not data_array_names or data.n_arrays == 0:
-        return output
-
-    else:
-        for name in data_array_names:
-            data_type = get_data_type(data, name)
+    n_u, n_v, n_z = output.shape
+    for name in data.cell_data.keys():
+        values = np.asarray(data.cell_data[name])
+        if _is_colour_array(values, output):
+            # Reorder rows from VTK's F-order to geoh5py grid cell ordering (C-order)
+            order = np.arange(values.shape[0]).reshape((n_u, n_v, n_z), order="F")
+            order = order.transpose(1, 0, 2).flatten(order="C")
+            _add_array_to_geoh5(output, name, values[order], "CELL")
+            continue
+        for component_name, component in _split_components(name, values):
             # Order data values to match the geoh5py grid cell ordering (C-order) from VTK's F-order
-            n_u, n_v, n_z = output.shape
-            values = data[name]
-            values_vtk = values.reshape((n_u, n_v, n_z), order="F")
+            values_vtk = component.reshape((n_u, n_v, n_z), order="F")
             values_geoh5 = values_vtk.transpose(1, 0, 2).flatten(order="C")
-
-            if data_type == "REFERENCED":
-                data_dict = create_value_map(data, name)
-                data_dict_inverted = {v: k for k, v in data_dict.items()}
-                # Create an array of integers that maps the string values to integer indices based on the data_dict
-                mapper = np.vectorize(data_dict_inverted.get)
-                ref_data = mapper(values_geoh5)
-                output.add_data(
-                    {name: {
-                        "type": "REFERENCED",
-                        "association": "CELL",
-                        "values": ref_data,
-                        "value_map":data_dict,
-                    }}
-                )
-            else:
-                output.add_data(
-                    {name: {
-                        "type": data_type,
-                        "association": "CELL",
-                        "values": values_geoh5
-                    }}
-                )
+            _add_array_to_geoh5(output, component_name, values_geoh5, "CELL")
 
     return output

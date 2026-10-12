@@ -664,3 +664,21 @@ def test_round_trip_geometry(tmp_path: Path):
         assert result.shape == (N_U, N_V, N_Z)
         np.testing.assert_allclose(result.u_cells, np.full(N_U, CELL_SIZE), atol=1e-6)
         np.testing.assert_allclose(result.v_cells, np.full(N_V, CELL_SIZE), atol=1e-6)
+
+
+def test_vtk_to_blockmodel_splits_multicomponent_cell_data(
+    vtk_image_data: pyvista.ImageData, tmp_path: Path
+):
+    mesh = vtk_image_data.copy()
+    scalar = np.arange(mesh.n_cells, dtype=float)
+    mesh.cell_data["scalar"] = scalar
+    mesh.cell_data["vec"] = np.c_[scalar, 2 * scalar, 3 * scalar]
+
+    with Workspace.create(tmp_path / "vec.geoh5") as ws:
+        result = vtk_to_blockmodel(mesh, ws, "vec")
+        exported = result.get_data("scalar")[0].values
+        assert not result.get_data("vec")
+        for factor, axis in enumerate("xyz", start=1):
+            np.testing.assert_allclose(
+                result.get_data(f"vec_{axis}")[0].values, factor * exported
+            )
