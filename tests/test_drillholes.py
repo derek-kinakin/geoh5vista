@@ -1,5 +1,6 @@
 """Drillhole geometry, independent sampling and composite persistence."""
 
+import h5py
 import numpy as np
 import pytest
 import pyvista as pv
@@ -721,3 +722,29 @@ def test_merged_curve_export_preserves_line_geometry(tmp_path, explicit_name):
         np.testing.assert_allclose(
             curve.vertices[curve.cells], merged.points[merged.lines.reshape(-1, 3)[:, 1:]]
         )
+
+
+def test_read_group_with_indexed_fields_missing_data(tmp_path):
+    # Some writers leave Index entries for drillholes without surveys but omit the data arrays.
+    path = tmp_path / "stale_index.geoh5"
+    with Workspace.create(path) as ws:
+        group = DrillholeGroup.create(ws, name="Holes")
+        hole = Drillhole.create(ws, parent=group, name="DH-01", collar=[0.0, 0.0, 0.0], end_of_hole=10.0)
+        group_uid, hole_uid = group.uid, hole.uid
+    dtype = np.dtype([
+        ("Start index", "<u4"), ("Size", "<u4"),
+        ("Object ID", h5py.string_dtype()), ("Data ID", h5py.string_dtype()),
+    ])
+    with h5py.File(path, "r+") as file:
+        concatenated = file[next(iter(file))]["Groups"][f"{{{group_uid}}}"]["Concatenated Data"]
+        index = concatenated.require_group("Index")
+        concatenated.require_group("Data")
+        row = (0, 2, f"{{{hole_uid}}}", "{00000000-0000-0000-0000-000000000000}")
+        for label in ("Property Group IDs", "Trace", "TraceDepth"):
+            index.create_dataset(label, data=np.array([row], dtype=dtype))
+
+    with pytest.warns(UserWarning, match="indexed but has no stored data"):
+        blocks = read_geoh5(path, mode="r")
+    names = [blocks.get_block_name(i) for i in range(len(blocks))]
+    assert names == ["Holes"]
+    assert "DH-01" in blocks["Holes"].keys()
