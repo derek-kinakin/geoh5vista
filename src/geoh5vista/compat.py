@@ -7,16 +7,14 @@ from functools import wraps
 
 from geoh5py.io.h5_reader import H5Reader
 from geoh5py.shared import fetch_h5_handle
-from geoh5py.shared.utils import KEY_MAP, PROPERTY_KWARGS, as_str_if_uuid
+from geoh5py.shared.utils import KEY_MAP, as_str_if_uuid
 
 _PATCH_FLAG = "_geoh5vista_missing_concatenated_data"
 
 
 def _index_without_data(h5file, uid, entity_type: str, label: str) -> bool:
     """Return True when a concatenated field has an ``Index`` entry but no stored array."""
-    if label in PROPERTY_KWARGS:
-        label = KEY_MAP.get(label, label)
-    key = label.replace("/", "\u2044")
+    key = KEY_MAP.get(label, label).replace("/", "\u2044")
     try:
         group = h5file[next(iter(h5file))][H5Reader.format_type_string(entity_type)][as_str_if_uuid(uid)][
             "Concatenated Data"
