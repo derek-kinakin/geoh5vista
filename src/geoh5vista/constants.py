@@ -18,6 +18,7 @@ SUPPORTED = [
     "ConcatenatorDrillholeGroup",
     "ConcatenatedDrillhole",
     "Slicer",
+    "Label",
 ]
 
 GEOH5SKIP = [

@@ -42,6 +42,7 @@ to Geoh5 support is the goal for each entity.
 | Block model  | ImageData / StructuredGrid | Yes             | Yes            | ImageData for uniform spacing within each axis; StructuredGrid for variable spacing |
 | Drillholes   | Nested MultiBlock          | Yes             | No             | Independent collars, traces, and sampling tables; optional merged PolyData view |
 | Slicer       | PolyData                   | Yes             | No             | Geometry available as object metadata                         |
+| Label        | PolyData                   | Yes             | No             | Line from label position to target position; label text in `user_dict["geoh5"]["label"]` |
 
 Block models with uniform spacing within each axis are read as `ImageData`;
 U, V, and Z spacing may differ from each other. Models with variable spacing
