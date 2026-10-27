@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+from bisect import bisect_left
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,12 +11,15 @@ from typing import Literal
 from uuid import UUID
 
 import h5py
+import numpy as np
 import pyvista
 from geoh5py.data import Data
 from geoh5py.groups import Group
 from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5py.io import H5Reader
 from geoh5py.objects import ObjectBase
+from geoh5py.shared import FLOAT_NDV
+from geoh5py.shared.concatenation.concatenator import Concatenator
 from geoh5py.shared.entity import Entity
 from geoh5py.shared.utils import INV_KEY_MAP
 from geoh5py.workspace import Workspace
@@ -90,6 +95,159 @@ def _attributes(group: h5py.Group) -> dict:
     return attributes
 
 
+def _load_concatenator(
+    source: h5py.File, group: Concatenator, uids: set[UUID],
+) -> dict[UUID, ObjectBase]:
+    """Populate public caches with compact slices, never file-wide payloads."""
+    metadata = H5Reader.fetch_concatenated_attributes(
+        source, group.uid, "group", group.concat_attr_str
+    )
+    if not isinstance(metadata, dict) or not isinstance(metadata.get("Attributes"), list):
+        raise ValueError(f"Concatenator {group.uid}: missing attribute records.")  # noqa: TRY004
+    records = {}
+    for record in metadata["Attributes"]:
+        if not isinstance(record, dict) or "ID" not in record:
+            raise ValueError(f"Concatenator {group.uid}: invalid attribute record.")
+        uid = _uuid(record["ID"])
+        if uid in records:
+            raise ValueError(f"Concatenator {group.uid}: duplicate record {uid}.")
+        records[uid] = record
+    needed = set(uids)
+    channels: dict[UUID, UUID] = {}
+    for uid in uids:
+        if uid not in records:
+            raise ValueError(f"Concatenator {group.uid}: missing drillhole record {uid}.")
+        record = records[uid]
+        member = TYPE_UID_TO_CLASS.get(_uuid(record["Object Type ID"]))
+        if member is None or member.__name__ != "Drillhole":
+            raise NotImplementedError(f"Concatenated entity {uid} is not a drillhole.")
+        stored_visibility(record, context=f"Entity {uid}")
+        for key, value in record.items():
+            if not key.startswith("Property:"):
+                continue
+            child_uid = _uuid(value)
+            if child_uid in channels:
+                raise ValueError(f"Concatenator {group.uid}: repeated data reference {child_uid}.")
+            channels[child_uid] = uid
+    needed.update(channels)
+    storage = project_group(source)["Groups"]["{" + str(group.uid) + "}"]["Concatenated Data"]
+    data, indices = {}, {}
+    if "Index" in storage:
+        for field in sorted(storage["Index"]):
+            dataset = storage["Index"][field]
+            if not isinstance(dataset, h5py.Dataset):
+                raise ValueError(f"{dataset.name}: expected an index dataset.")  # noqa: TRY004
+            fields = dataset.dtype.names or ()
+            if dataset.ndim != 1 or not {
+                "Object ID", "Data ID", "Start index", "Size",
+            }.issubset(fields):
+                raise ValueError(f"{dataset.name}: invalid concatenation index schema.")
+            if any(dataset.dtype[name].kind not in "iu" for name in ("Start index", "Size")):
+                raise ValueError(f"{dataset.name}: offsets must be integers.")
+            rows = dataset[()]
+            mask = np.array([_uuid(row["Object ID"]) in uids for row in rows], dtype=bool)
+            selected = rows[mask].copy()
+            if not len(selected):
+                continue
+            if "Data" in storage and field in storage["Data"]:
+                values = storage["Data"][field]
+            elif field in storage:
+                values = storage[field]
+            else:
+                warnings.warn(
+                    f"Concatenated field '{field}' of group {group.uid} is indexed "
+                    "but has no stored data; ignoring it.",
+                    UserWarning, stacklevel=2,
+                )
+                continue
+            if not isinstance(values, h5py.Dataset) or values.ndim != 1:
+                raise ValueError(f"{dataset.name}: expected a one-dimensional payload.")
+            pieces = []
+            offset = 0
+            seen = set()
+            unrelated = sorted(
+                (int(row["Start index"]), int(row["Start index"]) + int(row["Size"]))
+                for row in rows[~mask] if int(row["Size"]) > 0
+            )
+            starts, ends = [], []
+            maximum_end = 0
+            for start, end in unrelated:
+                starts.append(start)
+                maximum_end = max(maximum_end, end)
+                ends.append(maximum_end)
+            for row in selected:
+                start, size = int(row["Start index"]), int(row["Size"])
+                data_uid = _uuid(row["Data ID"])
+                identity = data_uid if data_uid.int else _uuid(row["Object ID"])
+                if identity in seen:
+                    raise ValueError(f"{dataset.name}: duplicate index for {identity}.")
+                seen.add(identity)
+                if data_uid.int and channels.get(data_uid) != _uuid(row["Object ID"]):
+                    raise ValueError(f"{dataset.name}: invalid data owner for {data_uid}.")
+                if start < 0 or size < 0 or start + size > len(values):
+                    raise ValueError(f"{dataset.name}: invalid payload slice.")
+                position = bisect_left(starts, start + size) - 1
+                if size and position >= 0 and ends[position] > start:
+                    raise ValueError(f"{dataset.name}: slice overlaps an unrelated object.")
+                pieces.append(values[start : start + size])
+                row["Start index"] = offset
+                offset += size
+            compact = np.concatenate(pieces)
+            if compact.dtype.kind == "f":
+                compact[compact == FLOAT_NDV] = np.nan
+            if compact.dtype == object and len(compact) and isinstance(compact[0], bytes):
+                compact = np.array([value.decode("utf-8") for value in compact])
+            name = field.replace("\u2044", "/")
+            data[name], indices[name] = compact, selected
+    for value in data.get("Property Group IDs", []):
+        uid = _uuid(value)
+        needed.add(uid)
+        if uid not in records:
+            raise ValueError(f"Concatenator {group.uid}: missing property group record {uid}.")
+        if any(_uuid(prop) not in channels for prop in records[uid].get("Properties", [])):
+            raise ValueError(f"Property group {uid}: references unselected data.")
+    missing = needed - records.keys()
+    if missing:
+        raise ValueError(f"Concatenator {group.uid}: missing records {sorted(map(str, missing))}.")
+    group.data = data
+    group.index = indices
+    group.concatenated_attributes = {
+        "Attributes": [records[uid].copy() for uid in sorted(needed, key=str)]
+    }
+    group.concatenated_object_ids = [
+        ("{" + str(uid) + "}").encode() for uid in sorted(uids, key=str)
+    ]
+    result = {}
+    for uid in sorted(uids, key=str):
+        attributes = records[uid].copy()
+        type_uid = _uuid(attributes.pop("Object Type ID"))
+        attributes["Name"] = attributes["Name"].replace("\u2044", "/")
+        attributes["parent"] = group
+        hole = group.workspace.create_entity(
+            ObjectBase, entity=attributes,
+            entity_type=H5Reader.fetch_type(source, type_uid, "Object"),
+            save_on_creation=False,
+        )
+        if not isinstance(hole, ObjectBase):
+            raise ValueError(f"Cannot reconstruct concatenated drillhole {uid}.")  # noqa: TRY004
+        hole.on_file = True
+        for key, value in records[uid].items():
+            if not key.startswith("Property:"):
+                continue
+            attrs = records[_uuid(value)].copy()
+            type_uid = _uuid(attrs.pop("Type ID"))
+            attrs["Name"] = attrs["Name"].replace("\u2044", "/")
+            attrs["parent"] = hole
+            child = group.workspace.create_entity(
+                Data, entity=attrs,
+                entity_type=H5Reader.fetch_type(source, type_uid, "Data"),
+                save_on_creation=False,
+            )
+            child.on_file = True
+        result[uid] = hole
+    return result
+
+
 def read_geoh5_entities(
     workspace_path: str | Path,
     uids: UUID | str | Iterable[UUID | str],
@@ -99,13 +257,14 @@ def read_geoh5_entities(
 ) -> pyvista.MultiBlock:
     """Read selected entities without opening the source as a Workspace.
 
-    Experimental: ordinary supported objects and legacy drillholes only.
-    Concatenated selections raise NotImplementedError before reading geometry.
+    Experimental: ordinary supported objects and legacy/concatenated drillholes.
+    Shared concatenated payloads are read only at selected holes' index slices.
     Organizational groups select all supported descendant objects; drillhole
     groups retain their existing conversion nesting. Unsupported descendants
     are skipped, but an explicitly selected unsupported object raises an error.
     Overlaps are deduplicated and results use deterministic hierarchy order.
-    All channels of selected objects are reconstructed using H5Reader.
+    H5Reader supplies native attributes and types; concatenated indices and
+    selected payload slices are read with h5py. All selected channels are retained.
 
     The source is opened read-only. Entities are reconstructed in an owned
     in-memory workspace using public APIs; only detached PyVista blocks escape.
@@ -146,18 +305,9 @@ def read_geoh5_entities(
                     continue
                 selected.add(current)
                 pending.extend(children[current])
-        for uid in selected:
-            entry = entries[uid]
-            if entry.concatenated or (
-                version > 1
-                and _class_name(entry) in ("DrillholeGroup", "IntegratorDrillholeGroup")
-            ):
-                raise NotImplementedError(
-                    "Selective concatenated storage is not supported by this prototype "
-                    f"(entity {uid}). No source geometry has been read."
-                )
-
-        with Workspace(version=version) as workspace:
+        with Workspace(
+            version=version, distance_unit=project.attrs.get("Distance unit", "meter"),
+        ) as workspace:
             workspace.root.uid = root_uid
             workspace.root.name = project["Root"].attrs["Name"]
             workspace.root.visible = stored_visibility(
@@ -169,6 +319,17 @@ def read_geoh5_entities(
                 if uid in reconstructed:
                     return reconstructed[uid]
                 entry = entries[uid]
+                if entry.concatenated:
+                    parent = reconstruct(entry.parent)
+                    if not isinstance(parent, Concatenator) or not isinstance(parent, DrillholeGroup):
+                        raise NotImplementedError("Only concatenated drillhole groups are supported.")
+                    reconstructed.update(_load_concatenator(
+                        source, parent, {
+                            child for child in children[entry.parent]
+                            if child in selected and entries[child].concatenated
+                        },
+                    ))
+                    return reconstructed[uid]
                 if entry.parent is None or entry.group is None:
                     raise ValueError(f"Missing native hierarchy for entity {uid}.")
                 parent = reconstruct(entry.parent)

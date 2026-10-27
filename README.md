@@ -188,7 +188,8 @@ Experimental Selective Reader
 
 `read_geoh5_entities(path, uids)` reads selected entities through geoh5py's
 `H5Reader`, without opening the source as a geoh5py `Workspace`. This is a
-prototype for ordinary objects and legacy (non-concatenated) drillholes.
+prototype for ordinary objects, legacy drillholes, and concatenated drillholes
+inside native `DrillholeGroup` containers.
 
 ```python
 from geoh5vista import catalog_geoh5, read_geoh5_entities
@@ -213,21 +214,40 @@ sibling geometry. Property groups are reconstructed after their data channels.
 The existing converters determine which channels appear in the output.
 
 Selecting an organizational group includes supported descendant objects,
-flattened into the result. Selecting a legacy drillhole group preserves its
-existing nested drillhole representation. Selecting an individual legacy hole
-does not read sibling holes. Root UID selection includes supported descendants.
+flattened into the result. Selecting a legacy or concatenated drillhole group
+preserves its existing nested drillhole representation. Selecting an individual
+hole does not read sibling holes. Root UID selection includes supported descendants.
 Overlapping selections are deduplicated; output uses depth-first hierarchy
 order with siblings sorted by UID, not request order. Hidden objects are included
 and preserve their own stored visibility. Unsupported descendants are skipped,
 but explicitly selecting an unsupported object raises `ValueError`.
 
+For concatenated drillholes, H5Reader supplies attribute/type metadata. The
+reader uses the shared indices to read only selected holes' payload slices,
+compacts their offsets, and populates geoh5py's public concatenator caches.
+It does not call `H5Reader.fetch_concatenated_values()`, which would read a whole
+shared array. Both legacy `Attributes` JSON (geoh5 2.0) and `Attributes Jsons`
+(geoh5 2.1) layouts are supported, including payloads directly under
+`Concatenated Data` or in its `Data` subgroup.
+
+Independent interval/depth tables, referenced value maps, string/Boolean
+channels, Visual Parameters, source IDs, own visibility, and workspace distance
+units are retained through the existing drillhole converters. Selecting a group
+includes all its holes, while multiple hole UID selections read only those holes.
+Missing indexed payloads produce warnings and are treated as absent, consistent
+with the existing compatibility reader; missing surveys retain the converter's
+vertical-default policy and provenance. Invalid slice bounds, duplicate indices,
+overlap with unrelated holes, and missing required records raise errors.
+
 Limitations:
 
-- Concatenated drillholes/groups are explicitly rejected with
-  `NotImplementedError` before source geometry is read. Selecting an ordinary
-  object elsewhere in a file containing concatenated storage remains supported.
+- Concatenated storage is supported only for drillholes in `DrillholeGroup`,
+  not other concatenated entity/group types.
 - The reader scans reachable hierarchy metadata, including concatenated object
-  ID lists. It is payload-selective, not constant-time UID lookup.
+  ID lists. Selected concatenators' attribute JSON and index arrays are read in
+  full, but only selected payload slices are requested. It is payload-selective,
+  not constant-time UID lookup. HDF5 chunk decompression may touch adjacent rows
+  physically; selectivity refers to logical dataset selections.
 - Reconstruction and in-memory workspace finalization add allocation/copying
   overhead. No bounded peak-memory or performance guarantee is established.
 - Existing converter limitations still apply; conversion errors are propagated.

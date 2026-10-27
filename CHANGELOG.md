@@ -1,13 +1,15 @@
 # Release notes
 
-## Unreleased
+## 0.9.0 - 2026-10-27
 
 - Added experimental `read_geoh5_entities(path, uids)`, using H5Reader and an
   owned in-memory workspace to convert selected ordinary objects and legacy
-  drillholes without opening the source as an eager workspace. Group expansion,
-  overlap deduplication, source identity/display metadata, channel types and
-  property groups are preserved. Concatenated selections are explicitly rejected;
-  existing full-file reading is unchanged.
+  or concatenated drillholes without opening the source as an eager workspace.
+  Group expansion, overlap deduplication, source identity/display metadata,
+  channel types and property groups are preserved. Concatenated drillhole payloads use selected
+  index slices and compact public caches, supporting geoh5 2.0/2.1 metadata
+  layouts without reading sibling payloads. Workspace distance units are
+  retained. Existing full-file reading is unchanged.
 
 ## 0.8.1 - 2026-10-27
 
