@@ -26,7 +26,7 @@ from geoh5py.shared.utils import INV_KEY_MAP, str_json_to_dict
 from geoh5py.workspace import Workspace
 from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
-from .hierarchy import concatenated_records, read_hierarchy
+from .hierarchy import concatenated_object_type, concatenated_records, read_hierarchy
 from .visibility import project_group, stored_visibility
 from .wrapper import entities_to_vtk
 
@@ -245,9 +245,18 @@ def _load_concatenator(
         type_uid = _uuid(attributes.pop("Object Type ID"))
         attributes["Name"] = attributes["Name"].replace("\u2044", "/")
         attributes["parent"] = group
+        project = project_group(source)
+        location = f"Types/Object types/{{{type_uid}}}"
+        type_attributes = (
+            H5Reader.fetch_type(source, type_uid, "Object")
+            if location in project else {
+                INV_KEY_MAP.get(key, key): value
+                for key, value in concatenated_object_type(project, str(type_uid)).items()
+            }
+        )
         hole = group.workspace.create_entity(
             ObjectBase, entity=attributes,
-            entity_type=H5Reader.fetch_type(source, type_uid, "Object"),
+            entity_type=type_attributes,
             save_on_creation=False,
         )
         if not isinstance(hole, ObjectBase):

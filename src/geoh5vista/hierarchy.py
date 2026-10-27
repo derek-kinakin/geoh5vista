@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -100,6 +101,28 @@ def concatenated_records(handle: h5py.Group, version: float) -> list[dict]:
     return records
 
 
+def concatenated_object_type(project: h5py.Group, type_uid: str) -> dict:
+    """Resolve stored type attributes, or an explicitly identified native type."""
+    location = f"Types/Object types/{{{type_uid}}}"
+    if location in project:
+        handle = group(project, location)
+        if uid(handle.attrs["ID"]) != type_uid:
+            raise ValueError(f"{handle.name}: conflicting object type ID.")
+        return dict(handle.attrs)
+    member = TYPE_UID_TO_CLASS.get(UUID(type_uid))
+    name = member.__name__ if member is not None else type_uid
+    warnings.warn(
+        f"{project.name}/{location}: missing object type record; "
+        + (
+            f"using registered native type {name!r}. Stored type metadata is unavailable."
+            if member is not None else
+            "retaining the unknown type ID as unsupported."
+        ),
+        UserWarning, stacklevel=2,
+    )
+    return {"ID": "{" + type_uid + "}", "Name": name}
+
+
 def _concatenated_nodes(
     project: h5py.Group, handle: h5py.Group, version: float,
 ) -> list[HierarchyNode]:
@@ -113,13 +136,14 @@ def _concatenated_nodes(
     if len(by_uid) != len(records):
         raise ValueError("Duplicate concatenated metadata UIDs.")
     nodes = []
-    types = group(group(project, "Types"), "Object types")
+    types = {}
     for value in object_ids:
         object_uid = uid(value)
         attributes = by_uid[object_uid]
         type_uid = uid(attributes["Object Type ID"])
-        entity_type = group(types, "{" + type_uid + "}")
-        type_attributes = {key: entity_type.attrs[key] for key in ("ID", "Name")}
+        if type_uid not in types:
+            types[type_uid] = concatenated_object_type(project, type_uid)
+        type_attributes = types[type_uid]
         nodes.append(HierarchyNode(
             object_uid, attributes, type_attributes, True, concatenator=handle,
         ))

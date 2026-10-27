@@ -1,5 +1,13 @@
 # Release notes
 
+## Unreleased
+
+- Allowed concatenated drillhole discovery and selective loading when the native
+  Drillhole object-type record is absent from the project's type index. Exact
+  registered type identities use native defaults with an explicit warning about
+  unavailable stored metadata. Unknown missing type IDs remain discoverable but
+  unsupported; missing data-type definitions are not inferred.
+
 ## 0.9.2 - 2026-10-27
 
 - Fixed discovery and selective loading of reachable hierarchy-only entities

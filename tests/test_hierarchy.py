@@ -434,3 +434,95 @@ def test_hierarchy_only_payload_failure_closes_handles(root_fixture, monkeypatch
     assert handles and all(not file.id.valid for file in handles)
     assert hashlib.sha256(path.read_bytes()).digest() == before
     path.unlink()
+
+
+@pytest.mark.parametrize("layout", ["record", "collection"])
+@pytest.mark.parametrize("version", [2.0, 2.1])
+def test_missing_registered_drillhole_type(tmp_path, monkeypatch, layout, version):
+    path = tmp_path / "missing-type.geoh5"
+    with Workspace(path, version=version) as workspace:
+        group = DrillholeGroup.create(workspace)
+        holes = []
+        for index in range(2):
+            hole = Drillhole.create(
+                workspace, parent=group, name=f"DH-{index}", collar=[float(index), 0., 100.],
+                surveys=np.array([[0., 0., -90.], [10., 0., -90.]]),
+            )
+            hole.add_data({
+                "grade": {"from-to": np.array([[0., 10.]]), "values": np.array([3. + index])},
+            })
+            holes.append(hole.uid)
+        type_uid, group_uid = hole.entity_type.uid, group.uid
+    with h5py.File(path, "r+") as file:
+        project = file["GEOSCIENCE"]
+        if layout == "record":
+            del project["Types/Object types"][key(type_uid)]
+        else:
+            del project["Types/Object types"]
+        storage = project["Groups"][key(group_uid)]["Concatenated Data"]
+        ranges = {}
+        for field in storage["Index"]:
+            rows = storage["Index"][field][()]
+            ranges[field] = [
+                (int(row["Start index"]), int(row["Size"]))
+                for row in rows if row["Object ID"].decode().strip("{}") == str(holes[1])
+            ]
+    before = hashlib.sha256(path.read_bytes()).digest()
+    getitem = h5py.Dataset.__getitem__
+    loading = False
+
+    def guarded(dataset, selection):
+        if not dataset.name.endswith(("/Concatenated object IDs", "/Attributes", "/Attributes Jsons")):
+            assert loading, dataset.name
+            if "/Index/" not in dataset.name:
+                left, stop, step = selection.indices(len(dataset))
+                assert step == 1
+                assert any(
+                    left >= start and stop <= start + size
+                    for start, size in ranges[dataset.name.rsplit("/", 1)[-1]]
+                ), (dataset.name, selection)
+        return getitem(dataset, selection)
+
+    def no_direct(*args, **kwargs):
+        pytest.fail("Unexpected unguarded read_direct")
+
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", guarded)
+    monkeypatch.setattr(h5py.Dataset, "read_direct", no_direct)
+    with pytest.warns(UserWarning, match="using registered native type 'Drillhole'"):
+        entries = catalog_geoh5(path)
+    assert {entry.uid for entry in entries} == {str(group_uid), *map(str, holes)}
+    assert all(entry.conversion_supported for entry in entries)
+    loading = True
+    with pytest.warns(UserWarning, match="using registered native type 'Drillhole'"):
+        mesh = read_geoh5_entities(path, holes[1])[0]
+    np.testing.assert_array_equal(mesh["intervals"][0]["grade"], [4.])
+    assert mesh.user_dict["geoh5"]["source"]["entity_type"] == "ConcatenatedDrillhole"
+    assert hashlib.sha256(path.read_bytes()).digest() == before
+    path.unlink()
+    assert mesh["trace"].copy(deep=True).n_points > 0
+
+
+def test_missing_unknown_concatenated_type_is_unsupported(tmp_path):
+    import json
+
+    path = tmp_path / "unknown-type.geoh5"
+    with Workspace.create(path) as workspace:
+        group = DrillholeGroup.create(workspace)
+        hole = Drillhole.create(workspace, parent=group, collar=[0., 0., 0.])
+        hole_uid, group_uid = hole.uid, group.uid
+    unknown = uuid4()
+    with h5py.File(path, "r+") as file:
+        dataset = file[f"GEOSCIENCE/Groups/{key(group_uid)}/Concatenated Data/Attributes Jsons"]
+        record = json.loads(dataset[0])
+        record["Object Type ID"] = key(unknown)
+        dataset[0] = json.dumps(record)
+    with pytest.warns(UserWarning, match="unknown type ID as unsupported"):
+        entries = catalog_geoh5(path)
+    entry = next(entry for entry in entries if entry.uid == str(hole_uid))
+    assert not entry.conversion_supported
+    assert entry.entity_type == str(unknown)
+    with (
+        pytest.warns(UserWarning, match="unknown type ID as unsupported"),
+        pytest.raises(ValueError, match="No converter"),
+    ):
+        read_geoh5_entities(path, hole_uid)

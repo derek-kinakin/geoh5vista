@@ -204,6 +204,16 @@ Depth-first ordering, UID-sorted siblings, concatenated drillhole enumeration,
 and entity-level visibility are unchanged. Neither root normalization nor
 hierarchy discovery reads geometry or modifies the source.
 
+For concatenated objects whose `Object Type ID` is missing from
+`Types/Object types`, discovery uses geoh5py's native type registry when the
+exact UUID is recognized (including the built-in Drillhole UUID). A warning
+explicitly reports the missing record and unavailable stored type metadata.
+Selective drillhole loading uses the same registered identity and native type
+defaults; it does not fabricate stored type settings. Unknown missing type IDs
+remain cataloged as unsupported, with a warning. A present type record with a
+conflicting ID remains an error. Missing data-type records are not inferred:
+channel semantics and value maps require their stored definitions.
+
 This API only discovers metadata. It adds no selective conversion or loading
 API and does not change `read_geoh5()` return shapes or nesting.
 In particular, opening a geoh5py `Workspace` to resolve
