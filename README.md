@@ -177,6 +177,28 @@ malformed required hierarchy or metadata raises a contextual `ValueError`,
 not an empty successful catalog. Owned handles close on success and failure.
 There is no writable mode, persistent caching, or retained source handle.
 
+Both `catalog_geoh5()` and `read_geoh5_entities()` use the same metadata-only
+native hierarchy discovery. The [format specification](https://mirageoscience-geoh5py.readthedocs-hosted.com/en/v0.13.1/content/geoh5_format/workspace.html)
+describes `/PROJECT/Root` as a hard-link alias to the indexed workspace group.
+Some files instead store distinct groups at `/PROJECT/Root` and
+`/PROJECT/Groups/{root_uid}`, with different child links. For compatibility,
+discovery takes the UID-deduplicated union of their child links, rather than
+silently choosing either representation. This is a reader reconciliation policy,
+not a claim that the format defines split-root precedence.
+
+`/Root` supplies the root's attributes (including name and own visibility);
+the indexed representation, when present, must have the same ID and type ID.
+A `/Root` without an indexed root group is also supported. Repeated links from
+the two roots must point to the same physical child definition. All other
+native child links must agree with their flat `Groups`/`Objects` index entries.
+Distinct non-root definitions for one UID, conflicting parents, mismatched IDs
+or root types, and cycles raise contextual `ValueError`s. This API represents
+a tree with a single immediate parent per entry; overlapping non-root parent
+lists are not reconciled. Unlinked objects in the flat tables are not discovered.
+Depth-first ordering, UID-sorted siblings, concatenated drillhole enumeration,
+and entity-level visibility are unchanged. Neither root normalization nor
+hierarchy discovery reads geometry or modifies the source.
+
 This API only discovers metadata. It adds no selective conversion or loading
 API and does not change `read_geoh5()` return shapes or nesting.
 In particular, opening a geoh5py `Workspace` to resolve
@@ -244,8 +266,9 @@ Limitations:
 - Concatenated storage is supported only for drillholes in `DrillholeGroup`,
   not other concatenated entity/group types.
 - The reader scans reachable hierarchy metadata, including concatenated object
-  ID lists. Selected concatenators' attribute JSON and index arrays are read in
-  full, but only selected payload slices are requested. It is payload-selective,
+  ID lists and attribute JSON, using the same discovery as the catalog.
+  Selected concatenators' index arrays are read in full, but only selected
+  payload slices are requested. It is payload-selective,
   not constant-time UID lookup. HDF5 chunk decompression may touch adjacent rows
   physically; selectivity refers to logical dataset selections.
 - Reconstruction and in-memory workspace finalization add allocation/copying

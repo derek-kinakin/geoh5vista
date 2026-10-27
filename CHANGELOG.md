@@ -1,5 +1,17 @@
 # Release notes
 
+## 0.9.1 - 2026-10-27
+
+- Unified catalog and selective-reader native hierarchy discovery. Split
+  `/Root` and indexed root groups now contribute a UID-deduplicated union of
+  child links, with `/Root` supplying root attributes. This preserves entities
+  reachable through either representation without including orphaned objects.
+- Conflicting root IDs/types, distinct non-root definitions for one UID,
+  conflicting parents, and cycles raise contextual errors before conversion.
+  Root-only files without an indexed root group are supported. Discovery remains
+  metadata-only and read-only, with deterministic ordering and shared native and
+  concatenated type resolution.
+
 ## 0.9.0 - 2026-10-27
 
 - Added experimental `read_geoh5_entities(path, uids)`, using H5Reader and an

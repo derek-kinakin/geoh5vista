@@ -25,7 +25,7 @@ from geoh5py.shared.utils import INV_KEY_MAP
 from geoh5py.workspace import Workspace
 from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
-from .constants import CONVERTERS
+from .hierarchy import read_hierarchy
 from .visibility import project_group, stored_visibility
 from .wrapper import entities_to_vtk
 
@@ -39,6 +39,7 @@ class _Entry:
     parent: UUID | None
     group: h5py.Group | None
     concatenated: bool = False
+    conversion_supported: bool = False
 
 
 def _uuid(value: object) -> UUID:
@@ -48,43 +49,19 @@ def _uuid(value: object) -> UUID:
 
 
 def _index(project: h5py.Group) -> tuple[UUID, dict[UUID, _Entry]]:
-    root = project["Root"]
-    root_uid = _uuid(root.attrs["ID"])
-    entries = {root_uid: _Entry(root_uid, "root", None, root)}
-    pending = [root_uid]
-    while pending:
-        parent_uid = pending.pop()
-        parent = entries[parent_uid]
-        for uid, family in H5Reader.fetch_children(
-            project.file, parent_uid, "group" if parent.family == "root" else parent.family
-        ).items():
-            if family not in ("group", "object"):
-                continue
-            if uid in entries:
-                raise ValueError(f"Repeated entity UID or cyclic hierarchy: {uid}.")
-            group = project["Groups" if family == "group" else "Objects"][
-                "{" + str(uid) + "}"
-            ]
-            if _uuid(group.attrs["ID"]) != uid:
-                raise ValueError(f"{group.name}: link and entity UID differ.")
-            entries[uid] = _Entry(uid, family, parent_uid, group)
-            pending.append(uid)
-        if parent.group is not None and "Concatenated object IDs" in parent.group:
-            for value in parent.group["Concatenated object IDs"][()]:
-                uid = _uuid(value)
-                if uid in entries:
-                    raise ValueError(f"Repeated concatenated entity UID: {uid}.")
-                entries[uid] = _Entry(uid, "object", parent_uid, None, True)
-    return root_uid, entries
-
-
-def _class_name(entry: _Entry) -> str:
-    if entry.concatenated:
-        return "ConcatenatedDrillhole"
-    if entry.group is None:
-        raise ValueError(f"Missing native entity group for {entry.uid}.")
-    member = TYPE_UID_TO_CLASS.get(_uuid(entry.group["Type"].attrs["ID"]))
-    return member.__name__ if member is not None else "Unknown"
+    _, nodes = read_hierarchy(project)
+    entries = {}
+    for node in nodes:
+        uid = UUID(node.uid)
+        entries[uid] = _Entry(
+            uid=uid,
+            family="root" if node.parent_uid is None else "object" if node.is_object else "group",
+            parent=UUID(node.parent_uid) if node.parent_uid is not None else None,
+            group=node.group,
+            concatenated=node.concatenator is not None,
+            conversion_supported=node.conversion_supported,
+        )
+    return UUID(nodes[0].uid), entries
 
 
 def _attributes(group: h5py.Group) -> dict:
@@ -296,7 +273,7 @@ def read_geoh5_entities(
             if uid not in entries:
                 raise ValueError(f"Entity {uid} is not reachable from the workspace root.")
             entry = entries[uid]
-            if entry.family == "object" and _class_name(entry) not in CONVERTERS:
+            if entry.family == "object" and not entry.conversion_supported:
                 raise ValueError(f"No converter is registered for entity {uid}.")
             pending = [uid]
             while pending:
@@ -383,7 +360,7 @@ def read_geoh5_entities(
             while pending:
                 uid = pending.pop()
                 entry = entries[uid]
-                if uid in selected and _class_name(entry) in CONVERTERS:
+                if uid in selected and entry.conversion_supported:
                     ordered.append(reconstruct(uid))
                 pending.extend(sorted(children[uid], key=str, reverse=True))
             selected_groups = {

@@ -6,17 +6,18 @@ only the specific HDF5 metadata structures used below.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
-from uuid import UUID
 from xml.etree import ElementTree
 
 import h5py
 import numpy as np
-from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
-from .constants import CONVERTERS
+from .hierarchy import dataset as _dataset
+from .hierarchy import group as _group
+from .hierarchy import read_hierarchy
+from .hierarchy import text as _text
+from .hierarchy import uid as _uid
 from .visibility import project_group, stored_visibility
 
 __all__ = ("EntityMetadata", "catalog_geoh5")
@@ -39,32 +40,6 @@ class EntityMetadata:
     colour: tuple[int, int, int] | None
     conversion_supported: bool
     unsupported_reason: str | None
-
-
-def _text(value: object) -> str:
-    if isinstance(value, bytes):
-        return value.decode("utf-8")
-    if isinstance(value, str):
-        return value
-    raise ValueError(f"Expected text metadata, got {type(value).__name__}.")
-
-
-def _uid(value: object) -> str:
-    return str(UUID(_text(value)))
-
-
-def _group(parent: h5py.Group, key: str) -> h5py.Group:
-    value = parent[key]
-    if not isinstance(value, h5py.Group):
-        raise ValueError(f"{value.name}: expected an HDF5 group.")
-    return value
-
-
-def _dataset(parent: h5py.Group, key: str) -> h5py.Dataset:
-    value = parent[key]
-    if not isinstance(value, h5py.Dataset):
-        raise ValueError(f"{value.name}: expected an HDF5 dataset.")
-    return value
 
 
 def _colour(value: object) -> tuple[int, int, int] | None:
@@ -130,142 +105,33 @@ def _concatenated_colours(
     return colours
 
 
-@dataclass
-class _Node:
-    uid: str
-    attributes: dict
-    type_attributes: dict
-    is_object: bool
-    group: h5py.Group | None = None
-    concatenator: h5py.Group | None = None
-    colour: tuple[int, int, int] | None = None
-
-    def type_name(self, version: float, parent_type: str) -> tuple[str, bool]:
-        type_uid = UUID(_uid(self.type_attributes["ID"]))
-        member = TYPE_UID_TO_CLASS.get(type_uid)
-        if member is None:
-            return _text(self.type_attributes.get("Name", str(type_uid))), False
-        name = member.__name__
-        if version > 1.0:
-            if name in ("DrillholeGroup", "IntegratorDrillholeGroup"):
-                name = f"Concatenator{name}"
-            elif name == "Drillhole" and parent_type in (
-                "ConcatenatorDrillholeGroup",
-                "ConcatenatorIntegratorDrillholeGroup",
-            ):
-                name = "ConcatenatedDrillhole"
-        return name, name in CONVERTERS
-
-
-def _native_node(group: h5py.Group, is_object: bool) -> _Node:
-    try:
-        attributes = {key: group.attrs[key] for key in ("ID", "Name")}
-        if "Visible" in group.attrs:
-            attributes["Visible"] = group.attrs["Visible"]
-        entity_type = _group(group, "Type")
-        type_attributes = {key: entity_type.attrs[key] for key in ("ID", "Name")}
-        return _Node(
-            _uid(attributes["ID"]), attributes, type_attributes, is_object, group
-        )
-    except (KeyError, ValueError, TypeError) as error:
-        raise ValueError(f"{group.name}: {error}") from error
-
-
-def _concatenated_nodes(
-    project: h5py.Group,
-    group: h5py.Group,
-    version: float,
-) -> list[_Node]:
-    if "Concatenated object IDs" not in group:
-        return []
-    object_ids = _dataset(group, "Concatenated object IDs")[()]
-    if not len(object_ids):
-        return []
-    storage = _group(group, "Concatenated Data")
-    label = "Attributes Jsons" if version > 2.0 else "Attributes"
-    raw = _dataset(storage, label)[()]
-    if version > 2.0:
-        records = [json.loads(_text(value)) for value in raw]
-    else:
-        if isinstance(raw, np.ndarray):
-            if raw.size != 1:
-                raise ValueError("Expected one concatenated Attributes JSON document.")
-            raw = raw.item()
-        records = json.loads(_text(raw))["Attributes"]
-    if not isinstance(records, list) or not all(
-        isinstance(item, dict) for item in records
-    ):
-        raise ValueError(
-            "Concatenated attributes must be a list of metadata dictionaries."
-        )
-    by_uid = {_uid(record["ID"]): record for record in records}
-    if len(by_uid) != len(records):
-        raise ValueError("Duplicate concatenated metadata UIDs.")
-    nodes = []
-    types = _group(_group(project, "Types"), "Object types")
-    for value in object_ids:
-        uid = _uid(value)
-        attributes = by_uid[uid]
-        type_uid = _uid(attributes["Object Type ID"])
-        entity_type = _group(types, "{" + type_uid + "}")
-        type_attributes = {key: entity_type.attrs[key] for key in ("ID", "Name")}
-        nodes.append(_Node(uid, attributes, type_attributes, True, concatenator=group))
-    property_ids = {
-        _uid(node.attributes["Property:Visual Parameters"])
-        for node in nodes
-        if "Property:Visual Parameters" in node.attributes
-    }
-    colours = _concatenated_colours(group, property_ids)
-    for node in nodes:
-        if "Property:Visual Parameters" in node.attributes:
-            node.colour = colours.get(
-                _uid(node.attributes["Property:Visual Parameters"])
-            )
-    return nodes
-
-
-def _children(project: h5py.Group, node: _Node, version: float) -> list[_Node]:
-    if node.group is None:
-        return []
-    children = []
-    for family in ("Groups", "Objects"):
-        if family not in node.group:
-            continue
-        collection = _group(node.group, family)
-        for key in collection:
-            child = _native_node(_group(collection, key), family == "Objects")
-            if _uid(key) != child.uid:
-                raise ValueError(
-                    f"{collection.name}/{key}: link and entity UID differ."
-                )
-            children.append(child)
-    children.extend(_concatenated_nodes(project, node.group, version))
-    return sorted(children, key=lambda item: item.uid)
-
-
 def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
     project = project_group(file)
-    version = float(project.attrs["Version"])
-    if not np.isfinite(version) or version <= 0:
-        raise ValueError("Invalid geoh5 format version.")
-    root = _native_node(_group(project, "Root"), False)
+    _, nodes = read_hierarchy(project)
     result = []
-    seen = {root.uid}
-    pending = [
-        (node, root.uid, "") for node in reversed(_children(project, root, version))
-    ]
-    while pending:
-        node, parent_uid, parent_type = pending.pop()
+    property_ids: dict[str, set[str]] = {}
+    for node in nodes[1:]:
+        if node.concatenator is not None and "Property:Visual Parameters" in node.attributes:
+            property_ids.setdefault(node.parent_uid, set()).add(
+                _uid(node.attributes["Property:Visual Parameters"])
+            )
+    concatenated_colours = {}
+    for node in nodes[1:]:
         try:
-            if node.uid in seen:
-                raise ValueError("Repeated entity UID or cyclic hierarchy.")
-            seen.add(node.uid)
-            entity_type, supported = node.type_name(version, parent_type)
+            entity_type, supported = node.entity_type, node.conversion_supported
             if node.is_object or supported:
                 name = _text(node.attributes["Name"])
                 if node.concatenator is not None:
                     name = name.replace("\u2044", "/")
-                    colour = node.colour
+                    if node.parent_uid not in concatenated_colours:
+                        concatenated_colours[node.parent_uid] = _concatenated_colours(
+                            node.concatenator, property_ids.get(node.parent_uid, set()),
+                        )
+                    colour = (
+                        concatenated_colours[node.parent_uid].get(
+                            _uid(node.attributes["Property:Visual Parameters"])
+                        ) if "Property:Visual Parameters" in node.attributes else None
+                    )
                 elif node.is_object and node.group is not None:
                     colour = _object_colour(node.group)
                 else:
@@ -275,7 +141,7 @@ def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
                         uid=node.uid,
                         name=name,
                         entity_type=entity_type,
-                        parent_uid=parent_uid,
+                        parent_uid=node.parent_uid,
                         visible=stored_visibility(
                             node.attributes, context=f"Entity {node.uid}"
                         ),
@@ -289,10 +155,6 @@ def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
                         ),
                     )
                 )
-            pending.extend(
-                (child, node.uid, entity_type)
-                for child in reversed(_children(project, node, version))
-            )
         except (
             KeyError,
             ValueError,

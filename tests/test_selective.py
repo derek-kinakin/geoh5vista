@@ -326,7 +326,7 @@ def test_concatenated_selection_reads_only_selected_slices(
             reads.append(dataset.name)
         assert str(point_uid) not in dataset.name
         assert str(unrelated_group_uid) not in dataset.name or dataset.name.endswith(
-            "/Concatenated object IDs"
+            ("/Concatenated object IDs", "/Attributes", "/Attributes Jsons")
         )
         return original(dataset, selection)
 
