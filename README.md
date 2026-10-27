@@ -183,6 +183,60 @@ In particular, opening a geoh5py `Workspace` to resolve
 catalog UIDs can itself read unrelated payload arrays; the catalog does not
 promise payload-selective loading for subsequent operations.
 
+Experimental Selective Reader
+-------------------
+
+`read_geoh5_entities(path, uids)` reads selected entities through geoh5py's
+`H5Reader`, without opening the source as a geoh5py `Workspace`. This is a
+prototype for ordinary objects and legacy (non-concatenated) drillholes.
+
+```python
+from geoh5vista import catalog_geoh5, read_geoh5_entities
+
+catalog = catalog_geoh5("project.geoh5")
+selected_uid = next(entry.uid for entry in catalog if entry.entity_type == "Points")
+blocks = read_geoh5_entities("project.geoh5", selected_uid)
+mesh = blocks[0]
+```
+
+`uids` accepts a UUID, a UUID string, or an iterable of either. The result is
+always a detached PyVista `MultiBlock`, including for a single selection.
+The source is opened read-only and closed before returning. Selected entities
+are reconstructed with public creation APIs in an owned in-memory workspace,
+then passed to the existing converters. No private-method overrides or new
+global patches are used by this reader. Existing `read_geoh5()` is unchanged.
+
+Object selection reads the object's mapped datasets and data channels, including
+Visual Parameters and referenced-data type/value-map metadata. Required ancestor
+identities and display attributes are reconstructed without reading ancestor or
+sibling geometry. Property groups are reconstructed after their data channels.
+The existing converters determine which channels appear in the output.
+
+Selecting an organizational group includes supported descendant objects,
+flattened into the result. Selecting a legacy drillhole group preserves its
+existing nested drillhole representation. Selecting an individual legacy hole
+does not read sibling holes. Root UID selection includes supported descendants.
+Overlapping selections are deduplicated; output uses depth-first hierarchy
+order with siblings sorted by UID, not request order. Hidden objects are included
+and preserve their own stored visibility. Unsupported descendants are skipped,
+but explicitly selecting an unsupported object raises `ValueError`.
+
+Limitations:
+
+- Concatenated drillholes/groups are explicitly rejected with
+  `NotImplementedError` before source geometry is read. Selecting an ordinary
+  object elsewhere in a file containing concatenated storage remains supported.
+- The reader scans reachable hierarchy metadata, including concatenated object
+  ID lists. It is payload-selective, not constant-time UID lookup.
+- Reconstruction and in-memory workspace finalization add allocation/copying
+  overhead. No bounded peak-memory or performance guarantee is established.
+- Existing converter limitations still apply; conversion errors are propagated.
+
+Missing/unreachable UIDs, malformed UUIDs, and empty selections raise errors;
+there is no fallback to eager source-workspace opening. Owned handles close on
+success and failure. `drillhole_representation` and `curve_tolerance` have the
+same meaning as in `read_geoh5()`.
+
 Drillhole Representation
 -------------------
 

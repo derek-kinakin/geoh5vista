@@ -8,6 +8,7 @@ from .catalog import EntityMetadata, catalog_geoh5
 from .compat import patch_missing_concatenated_data
 
 if TYPE_CHECKING:
+    from .selective import read_geoh5_entities
     from .wrapper import geoh5wrap, read_geoh5, vtkwrap, write_geoh5
 
 patch_missing_concatenated_data()
@@ -24,12 +25,18 @@ __all__ = (
     "catalog_geoh5",
     "geoh5wrap",
     "read_geoh5",
+    "read_geoh5_entities",
     "vtkwrap",
     "write_geoh5"
 )
 
 
 def __getattr__(name: str):
+    if name == "read_geoh5_entities":
+        from .selective import read_geoh5_entities
+
+        globals()[name] = read_geoh5_entities
+        return read_geoh5_entities
     if name in ("geoh5wrap", "read_geoh5", "vtkwrap", "write_geoh5"):
         from . import wrapper
 

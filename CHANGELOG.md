@@ -1,5 +1,14 @@
 # Release notes
 
+## Unreleased
+
+- Added experimental `read_geoh5_entities(path, uids)`, using H5Reader and an
+  owned in-memory workspace to convert selected ordinary objects and legacy
+  drillholes without opening the source as an eager workspace. Group expansion,
+  overlap deduplication, source identity/display metadata, channel types and
+  property groups are preserved. Concatenated selections are explicitly rejected;
+  existing full-file reading is unchanged.
+
 ## 0.8.1 - 2026-10-27
 
 - Corrected visibility metadata and visible-only filtering to use each entity's
