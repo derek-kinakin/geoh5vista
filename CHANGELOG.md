@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.9.2 - 2026-10-27
+
+- Fixed discovery and selective loading of reachable hierarchy-only entities
+  missing from the flat Groups/Objects/Data indices. Linked handles are used
+  for unindexed geometry, channels, property groups and concatenated storage,
+  while conflicting definitions in existing indices still raise errors.
+  Source access remains read-only and payload-selective.
+
 ## 0.9.1 - 2026-10-27
 
 - Unified catalog and selective-reader native hierarchy discovery. Split

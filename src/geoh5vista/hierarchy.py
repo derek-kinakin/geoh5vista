@@ -82,14 +82,8 @@ def _native_node(handle: h5py.Group, is_object: bool) -> HierarchyNode:
         raise ValueError(f"{handle.name}: {error}") from error
 
 
-def _concatenated_nodes(
-    project: h5py.Group, handle: h5py.Group, version: float,
-) -> list[HierarchyNode]:
-    if "Concatenated object IDs" not in handle:
-        return []
-    object_ids = dataset(handle, "Concatenated object IDs")[()]
-    if not len(object_ids):
-        return []
+def concatenated_records(handle: h5py.Group, version: float) -> list[dict]:
+    """Read attribute records through their reachable concatenator handle."""
     storage = group(handle, "Concatenated Data")
     label = "Attributes Jsons" if version > 2.0 else "Attributes"
     raw = dataset(storage, label)[()]
@@ -103,6 +97,18 @@ def _concatenated_nodes(
         records = json.loads(text(raw))["Attributes"]
     if not isinstance(records, list) or not all(isinstance(item, dict) for item in records):
         raise ValueError("Concatenated attributes must be a list of metadata dictionaries.")
+    return records
+
+
+def _concatenated_nodes(
+    project: h5py.Group, handle: h5py.Group, version: float,
+) -> list[HierarchyNode]:
+    if "Concatenated object IDs" not in handle:
+        return []
+    object_ids = dataset(handle, "Concatenated object IDs")[()]
+    if not len(object_ids):
+        return []
+    records = concatenated_records(handle, version)
     by_uid = {uid(record["ID"]): record for record in records}
     if len(by_uid) != len(records):
         raise ValueError("Duplicate concatenated metadata UIDs.")
@@ -134,12 +140,18 @@ def _children(
                 raise ValueError(f"{collection.name}/{key}: link and entity UID differ.")
             if child.uid == root_uid:
                 raise ValueError(f"Entity {child.uid}: cyclic hierarchy links back to root.")
-            indexed = group(group(project, family), "{" + child.uid + "}")
-            if indexed.id != child.group.id:
+            indexed = (
+                group(group(project, family), "{" + child.uid + "}")
+                if family in project and "{" + child.uid + "}" in group(project, family)
+                else None
+            )
+            if indexed is not None and indexed.id != child.group.id:
                 raise ValueError(
                     f"Entity {child.uid}: conflicting native definitions at "
                     f"{child.group.name} and {indexed.name}."
                 )
+            if indexed is not None:
+                child.group = indexed
             children.append(child)
     children.extend(_concatenated_nodes(project, handle, version))
     return children
@@ -151,7 +163,8 @@ def read_hierarchy(project: h5py.Group) -> tuple[float, list[HierarchyNode]]:
     Root attributes come from /Root. A distinct indexed root must match its
     ID and type ID; its child links are unioned, not its attributes. Only root
     aliases may have distinct physical definitions. Non-root definitions must
-    match the flat index. Multiple parents and cycles are rejected.
+    match the flat index when present. Hierarchy-only entities are supported.
+    Multiple parents and cycles are rejected.
     No geometry, channel values, or display XML is read.
     """
     try:

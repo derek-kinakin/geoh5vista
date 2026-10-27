@@ -190,7 +190,12 @@ not a claim that the format defines split-root precedence.
 the indexed representation, when present, must have the same ID and type ID.
 A `/Root` without an indexed root group is also supported. Repeated links from
 the two roots must point to the same physical child definition. All other
-native child links must agree with their flat `Groups`/`Objects` index entries.
+native child links must agree with their flat `Groups`/`Objects` index entries
+when those entries exist. A reachable entity is not required to have a flat
+index entry: hierarchy-only groups, objects, and data channels are supported.
+Their actual linked handles supply geometry, channels, metadata and property
+groups; indexed entities continue to use H5Reader. Concatenated storage is
+likewise read through its resolved group handle.
 Distinct non-root definitions for one UID, conflicting parents, mismatched IDs
 or root types, and cycles raise contextual `ValueError`s. This API represents
 a tree with a single immediate parent per entry; overlapping non-root parent

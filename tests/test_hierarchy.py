@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 import pytest
 from geoh5py.groups import ContainerGroup, DrillholeGroup
-from geoh5py.objects import Drillhole, Points
+from geoh5py.objects import Drillhole, Points, Surface
 from geoh5py.workspace import Workspace
 
 from geoh5vista import catalog_geoh5, read_geoh5_entities, selective
@@ -96,7 +96,9 @@ def instrument(monkeypatch, path):
     return allowed, reads, handles, modes
 
 
-@pytest.mark.parametrize("layout", ["hardlink", "equivalent", "disjoint", "overlap", "unindexed"])
+@pytest.mark.parametrize("layout", [
+    "hardlink", "equivalent", "disjoint", "overlap", "unindexed", "hierarchy-only",
+])
 def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
     path, root_uid, first_uid, second_uid, orphan_uid, grade_uid = root_fixture
     with h5py.File(path, "r+") as file:
@@ -104,7 +106,7 @@ def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
         if layout not in ("hardlink", "unindexed"):
             root, indexed = split_root(project)
             root["Objects"][key(first_uid)] = project["Objects"][key(first_uid)]
-            if layout == "disjoint":
+            if layout in ("disjoint", "hierarchy-only"):
                 del indexed["Objects"][key(first_uid)]
             elif layout == "equivalent":
                 root["Objects"][key(second_uid)] = project["Objects"][key(second_uid)]
@@ -113,6 +115,9 @@ def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
             root.attrs["Visible"] = False
             indexed.attrs["Name"] = "Indexed snapshot"
             indexed.attrs["Visible"] = True
+            if layout == "hierarchy-only":
+                del project["Objects"][key(first_uid)]
+                del project["Data"][key(grade_uid)]
         elif layout == "unindexed":
             del project["Groups"][key(root_uid)]
         else:
@@ -225,7 +230,7 @@ def test_conflicting_hierarchies_fail_before_payload(root_fixture, monkeypatch, 
 
 
 @pytest.mark.parametrize("version", [1.0, 2.0, 2.1])
-@pytest.mark.parametrize("nested_side", ["root", "indexed"])
+@pytest.mark.parametrize("nested_side", ["root", "indexed", "unindexed"])
 def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version, nested_side):
     path = tmp_path / "nested.geoh5"
     channel_owners = {}
@@ -259,9 +264,17 @@ def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version
         else:
             root["Groups"][key(folder.uid)] = project["Groups"][key(folder.uid)]
             del indexed["Groups"][key(folder.uid)]
+            if nested_side == "unindexed":
+                del project["Groups"][key(folder.uid)]
+                del project["Groups"][key(nested.uid)]
+                del project["Groups"][key(group_uid)]
         ranges = {}
         if version > 1:
-            storage = project["Groups"][key(group_uid)]["Concatenated Data"]
+            storage = root["Groups"][key(folder.uid)]["Groups"][key(nested.uid)][
+                "Groups"
+            ][key(group_uid)]["Concatenated Data"] if nested_side == "unindexed" else (
+                project["Groups"][key(group_uid)]["Concatenated Data"]
+            )
             for field in storage["Index"]:
                 rows = storage["Index"][field][()]
                 values = storage["Data"][field] if field in storage["Data"] else storage[field]
@@ -316,5 +329,108 @@ def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version
         assert block.user_dict["geoh5"]["source"]["uid"] == entry.uid
         assert block.user_dict["geoh5"]["source"]["parent_uid"] == entry.parent_uid
         assert block.user_dict["geoh5"]["source"]["entity_type"] == entry.entity_type
+    assert hashlib.sha256(path.read_bytes()).digest() == before
+    path.unlink()
+
+
+def test_hierarchy_only_surface_with_channels_and_properties(tmp_path, monkeypatch):
+    path = tmp_path / "surface.geoh5"
+    with Workspace.create(path) as workspace:
+        surface = Surface.create(
+            workspace, name="Open pit area",
+            vertices=np.array([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]]),
+            cells=np.array([[0, 1, 2]], dtype=np.uint32),
+        )
+        grade = surface.add_data({
+            "grade": {"values": np.array([3.]), "association": "CELL"},
+        })
+        surface.add_data({
+            "rock": {
+                "values": np.array([1]), "association": "CELL",
+                "type": "referenced", "value_map": {0: "Unknown", 1: "ore"},
+            },
+        })
+        surface.create_property_group(name="Properties", properties=[grade.uid])
+        surface.metadata = {"label": "pit"}
+        surface.add_default_visual_parameters().colour = [10, 20, 30]
+        other_uid = Points.create(workspace, vertices=[[9., 9., 9.]]).uid
+        uid = surface.uid
+    with h5py.File(path, "r+") as file:
+        project = file["GEOSCIENCE"]
+        root, indexed = split_root(project)
+        handle = project["Objects"][key(uid)]
+        root["Objects"][key(uid)] = handle
+        del indexed["Objects"][key(uid)]
+        for channel in handle["Data"]:
+            del project["Data"][channel]
+        del project["Objects"][key(uid)]
+    before = hashlib.sha256(path.read_bytes()).digest()
+    reads = []
+    handles = []
+    getitem = h5py.Dataset.__getitem__
+    read_direct = h5py.Dataset.read_direct
+    original_file = h5py.File.__init__
+    original_workspace = Workspace.__init__
+    loading = False
+
+    def guarded(dataset, selection):
+        assert key(other_uid) not in dataset.name
+        if not loading:
+            assert dataset.parent.attrs.get("Name") == "Visual Parameters", dataset.name
+        reads.append(dataset.name)
+        return getitem(dataset, selection)
+
+    def guarded_direct(dataset, dest, source_sel=None, dest_sel=None):
+        assert key(other_uid) not in dataset.name
+        assert loading
+        return read_direct(dataset, dest, source_sel, dest_sel)
+
+    def tracked(file, *args, **kwargs):
+        original_file(file, *args, **kwargs)
+        handles.append(file)
+        if file.filename == str(path):
+            assert file.mode == "r"
+
+    def no_source(workspace, h5file=None, **kwargs):
+        assert h5file is None
+        original_workspace(workspace, h5file, **kwargs)
+
+    monkeypatch.setattr(Workspace, "__init__", no_source)
+    monkeypatch.setattr(h5py.File, "__init__", tracked)
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", guarded)
+    monkeypatch.setattr(h5py.Dataset, "read_direct", guarded_direct)
+    entries = catalog_geoh5(path)
+    assert not any(name.endswith(("/Vertices", "/Cells")) for name in reads)
+    entry = next(entry for entry in entries if entry.uid == str(uid))
+    loading = True
+    mesh = read_geoh5_entities(path, uid)[0]
+    assert mesh.user_dict["geoh5"]["source"]["uid"] == entry.uid
+    assert mesh.user_dict["geoh5"]["display"]["colour"] == [10, 20, 30]
+    assert mesh.n_points == 3 and mesh.n_cells == 1
+    np.testing.assert_array_equal(mesh["grade"], [3.])
+    np.testing.assert_array_equal(mesh["rock_names"], ["ore"])
+    assert hashlib.sha256(path.read_bytes()).digest() == before
+    assert handles and all(not file.id.valid for file in handles)
+    path.unlink()
+    assert mesh.copy(deep=True).n_cells == 1
+
+
+def test_hierarchy_only_payload_failure_closes_handles(root_fixture, monkeypatch):
+    path, _, first_uid, _, _, _ = root_fixture
+    with h5py.File(path, "r+") as file:
+        del file["GEOSCIENCE/Objects"][key(first_uid)]
+    before = hashlib.sha256(path.read_bytes()).digest()
+    _, _, handles, _ = instrument(monkeypatch, path)
+    original = h5py.Dataset.__getitem__
+
+    def fail(dataset, selection):
+        if dataset.name.endswith("/Vertices"):
+            raise RuntimeError("Injected hierarchy-only payload failure")
+        return original(dataset, selection)
+
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", fail)
+    with pytest.raises(RuntimeError, match="Injected hierarchy-only"):
+        read_geoh5_entities(path, first_uid)
+    assert handles and all(not file.id.valid for file in handles)
     assert hashlib.sha256(path.read_bytes()).digest() == before
     path.unlink()

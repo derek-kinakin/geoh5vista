@@ -17,15 +17,16 @@ from geoh5py.data import Data
 from geoh5py.groups import Group
 from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5py.io import H5Reader
+from geoh5py.io.h5_reader import safe_load_dataset
 from geoh5py.objects import ObjectBase
 from geoh5py.shared import FLOAT_NDV
 from geoh5py.shared.concatenation.concatenator import Concatenator
 from geoh5py.shared.entity import Entity
-from geoh5py.shared.utils import INV_KEY_MAP
+from geoh5py.shared.utils import INV_KEY_MAP, str_json_to_dict
 from geoh5py.workspace import Workspace
 from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
-from .hierarchy import read_hierarchy
+from .hierarchy import concatenated_records, read_hierarchy
 from .visibility import project_group, stored_visibility
 from .wrapper import entities_to_vtk
 
@@ -72,13 +73,57 @@ def _attributes(group: h5py.Group) -> dict:
     return attributes
 
 
+def _native_attributes(source: h5py.File, handle: h5py.Group, family: str):
+    """Use H5Reader when indexed; otherwise decode the reachable handle."""
+    project = project_group(source)
+    collection = {"object": "Objects", "data": "Data"}[family]
+    key = "{" + str(_uuid(handle.attrs["ID"])) + "}"
+    if collection in project and key in project[collection]:
+        if project[collection][key].id != handle.id:
+            raise ValueError(f"{handle.name}: conflicting indexed definition.")
+        return H5Reader.fetch_attributes(source, _uuid(handle.attrs["ID"]), family)
+    attributes = {
+        INV_KEY_MAP.get(key, key): value for key, value in handle.attrs.items()
+    }
+    if family != "data":
+        for key, value in handle.items():
+            if key.lower() in ("metadata", "options"):
+                attributes[INV_KEY_MAP[key]] = str_json_to_dict(np.r_[value][0])
+            elif key in INV_KEY_MAP and isinstance(value, h5py.Dataset) and value.ndim > 0:
+                attributes[INV_KEY_MAP[key]] = safe_load_dataset(value, value.name)
+    properties = {}
+    if "PropertyGroups" in handle:
+        for key, value in handle["PropertyGroups"].items():
+            properties[key] = {
+                INV_KEY_MAP.get(label, label): item for label, item in value.attrs.items()
+            }
+    return attributes, H5Reader.fetch_type_attributes(handle["Type"]), properties
+
+
+def _native_values(source: h5py.File, handle: h5py.Group):
+    project = project_group(source)
+    key = "{" + str(_uuid(handle.attrs["ID"])) + "}"
+    if "Data" in project and key in project["Data"]:
+        return H5Reader.fetch_values(source, _uuid(handle.attrs["ID"]))
+    if "Data" not in handle:
+        return None
+    values = safe_load_dataset(handle["Data"], handle.name)
+    if len(values) and isinstance(values[0], (str, bytes)):
+        values = np.asarray([
+            value.decode("utf-8") if isinstance(value, bytes) else value for value in values
+        ])
+        return values[0] if len(values) == 1 else values
+    if values.dtype.kind == "f":
+        values[values == FLOAT_NDV] = np.nan
+    return values
+
+
 def _load_concatenator(
     source: h5py.File, group: Concatenator, uids: set[UUID],
+    handle: h5py.Group,
 ) -> dict[UUID, ObjectBase]:
     """Populate public caches with compact slices, never file-wide payloads."""
-    metadata = H5Reader.fetch_concatenated_attributes(
-        source, group.uid, "group", group.concat_attr_str
-    )
+    metadata = {"Attributes": concatenated_records(handle, group.workspace.version)}
     if not isinstance(metadata, dict) or not isinstance(metadata.get("Attributes"), list):
         raise ValueError(f"Concatenator {group.uid}: missing attribute records.")  # noqa: TRY004
     records = {}
@@ -107,7 +152,7 @@ def _load_concatenator(
                 raise ValueError(f"Concatenator {group.uid}: repeated data reference {child_uid}.")
             channels[child_uid] = uid
     needed.update(channels)
-    storage = project_group(source)["Groups"]["{" + str(group.uid) + "}"]["Concatenated Data"]
+    storage = handle["Concatenated Data"]
     data, indices = {}, {}
     if "Index" in storage:
         for field in sorted(storage["Index"]):
@@ -305,6 +350,7 @@ def read_geoh5_entities(
                             child for child in children[entry.parent]
                             if child in selected and entries[child].concatenated
                         },
+                        entries[entry.parent].group,
                     ))
                     return reconstructed[uid]
                 if entry.parent is None or entry.group is None:
@@ -312,8 +358,8 @@ def read_geoh5_entities(
                 parent = reconstruct(entry.parent)
                 is_payload = uid in selected and entry.family == "object"
                 if is_payload:
-                    attributes, type_attributes, property_groups = H5Reader.fetch_attributes(
-                        source, uid, entry.family
+                    attributes, type_attributes, property_groups = _native_attributes(
+                        source, entry.group, entry.family
                     )
                     if attributes is None or type_attributes is None or property_groups is None:
                         raise ValueError(f"Cannot fetch attributes for entity {uid}.")
@@ -335,18 +381,19 @@ def read_geoh5_entities(
                     raise ValueError(f"Cannot reconstruct entity {uid}.")
                 reconstructed[uid] = entity
                 if is_payload:
-                    for child_uid, family in H5Reader.fetch_children(
-                        source, uid, entry.family
-                    ).items():
-                        if family != "data":
-                            continue
-                        attrs, data_type, _ = H5Reader.fetch_attributes(
-                            source, child_uid, "data"
+                    channels = entry.group.get("Data")
+                    for child_key in channels if channels is not None else ():
+                        child = channels[child_key]
+                        child_uid = _uuid(child.attrs["ID"])
+                        if _uuid(child_key) != child_uid:
+                            raise ValueError(f"{child.name}: link and entity UID differ.")
+                        attrs, data_type, _ = _native_attributes(
+                            source, child, "data"
                         )
                         if attrs is None or data_type is None:
                             raise ValueError(f"Cannot fetch data attributes for {child_uid}.")
                         attrs["parent"] = entity
-                        attrs["values"] = H5Reader.fetch_values(source, child_uid)
+                        attrs["values"] = _native_values(source, child)
                         workspace.create_entity(
                             Data, entity=attrs, entity_type=data_type,
                             save_on_creation=False,
