@@ -15,7 +15,7 @@ from geoh5py.objects.drillhole import Drillhole
 from geoh5py.shared.concatenation.drillhole import ConcatenatedDrillhole
 
 from geoh5vista.data import add_entity_metadata
-from geoh5vista.utilities import normalize_visibility
+from geoh5vista.visibility import entity_visibility
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -620,6 +620,8 @@ def drillholes_to_vtk(
 
     Merged output is a visualization derivative. Overlapping observations
     in one array cannot be represented there and raise ``ValueError``.
+    Visible-only filtering uses each hole's own stored checkbox, not view flags
+    or the group's state. A missing visibility attribute defaults to True.
     """
     if not isinstance(group, DrillholeGroup):
         raise TypeError("Expected a geoh5py DrillholeGroup.")
@@ -632,7 +634,7 @@ def drillholes_to_vtk(
     for hole in group.children:
         if not isinstance(hole, Drillhole):
             continue
-        if load_only_visible and not normalize_visibility(hole.visible):
+        if load_only_visible and not entity_visibility(hole):
             continue
         composite = drillhole_to_vtk(hole, curve_tolerance=curve_tolerance)
         result[_key(result.keys(), hole.name, str(hole.uid))] = (

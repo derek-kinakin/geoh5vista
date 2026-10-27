@@ -95,8 +95,22 @@ Geoh5 Entity Metadata Support
 schema version 1. The `source` dictionary contains the original UID, entity
 class (`entity_type`), and parent UID. The `display` dictionary contains
 `name`, `colour` (RGB integers), and `visible` (a boolean).
-Integer/NumPy visibility values from geoh5py are normalized (0 = hidden);
-unrecognized values are treated as visible with a warning.
+Visibility is the entity's own stored `Visible` attribute (the object-tree
+checkbox), not effective rendered visibility. It is authoritative even when
+every record in a per-view `Visible` dataset disagrees. Parent visibility is
+not combined with the child's state. A missing attribute defaults to `True`,
+with or without view records, matching the geoh5 format/geoh5py entity default.
+Scalar Boolean/integer values are normalized (0 = hidden, nonzero = visible);
+malformed stored values raise a contextual `ValueError`, not the missing-value
+default. Concatenated entities use their entity-level attribute records.
+
+The same policy applies to cataloging, direct conversion, selected entities
+converted from an open workspace, and `load_only_visible` filtering. Existing
+drillhole nesting is preserved: excluding a hidden drillhole group still
+excludes that group from filtered file reading, even if a child's own state
+is visible. Visibility resolution never rewrites source attributes or view
+records. The general-purpose `normalize_visibility` utility retains its legacy
+behavior, but does not define entity-level visibility.
 
 `geoh5vista.data.restore_entity_metadata(entity, mesh, name=None)` restores
 the display fields onto an already-created geoh5 entity. An explicit `name`
@@ -131,7 +145,7 @@ for entry in catalog:
 | `name` | Native display name; duplicate names are preserved |
 | `entity_type` | geoh5py class label for known types, including concatenated variants; stored type name for unknown types |
 | `parent_uid` | Immediate native parent's UUID string, even when that parent is not cataloged |
-| `visible` | Boolean using the existing visibility normalization; no ancestor folding or visibility correction |
+| `visible` | Own stored entity checkbox; missing defaults to `True`, independent of views and parents |
 | `colour` | Immutable RGB integer tuple, or `None` when unavailable |
 | `conversion_supported` | Whether the native type is recognized and has a registered converter |
 | `unsupported_reason` | Explanation for unsupported conversion, otherwise `None` |
@@ -164,8 +178,8 @@ not an empty successful catalog. Owned handles close on success and failure.
 There is no writable mode, persistent caching, or retained source handle.
 
 This API only discovers metadata. It adds no selective conversion or loading
-API and does not change `read_geoh5()` return shapes, nesting, selection, or
-visibility behavior. In particular, opening a geoh5py `Workspace` to resolve
+API and does not change `read_geoh5()` return shapes or nesting.
+In particular, opening a geoh5py `Workspace` to resolve
 catalog UIDs can itself read unrelated payload arrays; the catalog does not
 promise payload-selective loading for subsequent operations.
 

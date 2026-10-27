@@ -17,7 +17,8 @@ from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
 
 from geoh5vista.constants import DATASKIP
-from geoh5vista.utilities import get_gh5_entity_colour, normalize_visibility
+from geoh5vista.utilities import get_gh5_entity_colour
+from geoh5vista.visibility import entity_visibility
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -54,6 +55,8 @@ def add_entity_metadata(output: _DataObject, entity: ObjectBase | Group) -> _Dat
 
     The metadata is stored in ``output.user_dict["geoh5"]`` as a nested
     dictionary containing schema version, source, and display information.
+    Visibility is the entity's stored checkbox, independent of views and parents.
+    A missing attribute defaults to True; malformed stored values raise ValueError.
 
     Parameters
     ----------
@@ -79,7 +82,7 @@ def add_entity_metadata(output: _DataObject, entity: ObjectBase | Group) -> _Dat
             "name": entity.name,
             "colour": get_gh5_entity_colour(entity) if isinstance(entity, ObjectBase)
             else [255, 255, 255],
-            "visible": normalize_visibility(entity.visible),
+            "visible": entity_visibility(entity),
         },
     }
 

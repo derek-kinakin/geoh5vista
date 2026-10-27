@@ -19,7 +19,7 @@ from geoh5vista.drillholes import drillhole_to_vtk, drillholes_to_vtk
 from geoh5vista.grid2d import vtk_to_grid2d
 from geoh5vista.points import vtk_to_points
 from geoh5vista.surface import vtk_to_surface
-from geoh5vista.utilities import normalize_visibility
+from geoh5vista.visibility import entity_visibility
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -80,6 +80,9 @@ def entities_to_vtk(
 ) -> pyvista.MultiBlock:
     """Convert a list of geoh5py entities to a ``pyvista.MultiBlock`` object.
 
+    Visible-only filtering uses each entity's stored checkbox, with missing
+    attributes defaulting to True, independently of view records and ancestors.
+
     Parameters
     ----------
     entity_list : list
@@ -93,7 +96,7 @@ def entities_to_vtk(
     """
     data = pyvista.MultiBlock()
     for item in entity_list:
-        if load_only_visible and not normalize_visibility(item.visible):
+        if load_only_visible and not entity_visibility(item):
             continue
         if isinstance(item, DrillholeGroup):
             e = drillholes_to_vtk(
@@ -126,8 +129,9 @@ def read_geoh5(
     workspace_path : str or pathlib.Path
         The path to the geoh5 workspace file.
     load_only_visible : bool, optional
-        If ``True``, only entities that are marked as visible in the
-        workspace will be loaded. Default is ``False``.
+        If ``True``, filter by each entity's stored Visible checkbox, not
+        per-view or inherited visibility. Missing attributes default to visible.
+        Existing drillhole group selection/nesting is preserved. Default is ``False``.
     mode : str, optional
         The mode ("r+","r","w", etc.) in which to open the workspace. Default is ``"r+"``.
     drillhole_representation : {"composite", "merged"}, optional
@@ -161,7 +165,7 @@ def read_geoh5(
                 supported_entities = [
                     e
                     for e in supported_entities
-                    if normalize_visibility(e.visible)
+                    if entity_visibility(e)
                 ]
 
             return entities_to_vtk(

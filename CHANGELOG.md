@@ -1,0 +1,17 @@
+# Release notes
+
+## 0.8.1 - 2026-10-27
+
+- Corrected visibility metadata and visible-only filtering to use each entity's
+  stored `Visible` checkbox, including groups and concatenated drillholes.
+  Per-view `Visible` datasets no longer override this value. Cataloging, full-file
+  reading, and direct/selected entity conversion now use the same policy.
+- A missing entity-level visibility attribute defaults to `True`, even when
+  per-view records are hidden. This preserves the catalog default and follows
+  the geoh5 format/geoh5py entity default, but changes conversion and filtering
+  for files that previously fell back to hidden view records.
+- Malformed entity-level visibility raises a contextual `ValueError` rather
+  than being treated as missing or aggregated as view flags. Parent visibility
+  is not folded into child metadata. Source attributes and view flags are not
+  rewritten; existing drillhole group nesting/selection and metadata schema
+  version 1 are unchanged.

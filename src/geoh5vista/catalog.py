@@ -17,7 +17,7 @@ import numpy as np
 from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
 from .constants import CONVERTERS
-from .utilities import normalize_visibility
+from .visibility import project_group, stored_visibility
 
 __all__ = ("EntityMetadata", "catalog_geoh5")
 
@@ -160,7 +160,8 @@ class _Node:
 def _native_node(group: h5py.Group, is_object: bool) -> _Node:
     try:
         attributes = {key: group.attrs[key] for key in ("ID", "Name")}
-        attributes["Visible"] = group.attrs.get("Visible")
+        if "Visible" in group.attrs:
+            attributes["Visible"] = group.attrs["Visible"]
         entity_type = _group(group, "Type")
         type_attributes = {key: entity_type.attrs[key] for key in ("ID", "Name")}
         return _Node(
@@ -243,9 +244,7 @@ def _children(project: h5py.Group, node: _Node, version: float) -> list[_Node]:
 
 
 def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
-    if len(file) != 1:
-        raise ValueError("Expected one geoh5 project group.")
-    project = _group(file, next(iter(file)))
+    project = project_group(file)
     version = float(project.attrs["Version"])
     if not np.isfinite(version) or version <= 0:
         raise ValueError("Invalid geoh5 format version.")
@@ -277,7 +276,9 @@ def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
                         name=name,
                         entity_type=entity_type,
                         parent_uid=parent_uid,
-                        visible=normalize_visibility(node.attributes.get("Visible")),
+                        visible=stored_visibility(
+                            node.attributes, context=f"Entity {node.uid}"
+                        ),
                         colour=colour,
                         conversion_supported=supported,
                         unsupported_reason=None
@@ -315,7 +316,8 @@ def catalog_geoh5(workspace_path: str | Path) -> list[EntityMetadata]:
     and Visual Parameters XML (and its own index, when concatenated) are read.
     Geometry, surveys and observation values are never read; counts are omitted.
     Missing colour is ``None`` rather than a converter's default colour.
-    Visibility uses the existing normalization policy without ancestor folding.
+    Visibility is the stored entity checkbox, never per-view or ancestor state.
+    A missing Visible attribute defaults to True; malformed values raise ValueError.
     No geoh5py entities or PyVista objects are constructed or returned.
 
     Parameters

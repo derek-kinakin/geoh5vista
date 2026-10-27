@@ -115,10 +115,12 @@ def get_gh5_entity_colour(gh5_entity: ObjectBase) -> list[int]:
 
 
 def normalize_visibility(value: Any) -> bool:
-    """Convert a geoh5py visibility value to a Python ``bool``.
+    """Convert a legacy visibility value to a Python ``bool``.
 
     geoh5py may report visibility in several forms depending on the entity
     type and how it was loaded (e.g. ``np.int8(0)`` when read from file).
+    This general-purpose coercion also accepts view records. It does not resolve
+    the authoritative entity checkbox used by cataloging, conversion or filtering.
 
     Rules:
 
