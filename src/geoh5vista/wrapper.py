@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
 from typing import Final, Literal
 
@@ -11,15 +12,13 @@ from geoh5py.objects.drillhole import Drillhole
 from geoh5py.groups.drillhole import DrillholeGroup
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.blockmodel import blockmodel_to_vtk, vtk_to_blockmodel
-from geoh5vista.constants import SUPPORTED
-from geoh5vista.curve import curve_to_vtk, vtk_to_curve
+from geoh5vista.blockmodel import vtk_to_blockmodel
+from geoh5vista.constants import CONVERTERS, SUPPORTED
+from geoh5vista.curve import vtk_to_curve
 from geoh5vista.drillholes import drillhole_to_vtk, drillholes_to_vtk
-from geoh5vista.grid2d import grid2d_to_vtk, vtk_to_grid2d
-from geoh5vista.label import label_to_vtk
-from geoh5vista.points import points_to_vtk, vtk_to_points
-from geoh5vista.slicer import slicer_to_vtk_plane
-from geoh5vista.surface import surface_to_vtk, vtk_to_surface
+from geoh5vista.grid2d import vtk_to_grid2d
+from geoh5vista.points import vtk_to_points
+from geoh5vista.surface import vtk_to_surface
 from geoh5vista.utilities import normalize_visibility
 
 __all__ = (
@@ -172,23 +171,8 @@ def read_geoh5(
 
 
 GEOH5WRAPPERS = {
-    ## Basic entities
-    "Points": points_to_vtk,
-    "Curve": curve_to_vtk,
-    "Surface": surface_to_vtk,
-    ## Grid entities
-    "Grid2D": grid2d_to_vtk,
-    ## Volume entities
-    "BlockModel": blockmodel_to_vtk,
-    ## Container entities
-    "Drillhole": drillhole_to_vtk,
-    "DrillholeGroup": drillholes_to_vtk,
-    "ConcatenatorDrillholeGroup": drillholes_to_vtk,
-    "ConcatenatedDrillhole": drillhole_to_vtk,
-    ## Slicer entities
-    "Slicer": slicer_to_vtk_plane,
-    ## Annotation entities
-    "Label": label_to_vtk,
+    name: getattr(import_module(f".{module}", __package__), function)
+    for name, (module, function) in CONVERTERS.items()
 }
 
 

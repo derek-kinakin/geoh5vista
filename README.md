@@ -108,6 +108,67 @@ updates the existing child's colour without replacing its other settings.
 Source identity, parent relationships, and entity class are not restored.
 This helper is not yet called automatically by the exporters.
 
+Lightweight Entity Catalog
+-------------------
+
+`catalog_geoh5(path)` is a metadata-only alternative to `read_geoh5()`.
+It opens an existing file read-only, closes it before returning, and returns
+a `list[EntityMetadata]` of frozen, slotted dataclass records. It does not
+construct geoh5py entities or import PyVista/VTK. Existing conversion functions
+remain available through the same public imports.
+
+```python
+from geoh5vista import catalog_geoh5
+
+catalog = catalog_geoh5("project.geoh5")
+for entry in catalog:
+    print(entry.uid, entry.name, entry.entity_type, entry.conversion_supported)
+```
+
+| Field | Meaning |
+|-------|---------|
+| `uid` | Canonical UUID string, consistent with converted source metadata |
+| `name` | Native display name; duplicate names are preserved |
+| `entity_type` | geoh5py class label for known types, including concatenated variants; stored type name for unknown types |
+| `parent_uid` | Immediate native parent's UUID string, even when that parent is not cataloged |
+| `visible` | Boolean using the existing visibility normalization; no ancestor folding or visibility correction |
+| `colour` | Immutable RGB integer tuple, or `None` when unavailable |
+| `conversion_supported` | Whether the native type is recognized and has a registered converter |
+| `unsupported_reason` | Explanation for unsupported conversion, otherwise `None` |
+
+Discovery follows the file's native `Root` hierarchy. It includes all reachable
+object entities (including unsupported types and hidden objects) and
+converter-supported groups such as drillhole groups. Each individual drillhole
+is also listed once, with its group's UID as its parent. Ordinary organizational
+groups, the workspace root, data channels, Visual Parameters children, property
+groups, disconnected objects, and generated drillhole components are not entries.
+Roots and organizational parents can therefore be absent from the returned list.
+Ordering is deterministic depth-first traversal, with siblings sorted by canonical
+UID, independent of names and converted MultiBlock ordering.
+
+The reader accesses only hierarchy links, entity/type/display attributes,
+concatenated object IDs and attribute JSON, and Visual Parameters XML (plus its
+own index when concatenated). Both legacy and modern concatenated drillhole
+metadata layouts are supported. Geometry, connectivity, surveys, observation
+values, value maps, and computed bounds are not read. Point/cell counts are
+intentionally omitted. Metadata size, especially concatenated attribute JSON
+and display XML, still contributes to discovery time and memory.
+
+Missing colours are `None`, rather than the black/white defaults used by existing
+converters. Conversion support is derived from the same capability registry as
+the reader; it does not validate geometry. Unknown type IDs remain discoverable
+but unsupported, even if their stored type name matches a supported class.
+Missing or unreadable files raise `OSError` (including `FileNotFoundError`);
+malformed required hierarchy or metadata raises a contextual `ValueError`,
+not an empty successful catalog. Owned handles close on success and failure.
+There is no writable mode, persistent caching, or retained source handle.
+
+This API only discovers metadata. It adds no selective conversion or loading
+API and does not change `read_geoh5()` return shapes, nesting, selection, or
+visibility behavior. In particular, opening a geoh5py `Workspace` to resolve
+catalog UIDs can itself read unrelated payload arrays; the catalog does not
+promise payload-selective loading for subsequent operations.
+
 Drillhole Representation
 -------------------
 
