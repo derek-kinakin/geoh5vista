@@ -340,9 +340,10 @@ def read_geoh5_entities(
             version=version, distance_unit=project.attrs.get("Distance unit", "meter"),
         ) as workspace:
             workspace.root.uid = root_uid
-            workspace.root.name = project["Root"].attrs["Name"]
+            root = entries[root_uid].group
+            workspace.root.name = root.attrs["Name"]
             workspace.root.visible = stored_visibility(
-                project["Root"].attrs, context=project["Root"].name
+                root.attrs, context=root.name
             )
             reconstructed = {root_uid: workspace.root}
 

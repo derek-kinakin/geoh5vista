@@ -1,7 +1,11 @@
 # Release notes
 
-## Unreleased
+## 0.9.3 - 2026-10-28
 
+- Made the indexed workspace root authoritative for both cataloging and selective
+  reading, including root attributes. `/Root` is used only when the indexed root
+  is absent. This replaces the split-root union policy, which could resurrect
+  deleted entities through stale `/Root` links and introduce conflicting parents.
 - Allowed concatenated drillhole discovery and selective loading when the native
   Drillhole object-type record is absent from the project's type index. Exact
   registered type identities use native defaults with an explicit warning about

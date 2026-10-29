@@ -184,9 +184,9 @@ def _children(
 def read_hierarchy(project: h5py.Group) -> tuple[float, list[HierarchyNode]]:
     """Resolve root aliases and return a UID-sorted depth-first native tree.
 
-    Root attributes come from /Root. A distinct indexed root must match its
-    ID and type ID; its child links are unioned, not its attributes. Only root
-    aliases may have distinct physical definitions. Non-root definitions must
+    The indexed root supplies attributes and child links when present; /Root
+    is only a fallback. Both representations must match in ID and type ID.
+    Non-root definitions must
     match the flat index when present. Hierarchy-only entities are supported.
     Multiple parents and cycles are rejected.
     No geometry, channel values, or display XML is read.
@@ -196,7 +196,6 @@ def read_hierarchy(project: h5py.Group) -> tuple[float, list[HierarchyNode]]:
         if not np.isfinite(version) or version <= 0:
             raise ValueError("Invalid geoh5 format version.")
         root = _native_node(group(project, "Root"), False)
-        roots = [root.group]
         key = "{" + root.uid + "}"
         if "Groups" in project and key in group(project, "Groups"):
             indexed = _native_node(group(group(project, "Groups"), key), False)
@@ -204,12 +203,11 @@ def read_hierarchy(project: h5py.Group) -> tuple[float, list[HierarchyNode]]:
                 raise ValueError("Conflicting root identities: /Root and indexed root IDs differ.")
             if uid(indexed.type_attributes["ID"]) != uid(root.type_attributes["ID"]):
                 raise ValueError("Conflicting root type identities.")
-            if indexed.group.id != root.group.id:
-                roots.append(indexed.group)
+            root = indexed
         root.entity_type, root.conversion_supported = root.type_name(version, "")
         result = []
         seen = {root.uid}
-        pending = [(root, roots)]
+        pending = [(root, [root.group])]
         while pending:
             parent, handles = pending.pop()
             result.append(parent)

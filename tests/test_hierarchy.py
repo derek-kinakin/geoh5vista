@@ -110,10 +110,9 @@ def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
                 del indexed["Objects"][key(first_uid)]
             elif layout == "equivalent":
                 root["Objects"][key(second_uid)] = project["Objects"][key(second_uid)]
-            # /Root attributes win; the indexed root may be an older snapshot.
-            root.attrs["Name"] = "Resolved root"
+            root.attrs["Name"] = "Stale root"
             root.attrs["Visible"] = False
-            indexed.attrs["Name"] = "Indexed snapshot"
+            indexed.attrs["Name"] = "Resolved root"
             indexed.attrs["Visible"] = True
             if layout == "hierarchy-only":
                 del project["Objects"][key(first_uid)]
@@ -122,10 +121,11 @@ def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
             del project["Groups"][key(root_uid)]
         else:
             assert project["Root"].id == project["Groups"][key(root_uid)].id
-        expected_root = (
-            root_uid, str(project["Root"].attrs["Name"]),
-            bool(project["Root"].attrs.get("Visible", True)),
-        )
+        resolved = project["Root"] if layout == "unindexed" else project["Groups"][key(root_uid)]
+        expected_root = (root_uid, str(resolved.attrs["Name"]), bool(resolved.attrs["Visible"]))
+    expected_uids = [second_uid] if layout in ("disjoint", "hierarchy-only") else [
+        first_uid, second_uid,
+    ]
     before = hashlib.sha256(path.read_bytes()).digest(), path.stat().st_mtime_ns
     allowed, reads, handles, modes = instrument(monkeypatch, path)
     roots = []
@@ -138,15 +138,20 @@ def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
 
     monkeypatch.setattr(selective, "entities_to_vtk", check_root)
     entries = catalog_geoh5(path)
-    assert [entry.uid for entry in entries] == [str(first_uid), str(second_uid)]
+    assert [entry.uid for entry in entries] == list(map(str, expected_uids))
     assert all(entry.parent_uid == str(root_uid) for entry in entries)
-    assert entries[0].visible is False
-    assert entries[0].colour == (10, 20, 30)
+    if first_uid in expected_uids:
+        assert entries[0].visible is False
+        assert entries[0].colour == (10, 20, 30)
+    else:
+        with pytest.raises(ValueError, match="not reachable"):
+            read_geoh5_entities(path, first_uid)
     assert not any(name.endswith("/Vertices") for name in reads)
     assert str(orphan_uid) not in " ".join(reads)
     with pytest.raises(ValueError, match="not reachable"):
         read_geoh5_entities(path, orphan_uid)
-    for entry, xyz in zip(entries, [[0., 0., 0.], [1., 1., 1.]], strict=True):
+    for entry in entries:
+        xyz = [0., 0., 0.] if entry.uid == str(first_uid) else [1., 1., 1.]
         allowed.clear()
         allowed.add(UUID(entry.uid))
         if entry.uid == str(first_uid):
@@ -165,14 +170,14 @@ def test_root_aliases_catalog_reader_parity(root_fixture, monkeypatch, layout):
     allowed.update([first_uid, second_uid, grade_uid])
     result = read_geoh5_entities(path, root_uid)
     assert [block.user_dict["geoh5"]["source"]["uid"] for block in result] == [
-        str(first_uid), str(second_uid),
+        *map(str, expected_uids),
     ]
     assert (hashlib.sha256(path.read_bytes()).digest(), path.stat().st_mtime_ns) == before
     assert handles and all(not file.id.valid for file in handles)
     assert modes and set(modes) == {"r"}
     assert roots and all(value == expected_root for value in roots)
     path.unlink()
-    np.testing.assert_array_equal(result[0].copy(deep=True)["grade"], [3.])
+    assert result[0].copy(deep=True).n_points == 1
 
 
 @pytest.mark.parametrize(
@@ -196,8 +201,8 @@ def test_conflicting_hierarchies_fail_before_payload(root_fixture, monkeypatch, 
         elif damage == "child-id":
             project["Objects"][key(first_uid)].attrs["ID"] = key(uuid4())
         elif damage == "child-definition":
-            del root["Objects"][key(first_uid)]
-            project.copy(project["Objects"][key(first_uid)], root["Objects"], name=key(first_uid))
+            del indexed["Objects"][key(first_uid)]
+            project.copy(project["Objects"][key(first_uid)], indexed["Objects"], name=key(first_uid))
         elif damage == "parents":
             # A second parent that is not merely the other root representation.
             folder_uid = uuid4()
@@ -227,6 +232,44 @@ def test_conflicting_hierarchies_fail_before_payload(root_fixture, monkeypatch, 
     assert handles and all(not file.id.valid for file in handles)
     assert modes and set(modes) == {"r"}
     path.unlink()
+
+
+def test_stale_root_parent_links_are_not_traversed(root_fixture, monkeypatch):
+    path, root_uid, first_uid, second_uid, stale_uid, grade_uid = root_fixture
+    with h5py.File(path, "r+") as file:
+        project = file["GEOSCIENCE"]
+        root, indexed = split_root(project)
+        folder = ContainerGroup.default_type_uid()
+        stale = project["Groups"].create_group(key(uuid4()))
+        stale.attrs["ID"] = stale.name.rsplit("/", 1)[-1]
+        stale.attrs["Name"] = "Deleted folder"
+        entity_type = stale.create_group("Type")
+        entity_type.attrs["ID"], entity_type.attrs["Name"] = key(folder), "Container"
+        stale.create_group("Objects")[key(first_uid)] = project["Objects"][key(first_uid)]
+        stale["Objects"][key(stale_uid)] = project["Objects"][key(stale_uid)]
+        # A stale branch links an active object under a second parent, as in
+        # Analyst files retaining deleted organizational groups under /Root.
+        root["Groups"][stale.attrs["ID"]] = stale
+        root["Objects"][key(first_uid)] = indexed["Objects"][key(first_uid)]
+        del project["Objects"][key(stale_uid)]
+        stale_folder_uid = UUID(stale.attrs["ID"].strip("{}"))
+    before = hashlib.sha256(path.read_bytes()).digest()
+    allowed, reads, handles, _ = instrument(monkeypatch, path)
+    entries = catalog_geoh5(path)
+    assert [entry.uid for entry in entries] == list(map(str, [first_uid, second_uid]))
+    assert all(entry.parent_uid == str(root_uid) for entry in entries)
+    assert not any(name.endswith("/Vertices") for name in reads)
+    for rejected in (stale_uid, stale_folder_uid):
+        with pytest.raises(ValueError, match="not reachable"):
+            read_geoh5_entities(path, rejected)
+    allowed.update([first_uid, second_uid, grade_uid])
+    blocks = read_geoh5_entities(path, root_uid)
+    assert len(blocks) == 2
+    assert not any(key(stale_uid) in name for name in reads)
+    assert hashlib.sha256(path.read_bytes()).digest() == before
+    assert handles and all(not handle.id.valid for handle in handles)
+    path.unlink()
+    np.testing.assert_array_equal(blocks[0].copy(deep=True)["grade"], [3.])
 
 
 @pytest.mark.parametrize("version", [1.0, 2.0, 2.1])
@@ -265,6 +308,7 @@ def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version
             root["Groups"][key(folder.uid)] = project["Groups"][key(folder.uid)]
             del indexed["Groups"][key(folder.uid)]
             if nested_side == "unindexed":
+                del project["Groups"][root.attrs["ID"]]
                 del project["Groups"][key(folder.uid)]
                 del project["Groups"][key(nested.uid)]
                 del project["Groups"][key(group_uid)]
@@ -320,9 +364,11 @@ def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version
     monkeypatch.setattr(h5py.Dataset, "__getitem__", guard)
     monkeypatch.setattr(h5py.Dataset, "read_direct", no_direct)
     entries = catalog_geoh5(path)
-    assert [entry.uid for entry in entries] == [
-        str(group_uid), *sorted(map(str, holes)), str(point_uid),
-    ]
+    expected = (
+        [str(point_uid)] if nested_side == "root" else
+        [str(group_uid), *sorted(map(str, holes))]
+    )
+    assert [entry.uid for entry in entries] == expected
     for entry in entries:
         selected = UUID(entry.uid)
         block = read_geoh5_entities(path, selected)[0]
@@ -357,10 +403,7 @@ def test_hierarchy_only_surface_with_channels_and_properties(tmp_path, monkeypat
         uid = surface.uid
     with h5py.File(path, "r+") as file:
         project = file["GEOSCIENCE"]
-        root, indexed = split_root(project)
         handle = project["Objects"][key(uid)]
-        root["Objects"][key(uid)] = handle
-        del indexed["Objects"][key(uid)]
         for channel in handle["Data"]:
             del project["Data"][channel]
         del project["Objects"][key(uid)]

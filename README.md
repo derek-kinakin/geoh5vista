@@ -181,15 +181,16 @@ Both `catalog_geoh5()` and `read_geoh5_entities()` use the same metadata-only
 native hierarchy discovery. The [format specification](https://mirageoscience-geoh5py.readthedocs-hosted.com/en/v0.13.1/content/geoh5_format/workspace.html)
 describes `/PROJECT/Root` as a hard-link alias to the indexed workspace group.
 Some files instead store distinct groups at `/PROJECT/Root` and
-`/PROJECT/Groups/{root_uid}`, with different child links. For compatibility,
-discovery takes the UID-deduplicated union of their child links, rather than
-silently choosing either representation. This is a reader reconciliation policy,
-not a claim that the format defines split-root precedence.
+`/PROJECT/Groups/{root_uid}`, with different child links. Discovery uses the
+indexed root's attributes and child links whenever that root exists. Alternate
+`/Root` links can survive deletion in Geoscience Analyst; unioning them would
+resurrect deleted entities and introduce stale parent relationships. This
+supersedes the union policy introduced in 0.9.1: entities reachable only through
+the alternate `/Root` are no longer included or selectable.
 
-`/Root` supplies the root's attributes (including name and own visibility);
-the indexed representation, when present, must have the same ID and type ID.
-A `/Root` without an indexed root group is also supported. Repeated links from
-the two roots must point to the same physical child definition. All other
+The two root representations must still have matching IDs and type IDs.
+When the indexed root is absent, `/Root` supplies both attributes and links.
+All reachable
 native child links must agree with their flat `Groups`/`Objects` index entries
 when those entries exist. A reachable entity is not required to have a flat
 index entry: hierarchy-only groups, objects, and data channels are supported.
