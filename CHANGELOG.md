@@ -1,6 +1,6 @@
 # Release notes
 
-## Unreleased
+## 0.9.4 - 2026-10-30
 
 - Fixed coordinate precision loss when writing PolyData surfaces, curves, and
   vertex meshes through `write_geoh5` or `vtkwrap`. Homogeneous datasets bypass
