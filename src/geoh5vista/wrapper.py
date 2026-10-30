@@ -195,11 +195,18 @@ def vtkwrap(
     if isinstance(data, pyvista.PointSet):
         key = "PointSet"
     else:
-        cell_type = data.get_cell(0).type # Check that the cell types are consistent
-        data = data.extract_cells_by_type(cell_type) 
-        if data is None:
-            print("The cell types of the object are not consistent. Skipping object.")
-            pass
+        cell_type = data.get_cell(0).type
+        if len(data.distinct_cell_types) > 1:
+            # extract_cells_by_type rounds PolyData points to float32.
+            is_polydata = isinstance(data, pyvista.PolyData)
+            grid = data.cast_to_unstructured_grid()
+            data = grid.extract_cells(
+                grid.celltypes == cell_type, pass_cell_ids=False, pass_point_ids=False,
+            )
+            if is_polydata:
+                data = data.extract_surface(
+                    pass_pointid=False, pass_cellid=False, algorithm="dataset_surface",
+                )
         key = f"{data.__class__.__name__}_{cell_type.name}"
     try:
         return VTKWRAPPERS[key](data, workspace_path, name=name)
@@ -252,7 +259,12 @@ def write_geoh5(
     workspace_path: str | Path,
     entity_name: str | None = None,
 ) -> None:
-    """Write PyVista objects to a geoh5 workspace."""
+    """Write PyVista objects without reducing input coordinate precision.
+
+    Float32 coordinates retain their existing values; lost precision cannot be
+    recovered by writing them as float64. For mixed-cell datasets, only cells
+    matching the first cell's type are exported.
+    """
     data_list = vtk_to_entities(data)
     if any(item.user_dict.get("geoh5", {}).get("drillhole", {}).get("role")
            in ("collar", "trace", "intervals", "points") for item in data_list):

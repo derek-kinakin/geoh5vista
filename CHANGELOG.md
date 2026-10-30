@@ -1,5 +1,15 @@
 # Release notes
 
+## Unreleased
+
+- Fixed coordinate precision loss when writing PolyData surfaces, curves, and
+  vertex meshes through `write_geoh5` or `vtkwrap`. Homogeneous datasets bypass
+  cell extraction; mixed-cell datasets use precision-preserving selection while
+  retaining the first-cell-type export policy. Float64 UTM and mine-grid
+  coordinates are no longer rounded to float32. Previously rounded files require
+  re-export from original full-precision geometry; casting stored vertices to
+  float64 cannot restore lost precision.
+
 ## 0.9.3 - 2026-10-28
 
 - Made the indexed workspace root authoritative for both cataloging and selective
