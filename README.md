@@ -459,3 +459,13 @@ new_project["Dacite"] = dacite
 
 geoh5vista.write_geoh5(new_project, "new_project.geoh5")
 ```
+
+Writing preserves the input coordinate values without reducing float64 points
+to float32. Use float64 coordinates for UTM or mine-grid geometry that needs
+sub-metre accuracy: at a northing of 5.5 million metres, float32 coordinates are
+spaced 0.5 m apart. Writing float32 inputs cannot recover precision already lost.
+For mixed-cell datasets, only cells matching the first cell's type are exported.
+
+Earlier versions could round PolyData coordinates to float32 during writing,
+even though the resulting geoh5 vertices were stored as float64. Affected files
+must be re-exported from the original full-precision geometry to recover accuracy.
