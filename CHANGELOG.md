@@ -1,6 +1,6 @@
 # Release notes
 
-## Unreleased
+## 0.10.0 - 2026-11-02
 
 - Fixed Grid2D import of geoh5py's structured origin and corrected its geometry
   to native cell boundaries: ImageData point dimensions are now
