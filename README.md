@@ -14,6 +14,10 @@ Documentation is hosted at <https://github.com/derek-kinakin/geoh5vista>
 Installation
 ------------
 
+Requires Python 3.12 or newer, geoh5py 0.13.1 or newer, h5py 3.15 or newer,
+NumPy 2.4 or newer, and PyVista 0.49.2 or newer. geoh5py may further constrain
+the compatible Python and dependency versions.
+
 From PyPI
 
 ```python
@@ -38,11 +42,33 @@ to Geoh5 support is the goal for each entity.
 | Points       | PointSet                   | Yes             | Yes            |                                                               |
 | Curve        | PolyData                   | Yes             | Yes            |                                                               |
 | Surface      | PolyData                   | Yes             | Yes            |                                                               |
-| 2D Grid      | ImageData                  | Yes             | Yes            | 2D grid with dimensions nU x nV x 1                           |
+| 2D Grid      | ImageData                  | Yes             | Yes            | Cell grid with point dimensions (nU + 1) x (nV + 1) x 1 |
 | Block model  | ImageData / StructuredGrid | Yes             | Yes            | ImageData for uniform spacing within each axis; StructuredGrid for variable spacing |
 | Drillholes   | Nested MultiBlock          | Yes             | No             | Independent collars, traces, and sampling tables; optional merged PolyData view |
 | Slicer       | PolyData                   | Yes             | No             | Geometry available as object metadata                         |
 | Label        | PolyData                   | Yes             | No             | Line from label position to target position; label text in `user_dict["geoh5"]["label"]` |
+
+Grid2D imports represent native cells, not point samples: ImageData has
+`(u_count + 1, v_count + 1, 1)` points and `u_count * v_count` cells, with
+native numeric/referenced values in `cell_data` in U-fastest order. The first
+point is the native origin; cell centers match geoh5py centroids, including
+rotation, dip, vertical orientation, and signed cell sizes. VTK spacing is
+positive; signed sizes are represented in the direction matrix.
+
+This replaces the previous `(u_count, v_count, 1)` point-sampled output.
+Consumers should use `mesh.cell_data[name]` for native values. For a point-sampled
+view at the native centroids, use `mesh.cells_to_points()` explicitly.
+
+Grid2D export accepts only 2D U/V ImageData with orthonormal directions and a
+horizontal U axis. V may be dipped or vertical; nonzero image extent offsets
+are incorporated into the exported origin. Equivalent rotation/dip
+representations may differ after a round trip, while geometry and cell order
+are preserved. Point arrays are rejected rather than silently written with an
+invalid association; use `point_data_to_cell_data()` when averaging corner
+samples is intended. Legacy point-sampled grids require explicit migration:
+place samples at the correct native cell centers before calling
+`points_to_cells()`. Reinterpreting old origin-aligned samples as centers
+without that shift would move the cells by half a cell.
 
 Block models with uniform spacing within each axis are read as `ImageData`;
 U, V, and Z spacing may differ from each other. Models with variable spacing

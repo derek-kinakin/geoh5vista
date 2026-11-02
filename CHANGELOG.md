@@ -1,5 +1,23 @@
 # Release notes
 
+## Unreleased
+
+- Fixed Grid2D import of geoh5py's structured origin and corrected its geometry
+  to native cell boundaries: ImageData point dimensions are now
+  `(u_count + 1, v_count + 1, 1)`, and native values are cell data rather than
+  point samples. Rotation, dip, vertical orientation, signed cell sizes, and
+  native cell-center/value alignment are preserved.
+- Corrected Grid2D export cell counts, dip recovery, and nonzero image extent
+  offsets. Unsupported geometry and point arrays are explicitly rejected
+  before creating a native grid. Added geometry, round-trip, public-reader,
+  and invalid-input regression coverage. Consumers of the old point-sampled
+  representation must migrate explicitly; see the README.
+- Raised minimum dependencies to geoh5py 0.13.1, NumPy 2.4, and PyVista
+  0.49.2. The PyVista minimum includes fixes for rotated ImageData
+  point/cell conversion and combining empty nested MultiBlocks.
+- Declared h5py 3.15 or newer as a direct dependency, reflecting its use in
+  cataloging, hierarchy discovery, visibility, and selective reading.
+
 ## 0.9.4 - 2026-10-30
 
 - Fixed coordinate precision loss when writing PolyData surfaces, curves, and
