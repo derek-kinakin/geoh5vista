@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.11.0 - 2026-11-02
+
+- Support workspaces without a stored `/Root` link by resolving an indexed
+  `RootGroup` when available or discovering a hierarchy forest from flat
+  `Groups` and `Objects` indexes. Cataloging, selective reading, and full
+  workspace conversion now share hierarchy membership and preserve source
+  parent metadata for rootless entities.
+- Default `read_geoh5()` to read-only mode.
+
 ## 0.10.0 - 2026-11-02
 
 - Fixed Grid2D import of geoh5py's structured origin and corrected its geometry
