@@ -49,20 +49,23 @@ def _uuid(value: object) -> UUID:
     return UUID(str(value).strip("{}"))
 
 
-def _index(project: h5py.Group) -> tuple[UUID, dict[UUID, _Entry]]:
+def _index(project: h5py.Group) -> tuple[UUID | None, dict[UUID, _Entry]]:
     _, nodes = read_hierarchy(project)
     entries = {}
     for node in nodes:
         uid = UUID(node.uid)
         entries[uid] = _Entry(
             uid=uid,
-            family="root" if node.parent_uid is None else "object" if node.is_object else "group",
+            family=(
+                "root" if node.is_root else "object" if node.is_object else "group"
+            ),
             parent=UUID(node.parent_uid) if node.parent_uid is not None else None,
             group=node.group,
             concatenated=node.concatenator is not None,
             conversion_supported=node.conversion_supported,
         )
-    return UUID(nodes[0].uid), entries
+    root = next((node.uid for node in nodes if node.is_root), None)
+    return UUID(root) if root is not None else None, entries
 
 
 def _attributes(group: h5py.Group) -> dict:
@@ -339,20 +342,24 @@ def read_geoh5_entities(
         with Workspace(
             version=version, distance_unit=project.attrs.get("Distance unit", "meter"),
         ) as workspace:
-            workspace.root.uid = root_uid
-            root = entries[root_uid].group
-            workspace.root.name = root.attrs["Name"]
-            workspace.root.visible = stored_visibility(
-                root.attrs, context=root.name
-            )
-            reconstructed = {root_uid: workspace.root}
+            if root_uid is not None:
+                root = entries[root_uid].group
+                workspace.root.uid = root_uid
+                workspace.root.name = root.attrs["Name"]
+                workspace.root.visible = stored_visibility(
+                    root.attrs, context=root.name
+                )
+                workspace.root.on_file = True
+                reconstructed = {root_uid: workspace.root}
+            else:
+                reconstructed = {}
 
             def reconstruct(uid: UUID) -> Entity:
                 if uid in reconstructed:
                     return reconstructed[uid]
                 entry = entries[uid]
                 if entry.concatenated:
-                    parent = reconstruct(entry.parent)
+                    parent = reconstruct(entry.parent) if entry.parent is not None else workspace.root
                     if not isinstance(parent, Concatenator) or not isinstance(parent, DrillholeGroup):
                         raise NotImplementedError("Only concatenated drillhole groups are supported.")
                     reconstructed.update(_load_concatenator(
@@ -363,9 +370,13 @@ def read_geoh5_entities(
                         entries[entry.parent].group,
                     ))
                     return reconstructed[uid]
-                if entry.parent is None or entry.group is None:
+                if entry.group is None:
                     raise ValueError(f"Missing native hierarchy for entity {uid}.")
-                parent = reconstruct(entry.parent)
+                parent = (
+                    reconstruct(entry.parent)
+                    if entry.parent is not None
+                    else workspace.root
+                )
                 is_payload = uid in selected and entry.family == "object"
                 if is_payload:
                     attributes, type_attributes, property_groups = _native_attributes(
@@ -413,7 +424,14 @@ def read_geoh5_entities(
                 return entity
 
             ordered = []
-            pending = [root_uid]
+            pending = (
+                [root_uid] if root_uid is not None else
+                sorted(
+                    (uid for uid, entry in entries.items() if entry.parent is None),
+                    key=str,
+                    reverse=True,
+                )
+            )
             while pending:
                 uid = pending.pop()
                 entry = entries[uid]

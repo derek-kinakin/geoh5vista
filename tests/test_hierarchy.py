@@ -272,12 +272,79 @@ def test_stale_root_parent_links_are_not_traversed(root_fixture, monkeypatch):
     np.testing.assert_array_equal(blocks[0].copy(deep=True)["grade"], [3.])
 
 
+@pytest.mark.parametrize("indexed_root", [True, False])
+def test_missing_root_uses_indexed_root_or_rootless_forest(root_fixture, indexed_root):
+    path, root_uid, first_uid, second_uid, orphan_uid, _ = root_fixture
+    with h5py.File(path, "r+") as file:
+        project = file["GEOSCIENCE"]
+        del project["Root"]
+        if not indexed_root:
+            del project["Groups"][key(root_uid)]
+
+    entries = catalog_geoh5(path)
+    if indexed_root:
+        expected = [first_uid, second_uid]
+        assert all(entry.parent_uid == str(root_uid) for entry in entries)
+    else:
+        expected = [first_uid, second_uid, orphan_uid]
+        assert all(entry.parent_uid is None for entry in entries)
+    assert [UUID(entry.uid) for entry in entries] == expected
+
+    for entry in entries:
+        block = read_geoh5_entities(path, entry.uid)[0]
+        assert block.user_dict["geoh5"]["source"]["uid"] == entry.uid
+        assert block.user_dict["geoh5"]["source"]["parent_uid"] == entry.parent_uid
+
+    from geoh5vista import read_geoh5
+
+    whole_workspace = read_geoh5(path, mode="r")
+    whole_metadata = {
+        block.user_dict["geoh5"]["source"]["uid"]:
+        block.user_dict["geoh5"]["source"]["parent_uid"]
+        for block in whole_workspace
+    }
+    assert whole_metadata == {entry.uid: entry.parent_uid for entry in entries}
+
+
+def test_whole_workspace_reader_rootless_parent_provenance(root_fixture):
+    from geoh5vista import read_geoh5
+
+    path, root_uid, _, _, _, _ = root_fixture
+    with h5py.File(path, "r+") as file:
+        project = file["GEOSCIENCE"]
+        del project["Root"]
+        del project["Groups"][key(root_uid)]
+
+    blocks = read_geoh5(path, mode="r")
+    assert len(blocks) == 3
+    assert all(
+        block.user_dict["geoh5"]["source"]["parent_uid"] is None
+        for block in blocks
+    )
+
+
+def test_rootless_cycle_is_rejected(root_fixture):
+    path, root_uid, first_uid, second_uid, _, _ = root_fixture
+    with h5py.File(path, "r+") as file:
+        project = file["GEOSCIENCE"]
+        del project["Root"]
+        del project["Groups"][key(root_uid)]
+        first = project["Objects"][key(first_uid)]
+        second = project["Objects"][key(second_uid)]
+        first.create_group("Objects")[key(second_uid)] = second
+        second.create_group("Objects")[key(first_uid)] = first
+
+    with pytest.raises(ValueError, match="cyclic hierarchy"):
+        catalog_geoh5(path)
+
+
 @pytest.mark.parametrize("version", [1.0, 2.0, 2.1])
-@pytest.mark.parametrize("nested_side", ["root", "indexed", "unindexed"])
+@pytest.mark.parametrize("nested_side", ["root", "indexed", "unindexed", "rootless"])
 def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version, nested_side):
     path = tmp_path / "nested.geoh5"
     channel_owners = {}
     with Workspace(path, version=version) as workspace:
+        root_uid = workspace.root.uid
         folder = ContainerGroup.create(workspace, uid=UUID(int=1), name="Folder")
         nested = ContainerGroup.create(workspace, parent=folder, uid=UUID(int=2))
         group = DrillholeGroup.create(workspace, parent=nested, uid=UUID(int=3))
@@ -300,18 +367,23 @@ def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version
         point_uid, group_uid = point.uid, group.uid
     with h5py.File(path, "r+") as file:
         project = file["GEOSCIENCE"]
-        root, indexed = split_root(project)
-        if nested_side == "indexed":
-            root["Objects"][key(point_uid)] = project["Objects"][key(point_uid)]
-            del indexed["Objects"][key(point_uid)]
+        if nested_side == "rootless":
+            del project["Root"]
+            del project["Groups"][key(root_uid)]
+            del project["Groups"][key(nested.uid)]
         else:
-            root["Groups"][key(folder.uid)] = project["Groups"][key(folder.uid)]
-            del indexed["Groups"][key(folder.uid)]
-            if nested_side == "unindexed":
-                del project["Groups"][root.attrs["ID"]]
-                del project["Groups"][key(folder.uid)]
-                del project["Groups"][key(nested.uid)]
-                del project["Groups"][key(group_uid)]
+            root, indexed = split_root(project)
+            if nested_side == "indexed":
+                root["Objects"][key(point_uid)] = project["Objects"][key(point_uid)]
+                del indexed["Objects"][key(point_uid)]
+            else:
+                root["Groups"][key(folder.uid)] = project["Groups"][key(folder.uid)]
+                del indexed["Groups"][key(folder.uid)]
+                if nested_side == "unindexed":
+                    del project["Groups"][root.attrs["ID"]]
+                    del project["Groups"][key(folder.uid)]
+                    del project["Groups"][key(nested.uid)]
+                    del project["Groups"][key(group_uid)]
         ranges = {}
         if version > 1:
             storage = root["Groups"][key(folder.uid)]["Groups"][key(nested.uid)][
@@ -365,6 +437,8 @@ def test_split_roots_nested_groups_and_drillholes(tmp_path, monkeypatch, version
     monkeypatch.setattr(h5py.Dataset, "read_direct", no_direct)
     entries = catalog_geoh5(path)
     expected = (
+        [str(group_uid), *sorted(map(str, holes)), str(point_uid)]
+        if nested_side == "rootless" else
         [str(point_uid)] if nested_side == "root" else
         [str(group_uid), *sorted(map(str, holes))]
     )
