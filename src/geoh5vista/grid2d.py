@@ -10,7 +10,12 @@ from geoh5py.objects.grid2d import Grid2D
 from geoh5py.shared.utils import xy_rotation_matrix, yz_rotation_matrix
 from geoh5py.workspace.workspace import Workspace
 
-from geoh5vista.data import add_data_to_geoh5, add_data_to_vtk, add_entity_metadata, restore_entity_metadata
+from geoh5vista.data import (
+    add_data_to_geoh5,
+    add_data_to_vtk,
+    add_entity_metadata,
+    restore_entity_metadata,
+)
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -18,7 +23,7 @@ __all__ = (
     "grid2d_geom_to_vtk",
     "grid2d_to_vtk",
     "vtk_geom_to_grid2d",
-    "vtk_to_grid2d"
+    "vtk_to_grid2d",
 )
 
 
@@ -60,17 +65,27 @@ def grid2d_geom_to_vtk(grd: Grid2D) -> pyvista.ImageData:
         dip = np.deg2rad(grd.dip if grd.dip is not None else 0.0)
 
     horizontal_rotation = np.deg2rad(grd.rotation)
-    
+
     # Combine horizontal and vertical rotations
     rotation_mtx_vertical = yz_rotation_matrix(dip)
     rotation_mtx_horizontal = xy_rotation_matrix(horizontal_rotation)
     rotation_mtx = rotation_mtx_horizontal @ rotation_mtx_vertical
 
-    output = pyvista.ImageData()
-    output.dimensions = [int(grd.u_count), int(grd.v_count), 1]
-    output.spacing = [grd.u_cell_size, grd.v_cell_size, 1.0]
-    output.direction_matrix = rotation_mtx
-    output.origin = grd.origin
+    steps = np.array([grd.u_cell_size, grd.v_cell_size, 1.0], dtype=np.float64)
+    origin = np.asarray(grd.origin.tolist(), dtype=np.float64)
+    if not np.all(np.isfinite(steps)) or np.any(steps == 0):
+        raise ValueError("Grid2D requires finite, nonzero cell sizes.")
+    if not np.all(np.isfinite(origin)) or not np.all(np.isfinite(rotation_mtx)):
+        raise ValueError("Grid2D requires finite origin, rotation, and dip.")
+    if grd.u_count < 1 or grd.v_count < 1:
+        raise ValueError("Grid2D requires at least one cell along U and V.")
+
+    output = pyvista.ImageData(
+        dimensions=(int(grd.u_count) + 1, int(grd.v_count) + 1, 1),
+        spacing=np.abs(steps),
+        direction_matrix=rotation_mtx @ np.diag(np.sign(steps)),
+        origin=origin,
+    )
 
     return output
 
@@ -78,7 +93,8 @@ def grid2d_geom_to_vtk(grd: Grid2D) -> pyvista.ImageData:
 def grid2d_to_vtk(grd: Grid2D) -> pyvista.DataSet:
     """Convert a ``geoh5py.objects.grid2d.Grid2D`` to a ``pyvista.DataSet`` object.
 
-    This function converts the grid geometry and transfers all associated data.
+    Native cell values are stored in ``cell_data``, in U-fastest order.
+    Image dimensions are ``(u_count + 1, v_count + 1, 1)``.
 
     Parameters
     ----------
@@ -94,21 +110,25 @@ def grid2d_to_vtk(grd: Grid2D) -> pyvista.DataSet:
     output = grid2d_geom_to_vtk(grd)
     output = add_data_to_vtk(output, grd)
     output = add_entity_metadata(output, grd)
-    
+
     return output
 
 
-def vtk_geom_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, workspace: Workspace, name: str) -> Grid2D:
-    """Convert a ``pyvista.ImageData`` object to a ``geoh5py.objects.surface.Surface`` object.
+def vtk_geom_to_grid2d(
+    vtk: pyvista.ImageData, workspace: Workspace, name: str
+) -> Grid2D:
+    """Convert a two-dimensional ImageData's cell geometry to Grid2D.
 
     Parameters
     ----------
-    vtk : pyvista.ImageData | pyvista.UnstructuredGrid
-        The VTK object to convert. It must be a 2D ImageData object.
+    vtk : pyvista.ImageData
+        Image with at least two points along U and V and one along W.
+        U must be horizontal; V may be dipped or vertical. Directions must
+        be orthonormal. Nonzero extents are incorporated into the origin.
     workspace : geoh5py.workspace.Workspace
-        The geoh5py workspace to add the new surface to.
+        The geoh5py workspace to add the new grid to.
     name : str
-        The name of the new surface.
+        The name of the new grid.
 
     Returns
     -------
@@ -121,40 +141,62 @@ def vtk_geom_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, worksp
         If the VTK object is not a 2D ImageData object.
 
     """
-    if vtk.direction_matrix is None:    
-        horizontal_rotation = np.rad2deg(0.0)
-        dip_from_horizontal = np.rad2deg(0.0)
-    else:
-        # Extract rotation angles from direction matrix
-        # The matrix is composed as: R_horizontal @ R_vertical
-        direction_mtx = vtk.direction_matrix[:3, :3]
-        horizontal_rotation = np.rad2deg(np.arctan2(direction_mtx[1, 0], direction_mtx[0, 0]))
-        dip_from_horizontal = np.rad2deg(np.arcsin(direction_mtx[2, 1]))
-    
+    if not isinstance(vtk, pyvista.ImageData):
+        raise TypeError("Grid2D conversion only supports pyvista.ImageData.")
+    if vtk.dimensions[0] < 2 or vtk.dimensions[1] < 2 or vtk.dimensions[2] != 1:
+        raise ValueError(
+            "Grid2D requires a 2D U/V image with at least one cell in each axis."
+        )
+
+    spacing = np.asarray(vtk.spacing, dtype=np.float64)
+    origin = np.asarray(vtk.origin, dtype=np.float64)
+    direction = vtk.direction_matrix
+    if (
+        not np.all(np.isfinite(spacing))
+        or np.any(spacing == 0)
+        or not np.all(np.isfinite(origin))
+        or not np.all(np.isfinite(direction))
+    ):
+        raise ValueError(
+            "Grid2D conversion requires finite geometry and nonzero spacing."
+        )
+    if not np.allclose(direction.T @ direction, np.eye(3), rtol=0, atol=1e-10):
+        raise ValueError(
+            "Grid2D requires orthonormal directions; shear and scale are unsupported."
+        )
+    if not np.isclose(direction[2, 0], 0.0, rtol=0, atol=1e-10):
+        raise ValueError("Grid2D requires a horizontal U axis.")
+
+    angle = np.arctan2(direction[1, 0], direction[0, 0])
+    local_v = xy_rotation_matrix(angle).T @ direction[:, 1]
+    dip = np.arctan2(local_v[2], local_v[1])
+    # Extents index the image in local space, including its singleton W plane.
+    origin = origin + direction @ (np.asarray(vtk.extent[::2]) * spacing)
+
     grid2d = Grid2D.create(
         workspace=workspace,
         name=name,
-        origin=vtk.origin,
-        u_cell_size=vtk.spacing[0],
-        v_cell_size=vtk.spacing[1],
-        u_count=vtk.dimensions[0],
-        v_count=vtk.dimensions[1],
-        rotation=horizontal_rotation,
-        dip=dip_from_horizontal,
-        )
+        origin=origin,
+        u_cell_size=spacing[0],
+        v_cell_size=spacing[1],
+        u_count=vtk.dimensions[0] - 1,
+        v_count=vtk.dimensions[1] - 1,
+        rotation=float(np.rad2deg(angle)),
+        dip=float(np.rad2deg(dip)),
+    )
     return grid2d
 
 
-def vtk_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, workspace: Workspace, name: str) -> Grid2D:
+def vtk_to_grid2d(vtk: pyvista.ImageData, workspace: Workspace, name: str) -> Grid2D:
     """Convert a ``pyvista.ImageData`` object to a ``geoh5py.objects.grid2d.Grid2D`` object.
 
-    This is a wrapper for ``vtk_geom_to_grid2d`` and is intended to be the
-    main entry point for this conversion. In the future, it will also handle
-    transferring data from the VTK object to the geoh5py object.
+    Cell arrays retain their U-fastest ordering. Point arrays are rejected
+    because Grid2D stores cell values; convert them to cell data explicitly
+    before export. Input geometry and arrays are not modified.
 
     Parameters
     ----------
-    vtk : pyvista.ImageData | pyvista.UnstructuredGrid
+    vtk : pyvista.ImageData
         The VTK object to convert.
     workspace : geoh5py.workspace.Workspace
         The geoh5py workspace to add the new grid2d to.
@@ -167,7 +209,13 @@ def vtk_to_grid2d(vtk: pyvista.ImageData | pyvista.UnstructuredGrid, workspace: 
         The newly created grid2d.
 
     """
+    if not isinstance(vtk, pyvista.ImageData):
+        raise TypeError("Grid2D conversion only supports pyvista.ImageData.")
+    if vtk.point_data:
+        raise ValueError(
+            "Grid2D cannot store point data; convert point arrays to cell data before export."
+        )
     grid2d = vtk_geom_to_grid2d(vtk=vtk, workspace=workspace, name=name)
     grid2d = add_data_to_geoh5(grid2d, vtk)
     grid2d = restore_entity_metadata(grid2d, vtk)
-    return grid2d 
+    return grid2d
