@@ -118,7 +118,7 @@ def entities_to_vtk(
 
 
 def read_geoh5(
-    workspace_path: str | Path, load_only_visible: bool = False, mode: str = "r+",
+    workspace_path: str | Path, load_only_visible: bool = False, mode: str = "r",
     *, drillhole_representation: Literal["composite", "merged"] = "composite",
     curve_tolerance: float = 0.01,
 ) -> pyvista.MultiBlock:
