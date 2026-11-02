@@ -203,9 +203,12 @@ malformed required hierarchy or metadata raises a contextual `ValueError`,
 not an empty successful catalog. Owned handles close on success and failure.
 There is no writable mode, persistent caching, or retained source handle.
 
-Both `catalog_geoh5()` and `read_geoh5_entities()` use the same metadata-only
-native hierarchy discovery. The [format specification](https://mirageoscience-geoh5py.readthedocs-hosted.com/en/v0.13.1/content/geoh5_format/workspace.html)
-describes `/PROJECT/Root` as a hard-link alias to the indexed workspace group.
+`catalog_geoh5()`, `read_geoh5_entities()`, and `read_geoh5()` use the same
+metadata-only native hierarchy discovery for entity membership. The full reader
+still uses geoh5py to load and convert entities, but excludes entities outside
+the resolved hierarchy. The [format specification](https://mirageoscience-geoh5py.readthedocs-hosted.com/en/v0.13.1/content/geoh5_format/workspace.html)
+describes `/PROJECT/Root` as an optional hard-link alias to the indexed
+workspace group.
 Some files instead store distinct groups at `/PROJECT/Root` and
 `/PROJECT/Groups/{root_uid}`, with different child links. Discovery uses the
 indexed root's attributes and child links whenever that root exists. Alternate
@@ -215,7 +218,11 @@ supersedes the union policy introduced in 0.9.1: entities reachable only through
 the alternate `/Root` are no longer included or selectable.
 
 The two root representations must still have matching IDs and type IDs.
-When the indexed root is absent, `/Root` supplies both attributes and links.
+When only one root representation exists, it supplies the root attributes and
+child links. When neither exists, indexed groups and objects are treated as a
+forest: native child links determine parentage, and unparented indexed entities
+are independent top-level entities. In this layout all flat-index entities are
+considered, including entities that would be disconnected from a stored root.
 All reachable
 native child links must agree with their flat `Groups`/`Objects` index entries
 when those entries exist. A reachable entity is not required to have a flat
@@ -226,7 +233,9 @@ likewise read through its resolved group handle.
 Distinct non-root definitions for one UID, conflicting parents, mismatched IDs
 or root types, and cycles raise contextual `ValueError`s. This API represents
 a tree with a single immediate parent per entry; overlapping non-root parent
-lists are not reconciled. Unlinked objects in the flat tables are not discovered.
+lists are not reconciled. With a stored root, unlinked objects in the flat
+tables are not discovered. A rootless top-level entity has no source parent;
+the temporary in-memory workspace root is not reported as its parent.
 Depth-first ordering, UID-sorted siblings, concatenated drillhole enumeration,
 and entity-level visibility are unchanged. Neither root normalization nor
 hierarchy discovery reads geometry or modifies the source.

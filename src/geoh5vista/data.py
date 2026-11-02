@@ -12,6 +12,7 @@ from geoh5py.data.float_data import FloatData
 from geoh5py.data.integer_data import IntegerData
 from geoh5py.data.referenced_data import ReferencedData
 from geoh5py.groups.base import Group
+from geoh5py.groups.root import RootGroup
 from geoh5py.objects.block_model import BlockModel
 from geoh5py.objects.drillhole import Drillhole
 from geoh5py.objects.object_base import ObjectBase
@@ -71,12 +72,18 @@ def add_entity_metadata(output: _DataObject, entity: ObjectBase | Group) -> _Dat
         The VTK data object with added metadata.
 
     """
+    parent_uid = (
+        str(entity.parent.uid)
+        if entity.parent is not None
+        and not (isinstance(entity.parent, RootGroup) and not entity.parent.on_file)
+        else None
+    )
     output.user_dict["geoh5"] = {
         "schema_version": 1,
         "source": {
             "uid": str(entity.uid),
             "entity_type": entity.__class__.__name__,
-            "parent_uid": str(entity.parent.uid) if entity.parent else None,
+            "parent_uid": parent_uid,
         },
         "display": {
             "name": entity.name,

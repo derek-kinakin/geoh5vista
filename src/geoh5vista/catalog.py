@@ -110,13 +110,17 @@ def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
     _, nodes = read_hierarchy(project)
     result = []
     property_ids: dict[str, set[str]] = {}
-    for node in nodes[1:]:
+    for node in nodes:
+        if node.is_root:
+            continue
         if node.concatenator is not None and "Property:Visual Parameters" in node.attributes:
             property_ids.setdefault(node.parent_uid, set()).add(
                 _uid(node.attributes["Property:Visual Parameters"])
             )
     concatenated_colours = {}
-    for node in nodes[1:]:
+    for node in nodes:
+        if node.is_root:
+            continue
         try:
             entity_type, supported = node.entity_type, node.conversion_supported
             if node.is_object or supported:
@@ -167,7 +171,7 @@ def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
 
 
 def catalog_geoh5(workspace_path: str | Path) -> list[EntityMetadata]:
-    """List root-reachable objects and convertible groups without reading payload arrays.
+    """List native-hierarchy objects and convertible groups without payload arrays.
 
     Includes unsupported objects, hidden objects, and individual drillholes.
     Excludes data channels, property groups, organizational groups, the root,

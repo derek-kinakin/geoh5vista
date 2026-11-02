@@ -6,10 +6,11 @@ from importlib import import_module
 from pathlib import Path
 from typing import Final, Literal
 
+import h5py
 import pyvista
-from geoh5py.objects.object_base import ObjectBase
-from geoh5py.objects.drillhole import Drillhole
 from geoh5py.groups.drillhole import DrillholeGroup
+from geoh5py.objects.drillhole import Drillhole
+from geoh5py.objects.object_base import ObjectBase
 from geoh5py.workspace.workspace import Workspace
 
 from geoh5vista.blockmodel import vtk_to_blockmodel
@@ -17,9 +18,10 @@ from geoh5vista.constants import CONVERTERS, SUPPORTED
 from geoh5vista.curve import vtk_to_curve
 from geoh5vista.drillholes import drillhole_to_vtk, drillholes_to_vtk
 from geoh5vista.grid2d import vtk_to_grid2d
+from geoh5vista.hierarchy import HierarchyNode, read_hierarchy
 from geoh5vista.points import vtk_to_points
 from geoh5vista.surface import vtk_to_surface
-from geoh5vista.visibility import entity_visibility
+from geoh5vista.visibility import entity_visibility, project_group
 
 __all__ = (
     "FUNCTION_DISPLAY_NAMES",
@@ -117,6 +119,21 @@ def entities_to_vtk(
     return data
 
 
+def _apply_hierarchy_parent_uids(
+    block: pyvista.DataObject | None, hierarchy: dict[str, HierarchyNode],
+) -> None:
+    if block is None:
+        return
+    if isinstance(block, pyvista.MultiBlock):
+        for index in range(block.n_blocks):
+            _apply_hierarchy_parent_uids(block[index], hierarchy)
+    metadata = block.user_dict.get("geoh5", {})
+    source = metadata.get("source", {})
+    node = hierarchy.get(source.get("uid"))
+    if node is not None:
+        source["parent_uid"] = node.parent_uid
+
+
 def read_geoh5(
     workspace_path: str | Path, load_only_visible: bool = False, mode: str = "r",
     *, drillhole_representation: Literal["composite", "merged"] = "composite",
@@ -133,7 +150,7 @@ def read_geoh5(
         per-view or inherited visibility. Missing attributes default to visible.
         Existing drillhole group selection/nesting is preserved. Default is ``False``.
     mode : str, optional
-        The mode ("r+","r","w", etc.) in which to open the workspace. Default is ``"r+"``.
+        The mode ("r+","r","w", etc.) in which to open the workspace. Default is ``"r"``.
     drillhole_representation : {"composite", "merged"}, optional
         Preserve individual holes and sampling tables by default. ``merged``
         requests a line visualization and rejects incompatible tables.
@@ -152,26 +169,39 @@ def read_geoh5(
     if not Path(workspace_path).exists():
         raise FileNotFoundError(f"Workspace file {workspace_path} not found.")
     else:
-        #wp = Workspace(workspace_path)
+        with h5py.File(workspace_path, "r") as source:
+            _, nodes = read_hierarchy(project_group(source))
+            hierarchy = {node.uid: node for node in nodes}
+
         with Workspace(workspace_path, mode=mode) as wp:
             entities = wp.fetch_children(wp.root, recursively=True)
-            supported_entities = [e for e in entities if e.__class__.__name__ in SUPPORTED]
             supported_entities = [
-                e for e in supported_entities
-                if not (isinstance(e, Drillhole) and isinstance(e.parent, DrillholeGroup))
+                entity for entity in entities
+                if entity.__class__.__name__ in SUPPORTED
+                and str(entity.uid) in hierarchy
+            ]
+            supported_entities = [
+                entity
+                for entity in supported_entities
+                if not (
+                    isinstance(entity, Drillhole)
+                    and isinstance(entity.parent, DrillholeGroup)
+                )
             ]
 
             if load_only_visible:
                 supported_entities = [
-                    e
-                    for e in supported_entities
-                    if entity_visibility(e)
+                    entity
+                    for entity in supported_entities
+                    if entity_visibility(entity)
                 ]
 
-            return entities_to_vtk(
+            result = entities_to_vtk(
                 supported_entities, drillhole_representation=drillhole_representation,
                 curve_tolerance=curve_tolerance, load_only_visible=load_only_visible,
             )
+            _apply_hierarchy_parent_uids(result, hierarchy)
+            return result
 
 
 GEOH5WRAPPERS = {
