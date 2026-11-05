@@ -1,4 +1,11 @@
-"""Shared metadata-only hierarchy discovery for cataloging and selective reads."""
+"""Shared metadata-only hierarchy discovery for cataloging and selective reads.
+
+geoh5py supplies type records (``H5Reader.fetch_type_attributes``/``fetch_type``),
+indexed concatenated attributes (``H5Reader.fetch_concatenated_attributes``), and
+class identity (``TYPE_UID_TO_CLASS`` plus its Concatenator naming rules). Child
+links are walked here because ``H5Reader.fetch_children``/``fetch_uuids`` only
+resolve flat-index entries, and opening a ``Workspace`` eagerly loads geometry.
+"""
 
 from __future__ import annotations
 
@@ -9,11 +16,18 @@ from uuid import UUID
 
 import h5py
 import numpy as np
+from geoh5py.groups import DrillholeGroup, IntegratorDrillholeGroup, RootGroup
+from geoh5py.io import H5Reader
+from geoh5py.objects import Drillhole
+from geoh5py.shared.concatenation import ConcatenatedDrillhole
 from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
 from ..converters.registry import CONVERTERS
 from ..models import HierarchyEntity, WorkspaceHierarchy
-from ._hdf5 import dataset, group, text, uid
+from ._hdf5 import dataset, group, project_group, text, uid
+
+_CONCATENATOR_MEMBERS = (DrillholeGroup, IntegratorDrillholeGroup)
+_CONCATENATOR_NAMES = frozenset(f"Concatenator{m.__name__}" for m in _CONCATENATOR_MEMBERS)
 
 __all__ = (
     "HierarchyNode",
@@ -40,19 +54,17 @@ class HierarchyNode:
     conversion_supported: bool = False
 
     def type_name(self, version: float, parent_type: str) -> tuple[str, bool]:
-        type_uid = UUID(uid(self.type_attributes["ID"]))
+        """Mirror ``Workspace.create_object_or_group`` class selection by type UID."""
+        type_uid = UUID(uid(self.type_attributes["uid"]))
         member = TYPE_UID_TO_CLASS.get(type_uid)
         if member is None:
-            return text(self.type_attributes.get("Name", str(type_uid))), False
+            return text(self.type_attributes.get("name", str(type_uid))), False
         name = member.__name__
         if version > 1.0:
-            if name in ("DrillholeGroup", "IntegratorDrillholeGroup"):
+            if member in _CONCATENATOR_MEMBERS:
                 name = f"Concatenator{name}"
-            elif name == "Drillhole" and parent_type in (
-                "ConcatenatorDrillholeGroup",
-                "ConcatenatorIntegratorDrillholeGroup",
-            ):
-                name = "ConcatenatedDrillhole"
+            elif member is Drillhole and parent_type in _CONCATENATOR_NAMES:
+                name = ConcatenatedDrillhole.__name__
         return name, name in CONVERTERS
 
 
@@ -83,8 +95,10 @@ def _native_node(handle: h5py.Group, is_object: bool) -> HierarchyNode:
         attributes = {key: handle.attrs[key] for key in ("ID", "Name")}
         if "Visible" in handle.attrs:
             attributes["Visible"] = handle.attrs["Visible"]
-        entity_type = group(handle, "Type")
-        type_attributes = {key: entity_type.attrs[key] for key in ("ID", "Name")}
+        type_attributes = H5Reader.fetch_type_attributes(group(handle, "Type"))
+        missing = {"uid", "name"} - type_attributes.keys()
+        if missing:
+            raise KeyError(f"Type is missing {sorted(missing)}")
         return HierarchyNode(
             uid(attributes["ID"]), attributes, type_attributes, is_object, group=handle
         )
@@ -92,32 +106,55 @@ def _native_node(handle: h5py.Group, is_object: bool) -> HierarchyNode:
         raise ValueError(f"{handle.name}: {error}") from error
 
 
+def _is_indexed(handle: h5py.Group, family: str) -> bool:
+    """Whether ``handle`` is the flat-index definition H5Reader resolves by UID."""
+    project = project_group(handle.file)
+    key = "{" + uid(handle.attrs["ID"]) + "}"
+    return family in project and key in project[family] and project[family][key].id == handle.id
+
+
 def concatenated_records(handle: h5py.Group, version: float) -> list[dict]:
-    """Read attribute records through their reachable concatenator handle."""
-    storage = group(handle, "Concatenated Data")
+    """Read attribute records through their reachable concatenator handle.
+
+    Indexed concatenators use ``H5Reader.fetch_concatenated_attributes``;
+    hierarchy-only handles, which H5Reader cannot address, are decoded directly.
+    """
+    # Mirrors Concatenator.concat_attr_str.
     label = "Attributes Jsons" if version > 2.0 else "Attributes"
-    raw = dataset(storage, label)[()]
-    if version > 2.0:
-        records = [json.loads(text(value)) for value in raw]
+    fetched = (
+        H5Reader.fetch_concatenated_attributes(
+            handle.file, UUID(uid(handle.attrs["ID"])), "group", label,
+        )
+        if _is_indexed(handle, "Groups") else None
+    )
+    if fetched is not None:
+        records = fetched.get("Attributes") if isinstance(fetched, dict) else None
     else:
-        if isinstance(raw, np.ndarray):
-            if raw.size != 1:
-                raise ValueError("Expected one concatenated Attributes JSON document.")
-            raw = raw.item()
-        records = json.loads(text(raw))["Attributes"]
+        raw = dataset(group(handle, "Concatenated Data"), label)[()]
+        if version > 2.0:
+            records = [json.loads(text(value)) for value in raw]
+        else:
+            if isinstance(raw, np.ndarray):
+                if raw.size != 1:
+                    raise ValueError("Expected one concatenated Attributes JSON document.")
+                raw = raw.item()
+            records = json.loads(text(raw))["Attributes"]
     if not isinstance(records, list) or not all(isinstance(item, dict) for item in records):
         raise ValueError("Concatenated attributes must be a list of metadata dictionaries.")
     return records
 
 
 def concatenated_object_type(project: h5py.Group, type_uid: str) -> dict:
-    """Resolve stored type attributes, or an explicitly identified native type."""
+    """Resolve stored type attributes via ``H5Reader.fetch_type``, or a registered type.
+
+    Keys follow geoh5py's attribute names (``uid``, ``name``, ...).
+    """
     location = f"Types/Object types/{{{type_uid}}}"
     if location in project:
-        handle = group(project, location)
-        if uid(handle.attrs["ID"]) != type_uid:
-            raise ValueError(f"{handle.name}: conflicting object type ID.")
-        return dict(handle.attrs)
+        attributes = H5Reader.fetch_type(project.file, UUID(type_uid), "Object")
+        if uid(attributes["uid"]) != type_uid:
+            raise ValueError(f"{project.name}/{location}: conflicting object type ID.")
+        return attributes
     member = TYPE_UID_TO_CLASS.get(UUID(type_uid))
     name = member.__name__ if member is not None else type_uid
     warnings.warn(
@@ -129,7 +166,7 @@ def concatenated_object_type(project: h5py.Group, type_uid: str) -> dict:
         ),
         UserWarning, stacklevel=2,
     )
-    return {"ID": "{" + type_uid + "}", "Name": name}
+    return {"uid": "{" + type_uid + "}", "name": name}
 
 
 def _concatenated_nodes(
@@ -209,8 +246,7 @@ def _indexed_nodes(project: h5py.Group) -> dict[str, HierarchyNode]:
 
 
 def _is_registered_root(node: HierarchyNode) -> bool:
-    member = TYPE_UID_TO_CLASS.get(UUID(uid(node.type_attributes["ID"])))
-    return member is not None and member.__name__ == "RootGroup"
+    return TYPE_UID_TO_CLASS.get(UUID(uid(node.type_attributes["uid"]))) is RootGroup
 
 
 def _rootless_hierarchy(
@@ -313,7 +349,7 @@ def read_hierarchy(project: h5py.Group) -> tuple[float, list[HierarchyNode]]:
                     raise ValueError(
                         "Conflicting root identities: /Root and indexed root IDs differ."
                     )
-                if uid(indexed.type_attributes["ID"]) != uid(root.type_attributes["ID"]):
+                if uid(indexed.type_attributes["uid"]) != uid(root.type_attributes["uid"]):
                     raise ValueError("Conflicting root type identities.")
                 root = indexed
         else:

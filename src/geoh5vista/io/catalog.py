@@ -137,7 +137,7 @@ def _read_catalog(file: h5py.File) -> list[EntityMetadata]:
                         if supported
                         else (
                             f"No converter is registered for native type {entity_type!r} "
-                            f"({node.type_attributes['ID']})."
+                            f"({node.type_attributes['uid']})."
                         ),
                     )
                 )

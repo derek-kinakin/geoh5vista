@@ -6,8 +6,8 @@ from uuid import UUID, uuid4
 import h5py
 import numpy as np
 import pytest
-from geoh5py.groups import ContainerGroup, DrillholeGroup
-from geoh5py.objects import Drillhole, Octree, Points, Surface
+from geoh5py.groups import ContainerGroup, DrillholeGroup, Group
+from geoh5py.objects import Drillhole, ObjectBase, Octree, Points, Surface
 from geoh5py.workspace import Workspace
 
 from geoh5vista import catalog_geoh5, read_geoh5_entities
@@ -746,3 +746,46 @@ def test_missing_unknown_concatenated_type_is_unsupported(tmp_path):
         pytest.raises(ValueError, match="No converter"),
     ):
         read_geoh5_entities(path, hole_uid)
+
+
+@pytest.mark.parametrize("version", [1.0, 2.0, 2.1])
+def test_hierarchy_matches_geoh5py_workspace_tree(tmp_path, version):
+    """geoh5py's eager Workspace tree is the reference for identity and parentage."""
+    path = tmp_path / "parity.geoh5"
+    with Workspace(path, version=version) as ws:
+        outer = ContainerGroup.create(ws, name="Outer")
+        inner = ContainerGroup.create(ws, name="Inner/Nested", parent=outer)
+        points = Points.create(ws, name="pts", vertices=np.zeros((2, 3)), parent=inner)
+        points.add_data({"v": {"values": np.ones(2)}})
+        Octree.create(ws, name="mesh", parent=outer)
+        holes = DrillholeGroup.create(ws, name="Holes", parent=inner)
+        for value in (2, 1):
+            Drillhole.create(
+                ws, parent=holes, uid=UUID(int=value), name=f"DH/{value}",
+                collar=[0.0, 0.0, 0.0],
+                surveys=np.array([[0.0, 0.0, -90.0], [10.0, 0.0, -90.0]]),
+            )
+
+    with Workspace(path, mode="r") as ws:
+        expected = {}
+        pending = [ws.root]
+        while pending:
+            entity = pending.pop()
+            for child in entity.children:
+                if isinstance(child, (Group, ObjectBase)):
+                    expected[str(child.uid)] = (
+                        child.name, type(child).__name__, str(entity.uid),
+                        isinstance(child, ObjectBase),
+                    )
+                    pending.append(child)
+        root_uid = str(ws.root.uid)
+    assert len(expected) == 7
+
+    with h5py.File(path, "r") as source:
+        snapshot = snapshot_hierarchy(*read_hierarchy(project_group(source)))
+    assert snapshot.root_uid == root_uid
+    actual = {
+        node.uid: (node.name, node.entity_type, node.parent_uid, node.is_object)
+        for node in snapshot.nodes if not node.is_root
+    }
+    assert actual == expected

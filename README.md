@@ -87,6 +87,16 @@ parent metadata. The snapshot supplies `by_uid`, `root_uid`, `top_level_uids`,
 Organizational groups and unsupported objects are retained; data channels and
 property-group reference relationships are not represented yet.
 
+Discovery delegates to geoh5py wherever it can stay metadata-only: type records
+come from `H5Reader.fetch_type_attributes`/`fetch_type` (using geoh5py's `uid`
+and `name` keys), indexed concatenated attributes from
+`H5Reader.fetch_concatenated_attributes`, and class labels from
+`TYPE_UID_TO_CLASS` with geoh5py's Concatenator naming rules. Child links are
+still walked directly because `H5Reader.fetch_children`/`fetch_uuids` only
+resolve flat-index entries (missing hierarchy-only entities), and opening a
+geoh5py `Workspace` eagerly loads geometry arrays. Tests check that identity,
+names, class labels, and parentage match geoh5py's `Workspace` tree.
+
 Full-workspace reading uses detached snapshots for membership and parent
 provenance. Selective reading uses the same model for descendant selection and
 ordering, keeping source handles private to loading. This is a foundation for
