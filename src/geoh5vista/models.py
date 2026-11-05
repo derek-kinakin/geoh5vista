@@ -6,9 +6,12 @@ from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from math import isfinite
 from types import MappingProxyType
+from typing import Literal
 from uuid import UUID
 
 __all__ = ("EntityMetadata", "HierarchyEntity", "WorkspaceHierarchy")
+
+_KINDS = frozenset(("root", "group", "object"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,20 +35,52 @@ class EntityMetadata:
 
 @dataclass(frozen=True, slots=True)
 class HierarchyEntity:
-    """Identity and parentage of a native group or object, not a generated VTK component."""
+    """Identity, parentage and display state of a native group or object.
+
+    Not a generated VTK component. ``kind`` is ``"root"``, ``"group"`` or
+    ``"object"``; ``concatenated`` marks objects stored inside a concatenator
+    group. ``visible`` is the entity's own stored checkbox (missing means
+    visible), independent of views and ancestors. ``colour`` is the object's
+    stored Visual Parameters RGB, or ``None`` when absent, not loaded, or the
+    entity is not an object. Attached data channels and property groups are
+    deliberately excluded; they are discovered when entities are read.
+    """
 
     uid: str
     name: str
     entity_type: str
     parent_uid: str | None
-    is_object: bool
-    is_root: bool = False
+    kind: Literal["root", "group", "object"]
     conversion_supported: bool = False
+    concatenated: bool = False
+    visible: bool = True
+    colour: tuple[int, int, int] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "uid", str(UUID(str(self.uid))))
         if self.parent_uid is not None:
             object.__setattr__(self, "parent_uid", str(UUID(str(self.parent_uid))))
+        if self.kind not in _KINDS:
+            raise ValueError(f"Entity {self.uid}: invalid hierarchy kind {self.kind!r}.")
+        if self.concatenated and self.kind != "object":
+            raise ValueError(f"Entity {self.uid}: only objects can be concatenated.")
+        if self.colour is not None:
+            if self.kind != "object":
+                raise ValueError(f"Entity {self.uid}: only objects have a colour.")
+            colour = tuple(self.colour)
+            if len(colour) != 3 or not all(
+                isinstance(value, int) and 0 <= value <= 255 for value in colour
+            ):
+                raise ValueError(f"Entity {self.uid}: colour must be three 0-255 integers.")
+            object.__setattr__(self, "colour", colour)
+
+    @property
+    def is_object(self) -> bool:
+        return self.kind == "object"
+
+    @property
+    def is_root(self) -> bool:
+        return self.kind == "root"
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +89,7 @@ class WorkspaceHierarchy:
 
     Includes organizational groups and unsupported objects. Nodes, UID lookup,
     and child relationships remain usable after the source file closes.
-    Data channels and property-group relationships are not represented yet.
+    Attached data channels and property groups are not represented.
     """
 
     version: float
@@ -117,6 +152,16 @@ class WorkspaceHierarchy:
         """Return immediate children in discovery order."""
         node = self.node(uid)
         return tuple(self.by_uid[child] for child in self._children[node.uid])
+
+    def effectively_visible(self, uid: UUID | str) -> bool:
+        """Whether the entity and every stored ancestor, including the root, are visible."""
+        node = self.node(uid)
+        while True:
+            if not node.visible:
+                return False
+            if node.parent_uid is None:
+                return True
+            node = self.by_uid[node.parent_uid]
 
     def descendants(
         self,

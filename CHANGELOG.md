@@ -1,5 +1,23 @@
 # Release notes
 
+## 0.13.0 - 2026-11-04
+
+- Added `read_workspace_hierarchy(path)` and exported `HierarchyEntity` and
+  `WorkspaceHierarchy` for GUI tree views. Hierarchy records now carry `kind`
+  (`"root"`, `"group"`, `"object"`), a `concatenated` flag, the entity's own
+  stored `visible` checkbox, and object Visual Parameters `colour`.
+  `WorkspaceHierarchy.effectively_visible(uid)` combines ancestor visibility.
+  Attached data channels and property groups remain outside the hierarchy.
+- `HierarchyEntity` takes `kind` in place of `is_object`/`is_root`, which are
+  now derived properties.
+- Malformed `Visible` attributes now raise `ValueError` on every hierarchy node,
+  including organizational groups and the root.
+- `catalog_geoh5()` is built from the shared hierarchy snapshot; its output is
+  unchanged.
+- Hierarchy discovery reuses geoh5py `H5Reader` primitives and class naming
+  rules for type and concatenated metadata, verified against geoh5py's
+  `Workspace` tree.
+
 ## 0.12.0 - 2026-11-04
 
 - Reorganized file discovery, reading, and persistence into `geoh5vista.io`,

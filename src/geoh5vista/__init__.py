@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 
 from .compat import patch_missing_concatenated_data
 from .io.catalog import catalog_geoh5
-from .models import EntityMetadata
+from .io.hierarchy import read_workspace_hierarchy
+from .models import EntityMetadata, HierarchyEntity, WorkspaceHierarchy
 
 if TYPE_CHECKING:
     from .converters.dispatch import geoh5wrap, vtkwrap
@@ -26,10 +27,13 @@ except PackageNotFoundError:
 
 __all__ = (
     "EntityMetadata",
+    "HierarchyEntity",
+    "WorkspaceHierarchy",
     "catalog_geoh5",
     "geoh5wrap",
     "read_geoh5",
     "read_geoh5_entities",
+    "read_workspace_hierarchy",
     "vtkwrap",
     "write_geoh5"
 )

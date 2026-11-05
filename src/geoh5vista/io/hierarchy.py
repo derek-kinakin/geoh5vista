@@ -11,8 +11,11 @@ from __future__ import annotations
 
 import json
 import warnings
+from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from uuid import UUID
+from xml.etree import ElementTree
 
 import h5py
 import numpy as np
@@ -24,16 +27,21 @@ from geoh5py.workspace.workspace import TYPE_UID_TO_CLASS
 
 from ..converters.registry import CONVERTERS
 from ..models import HierarchyEntity, WorkspaceHierarchy
+from ..visibility import stored_visibility
 from ._hdf5 import dataset, group, project_group, text, uid
 
 _CONCATENATOR_MEMBERS = (DrillholeGroup, IntegratorDrillholeGroup)
 _CONCATENATOR_NAMES = frozenset(f"Concatenator{m.__name__}" for m in _CONCATENATOR_MEMBERS)
 
+Colour = tuple[int, int, int]
+
 __all__ = (
     "HierarchyNode",
     "concatenated_object_type",
     "concatenated_records",
+    "read_colours",
     "read_hierarchy",
+    "read_workspace_hierarchy",
     "snapshot_hierarchy",
 )
 
@@ -68,8 +76,16 @@ class HierarchyNode:
         return name, name in CONVERTERS
 
 
-def snapshot_hierarchy(version: float, nodes: list[HierarchyNode]) -> WorkspaceHierarchy:
-    """Detach validated discovery records from their HDF5 storage handles."""
+def snapshot_hierarchy(
+    version: float, nodes: list[HierarchyNode],
+    colours: Mapping[str, Colour | None] | None = None,
+) -> WorkspaceHierarchy:
+    """Detach validated discovery records from their HDF5 storage handles.
+
+    Visibility comes from already-read attributes. Colours are only attached
+    when supplied (see :func:`read_colours`), so snapshots alone read no datasets.
+    """
+    colours = colours or {}
     return WorkspaceHierarchy(
         version=version,
         nodes=tuple(
@@ -81,13 +97,112 @@ def snapshot_hierarchy(version: float, nodes: list[HierarchyNode]) -> WorkspaceH
                 ),
                 entity_type=node.entity_type,
                 parent_uid=node.parent_uid,
-                is_object=node.is_object,
-                is_root=node.is_root,
+                kind="root" if node.is_root else "object" if node.is_object else "group",
                 conversion_supported=node.conversion_supported,
+                concatenated=node.concatenator is not None,
+                visible=stored_visibility(node.attributes, context=f"Entity {node.uid}"),
+                colour=colours.get(node.uid),
             )
             for node in nodes
         ),
     )
+
+
+def _colour(value: object) -> Colour | None:
+    if isinstance(value, np.ndarray):
+        if value.size != 1:
+            raise ValueError("Visual Parameters must contain one XML string.")
+        value = value.item()
+    xml = ElementTree.fromstring(text(value))
+    element = xml.find("Colour")
+    if element is None or not element.text:
+        return None
+    packed = int(element.text).to_bytes(4, byteorder="little")
+    return packed[2], packed[1], packed[0]
+
+
+def _object_colour(entity: h5py.Group) -> Colour | None:
+    if "Data" not in entity:
+        return None
+    children = group(entity, "Data")
+    for key in sorted(children):
+        child = group(children, key)
+        if text(child.attrs["Name"]) == "Visual Parameters":
+            if "Data" not in child:
+                return None
+            return _colour(dataset(child, "Data")[()])
+    return None
+
+
+def _concatenated_colours(
+    concatenator: h5py.Group, property_ids: set[str],
+) -> dict[str, Colour | None]:
+    if not property_ids:
+        return {}
+    storage = group(concatenator, "Concatenated Data")
+    if "Index" not in storage:
+        return {}
+    index = group(storage, "Index")
+    if "Visual Parameters" not in index:
+        return {}
+    rows_handle = dataset(index, "Visual Parameters")
+    fields = rows_handle.dtype.names or ()
+    if rows_handle.ndim != 1 or not {"Data ID", "Start index", "Size"}.issubset(fields):
+        raise ValueError(f"{rows_handle.name}: invalid Visual Parameters index schema.")
+    if any(rows_handle.dtype[field].kind not in "iu" for field in ("Start index", "Size")):
+        raise ValueError(f"{rows_handle.name}: concatenation offsets must be integers.")
+    colours = {}
+    for row in rows_handle[()]:
+        data_uid = uid(row["Data ID"])
+        if data_uid not in property_ids:
+            continue
+        if data_uid in colours:
+            raise ValueError(f"Duplicate Visual Parameters index for {data_uid}.")
+        start, size = int(row["Start index"]), int(row["Size"])
+        if "Data" in storage and "Visual Parameters" in group(storage, "Data"):
+            values = dataset(group(storage, "Data"), "Visual Parameters")
+        else:
+            values = dataset(storage, "Visual Parameters")
+        if values.ndim != 1 or start < 0 or size != 1 or start + size > values.shape[0]:
+            raise ValueError("Invalid Visual Parameters concatenation slice.")
+        colours[data_uid] = _colour(values[start : start + size])
+    return colours
+
+
+def read_colours(nodes: list[HierarchyNode]) -> dict[str, Colour | None]:
+    """Read object colours from Visual Parameters XML only, while handles are open.
+
+    No other attached data, geometry or values are read. Groups have no colour.
+    """
+    property_ids: dict[str, set[str]] = {}
+    for node in nodes:
+        if node.concatenator is not None and "Property:Visual Parameters" in node.attributes:
+            property_ids.setdefault(node.parent_uid, set()).add(
+                uid(node.attributes["Property:Visual Parameters"])
+            )
+    by_concatenator: dict[str | None, dict[str, Colour | None]] = {}
+    colours = {}
+    for node in nodes:
+        if not node.is_object:
+            continue
+        try:
+            if node.concatenator is not None:
+                if node.parent_uid not in by_concatenator:
+                    by_concatenator[node.parent_uid] = _concatenated_colours(
+                        node.concatenator, property_ids.get(node.parent_uid, set()),
+                    )
+                colours[node.uid] = (
+                    by_concatenator[node.parent_uid].get(
+                        uid(node.attributes["Property:Visual Parameters"])
+                    ) if "Property:Visual Parameters" in node.attributes else None
+                )
+            elif node.group is not None:
+                colours[node.uid] = _object_colour(node.group)
+        except (
+            KeyError, ValueError, TypeError, OverflowError, ElementTree.ParseError,
+        ) as error:
+            raise ValueError(f"Entity {node.uid}: {error}") from error
+    return colours
 
 
 def _native_node(handle: h5py.Group, is_object: bool) -> HierarchyNode:
@@ -400,3 +515,29 @@ def read_hierarchy(project: h5py.Group) -> tuple[float, list[HierarchyNode]]:
         return version, result
     except (KeyError, ValueError, TypeError, OverflowError) as error:
         raise ValueError(f"Cannot discover hierarchy in {project.name}: {error}") from error
+
+
+def read_workspace_hierarchy(workspace_path: str | Path) -> WorkspaceHierarchy:
+    """Recover the native group/object hierarchy of a geoh5 file for browsing.
+
+    Each node records its kind (root, group or object), entity type, own
+    stored visibility, and, for objects, Visual Parameters colour. Attached
+    data channels and property groups are left to entity reading and
+    conversion. Only hierarchy links, entity/type attributes, concatenated
+    attribute JSON, and Visual Parameters XML are read; geometry and values
+    are not. The file is opened read-only and closed before returning.
+
+    Raises
+    ------
+    OSError
+        If the file cannot be opened, including missing or non-HDF5 files.
+    ValueError
+        If required geoh5 hierarchy or display metadata is malformed.
+    """
+    path = Path(workspace_path)
+    with h5py.File(path, "r") as file:
+        try:
+            version, nodes = read_hierarchy(project_group(file))
+            return snapshot_hierarchy(version, nodes, read_colours(nodes))
+        except (KeyError, ValueError, TypeError, OverflowError) as error:
+            raise ValueError(f"Cannot read hierarchy of geoh5 file {path}: {error}") from error

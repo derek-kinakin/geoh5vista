@@ -6,6 +6,7 @@ from .io.hierarchy import (
     concatenated_object_type,
     concatenated_records,
     read_hierarchy,
+    read_workspace_hierarchy,
 )
 
 __all__ = (
@@ -15,6 +16,7 @@ __all__ = (
     "dataset",
     "group",
     "read_hierarchy",
+    "read_workspace_hierarchy",
     "text",
     "uid",
 )

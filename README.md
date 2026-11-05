@@ -79,13 +79,45 @@ or conflicting parents.
 
 `geoh5vista.io.hierarchy.read_hierarchy(project)` returns internal,
 handle-backed discovery records while an HDF5 file is open.
-`snapshot_hierarchy(version, nodes)` creates an immutable `WorkspaceHierarchy`
-whose `HierarchyEntity` records contain only detached identity/type/name and
-parent metadata. The snapshot supplies `by_uid`, `root_uid`, `top_level_uids`,
-`node(uid)`, `children(uid)`, `descendants(uid, include_self=False)`, and
-`select(uids)` for deduplicated branch expansion in discovery order.
-Organizational groups and unsupported objects are retained; data channels and
-property-group reference relationships are not represented yet.
+`snapshot_hierarchy(version, nodes, colours=None)` creates an immutable
+`WorkspaceHierarchy` of detached `HierarchyEntity` records. The snapshot
+supplies `by_uid`, `root_uid`, `top_level_uids`, `node(uid)`, `children(uid)`,
+`descendants(uid, include_self=False)`, `select(uids)` for deduplicated branch
+expansion in discovery order, and `effectively_visible(uid)`, which is true
+only when the entity and every ancestor (including the root) are visible.
+Organizational groups and unsupported objects are retained.
+
+Each `HierarchyEntity` records:
+
+| Field | Meaning |
+| --- | --- |
+| `uid`, `name`, `parent_uid` | Canonical identity, display name, immediate native parent |
+| `kind` | `"root"`, `"group"`, or `"object"` (`is_root`/`is_object` are derived) |
+| `entity_type` | geoh5py class label, or the native type UID when unknown |
+| `concatenated` | Object stored inside a concatenator (drillhole) group |
+| `visible` | The entity's own stored checkbox; missing means `True` |
+| `colour` | Object Visual Parameters RGB, or `None` (always `None` for groups/root) |
+| `conversion_supported` | A geoh5vista converter is registered for the type |
+
+Attached data channels and property groups are deliberately not part of the
+hierarchy; they are discovered when entities are read and converted.
+
+For GUI tree views, the public `read_workspace_hierarchy(path)` returns this
+snapshot with colours, opening the file read-only. It reads only hierarchy
+links, entity/type attributes, concatenated attribute JSON, and Visual
+Parameters XML; geometry and values are never read, and VTK is not imported.
+
+```python
+from geoh5vista import read_workspace_hierarchy
+
+tree = read_workspace_hierarchy("project.geoh5")
+for uid in tree.top_level_uids:
+    for node in tree.descendants(uid, include_self=True):
+        print(node.kind, node.name, node.visible, tree.effectively_visible(node.uid))
+```
+
+Malformed `Visible` attributes raise `ValueError` for every node, including
+organizational groups and the root.
 
 Discovery delegates to geoh5py wherever it can stay metadata-only: type records
 come from `H5Reader.fetch_type_attributes`/`fetch_type` (using geoh5py's `uid`
@@ -101,7 +133,8 @@ Full-workspace reading uses detached snapshots for membership and parent
 provenance. Selective reading uses the same model for descendant selection and
 ordering, keeping source handles private to loading. This is a foundation for
 future hierarchy-aware development, not a new nested-file-reading API.
-`catalog_geoh5()` remains its existing filtered catalog, and readers retain
+`catalog_geoh5()` is a filtered projection of the same snapshot (objects and
+convertible groups) with unchanged output, and readers retain
 their existing MultiBlock layouts. Native hierarchy and visualization nesting
 are separate: drillhole collar, trace, and sampling-table components are
 generated representations, not additional native hierarchy entities.

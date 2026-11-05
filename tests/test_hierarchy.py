@@ -10,7 +10,7 @@ from geoh5py.groups import ContainerGroup, DrillholeGroup, Group
 from geoh5py.objects import Drillhole, ObjectBase, Octree, Points, Surface
 from geoh5py.workspace import Workspace
 
-from geoh5vista import catalog_geoh5, read_geoh5_entities
+from geoh5vista import catalog_geoh5, read_geoh5_entities, read_workspace_hierarchy
 from geoh5vista.io import selective
 from geoh5vista.io._hdf5 import project_group
 from geoh5vista.io.hierarchy import read_hierarchy, snapshot_hierarchy
@@ -789,3 +789,58 @@ def test_hierarchy_matches_geoh5py_workspace_tree(tmp_path, version):
         for node in snapshot.nodes if not node.is_root
     }
     assert actual == expected
+
+
+@pytest.mark.parametrize("version", [1.0, 2.0, 2.1])
+def test_workspace_hierarchy_records_kind_and_display_state(tmp_path, version):
+    path = tmp_path / "display.geoh5"
+    with Workspace(path, version=version) as ws:
+        root_uid = str(ws.root.uid)
+        folder = ContainerGroup.create(ws, name="Folder")
+        folder.visible = False
+        points = Points.create(ws, name="pts", vertices=np.zeros((1, 3)), parent=folder)
+        points.add_default_visual_parameters().colour = [10, 20, 30]
+        plain = Points.create(ws, name="plain", vertices=np.zeros((1, 3)))
+        plain.visible = False
+        holes = DrillholeGroup.create(ws, name="Holes")
+        hole = Drillhole.create(
+            ws, parent=holes, name="DH/1", collar=[0.0, 0.0, 0.0],
+            surveys=np.array([[0.0, 0.0, -90.0], [10.0, 0.0, -90.0]]),
+        )
+        if version > 1:
+            hole.add_default_visual_parameters().values = np.array(
+                ["<IParameterList><Colour>4278850590</Colour></IParameterList>"]
+            )
+        uids = {e.name: str(e.uid) for e in (folder, points, plain, holes, hole)}
+
+    hierarchy = read_workspace_hierarchy(path)
+    node = {name: hierarchy.node(value) for name, value in uids.items()}
+    root = hierarchy.node(root_uid)
+    assert (root.kind, root.visible, root.colour) == ("root", True, None)
+    assert (node["Folder"].kind, node["Folder"].visible) == ("group", False)
+    assert node["Folder"].colour is None and not node["Folder"].concatenated
+    assert (node["pts"].kind, node["pts"].visible, node["pts"].colour) == (
+        "object", True, (10, 20, 30),
+    )
+    assert not hierarchy.effectively_visible(uids["pts"])
+    assert (node["plain"].visible, node["plain"].colour) == (False, None)
+    assert node["Holes"].kind == "group" and node["Holes"].colour is None
+    assert node["DH/1"].kind == "object"
+    assert node["DH/1"].concatenated is (version > 1)
+    assert node["DH/1"].colour == ((10, 20, 30) if version > 1 else None)
+    assert hierarchy.effectively_visible(uids["DH/1"])
+
+    with h5py.File(path, "r") as source:
+        bare = snapshot_hierarchy(*read_hierarchy(project_group(source)))
+    assert bare.node(uids["pts"]).colour is None
+    assert bare.node(uids["Folder"]).visible is False
+
+
+def test_workspace_hierarchy_wraps_malformed_group_visibility(tmp_path):
+    path = tmp_path / "bad-visible.geoh5"
+    with Workspace(path) as ws:
+        folder_uid = ContainerGroup.create(ws, name="Folder").uid
+    with h5py.File(path, "r+") as file:
+        file["GEOSCIENCE/Groups"][key(folder_uid)].attrs["Visible"] = "yes"
+    with pytest.raises(ValueError, match="Cannot read hierarchy.*Visible"):
+        read_workspace_hierarchy(path)

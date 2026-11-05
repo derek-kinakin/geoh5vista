@@ -26,7 +26,7 @@ from geoh5py.objects import (
 from geoh5py.objects import Drillhole
 from geoh5py.workspace import Workspace
 
-from geoh5vista import EntityMetadata, catalog_geoh5
+from geoh5vista import EntityMetadata, catalog_geoh5, read_workspace_hierarchy
 
 
 def _key(uid) -> str:
@@ -263,6 +263,15 @@ def test_payload_reads_and_entity_construction_are_forbidden(
     records = catalog_geoh5(path)
     assert len(records) == 7
     assert any(item.colour == (123, 45, 67) for item in records)
+    hierarchy = read_workspace_hierarchy(path)
+    assert [
+        (item.uid, item.name, item.entity_type, item.parent_uid, item.visible, item.colour)
+        for item in records
+    ] == [
+        (node.uid, node.name, node.entity_type, node.parent_uid, node.visible, node.colour)
+        for node in hierarchy.nodes
+        if not node.is_root and (node.is_object or node.conversion_supported)
+    ]
     assert reads
     assert (
         hashlib.sha256(path.read_bytes()).digest(),
@@ -570,8 +579,9 @@ class NoVTK(importlib.abc.MetaPathFinder):
         if fullname.split('.')[0] in ('pyvista', 'vtk', 'vtkmodules'):
             raise AssertionError('VTK import attempted: ' + fullname)
 sys.meta_path.insert(0, NoVTK())
-from geoh5vista import EntityMetadata, catalog_geoh5
+from geoh5vista import EntityMetadata, catalog_geoh5, read_workspace_hierarchy
 assert len(catalog_geoh5(sys.argv[1])) == 6
+assert read_workspace_hierarchy(sys.argv[1]).root_uid is not None
 assert 'geoh5vista.wrapper' not in sys.modules
 assert 'geoh5vista.data' not in sys.modules
 assert 'geoh5vista.converters.dispatch' not in sys.modules

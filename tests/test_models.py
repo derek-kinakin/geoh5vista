@@ -12,15 +12,15 @@ def uid(index):
     return str(UUID(int=index))
 
 
-def entity(index, parent=None, *, is_object=True, is_root=False, supported=True):
+def entity(index, parent=None, *, is_object=True, is_root=False, supported=True, **fields):
     return HierarchyEntity(
         uid=uid(index),
         name="same",
         entity_type="Points" if is_object else "ContainerGroup",
         parent_uid=uid(parent) if parent is not None else None,
-        is_object=is_object,
-        is_root=is_root,
+        kind="root" if is_root else "object" if is_object else "group",
         conversion_supported=supported,
+        **fields,
     )
 
 
@@ -99,12 +99,66 @@ def test_hierarchy_entity_ids_are_canonical():
         name="same",
         entity_type="Points",
         parent_uid="{" + uid(2).upper() + "}",
-        is_object=True,
+        kind="object",
     )
     assert node.uid == uid(1)
     assert node.parent_uid == uid(2)
     with pytest.raises(ValueError):
-        HierarchyEntity("invalid", "same", "Points", None, True)
+        HierarchyEntity("invalid", "same", "Points", None, "object")
+
+
+def test_hierarchy_entity_kind_and_display_defaults():
+    root = entity(1, is_object=False, is_root=True)
+    folder = entity(2, 1, is_object=False)
+    points = entity(3, 2)
+    assert (root.kind, root.is_root, root.is_object) == ("root", True, False)
+    assert (folder.kind, folder.is_root, folder.is_object) == ("group", False, False)
+    assert (points.kind, points.is_root, points.is_object) == ("object", False, True)
+    assert (points.concatenated, points.visible, points.colour) == (False, True, None)
+    coloured = entity(4, colour=[1, 2, 255], concatenated=True)
+    assert coloured.colour == (1, 2, 255)
+    assert coloured.concatenated is True
+
+
+@pytest.mark.parametrize(
+    "fields, message",
+    [
+        ({"kind": "data"}, "invalid hierarchy kind"),
+        ({"kind": "group", "concatenated": True}, "only objects can be concatenated"),
+        ({"kind": "group", "colour": (1, 2, 3)}, "only objects have a colour"),
+        ({"kind": "root", "colour": (1, 2, 3)}, "only objects have a colour"),
+        ({"colour": (1, 2)}, "three 0-255 integers"),
+        ({"colour": (1, 2, 256)}, "three 0-255 integers"),
+        ({"colour": (1.0, 2, 3)}, "three 0-255 integers"),
+    ],
+)
+def test_invalid_hierarchy_entity_fields_raise(fields, message):
+    fields = {"kind": "object", **fields}
+    with pytest.raises(ValueError, match=message):
+        HierarchyEntity(uid(1), "same", "Points", None, **fields)
+
+
+def test_effective_visibility_includes_every_ancestor():
+    nodes = (
+        entity(10, is_object=False, is_root=True),
+        entity(20, 10, is_object=False, visible=False),
+        entity(1, 20),
+        entity(2, 10),
+        entity(3, 10, visible=False),
+    )
+    hierarchy = WorkspaceHierarchy(2.1, nodes)
+    assert hierarchy.effectively_visible(uid(10)) is True
+    assert hierarchy.effectively_visible(uid(20)) is False
+    assert hierarchy.node(uid(1)).visible is True
+    assert hierarchy.effectively_visible(uid(1)) is False
+    assert hierarchy.effectively_visible(uid(2)) is True
+    assert hierarchy.effectively_visible(uid(3)) is False
+    hidden_root = WorkspaceHierarchy(
+        2.1, (entity(10, is_object=False, is_root=True, visible=False), entity(1, 10))
+    )
+    assert hidden_root.effectively_visible(uid(1)) is False
+    with pytest.raises(KeyError):
+        hierarchy.effectively_visible(uid(999))
 
 
 @pytest.mark.parametrize(
