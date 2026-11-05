@@ -9,18 +9,12 @@ from uuid import UUID
 import h5py
 import numpy as np
 
+from .io import _hdf5
+
 if TYPE_CHECKING:
     from geoh5py.shared.entity import Entity
 
-
-def project_group(file: h5py.File) -> h5py.Group:
-    """Resolve the single project group required by the existing reader."""
-    if len(file) != 1:
-        raise ValueError("Expected one geoh5 project group.")
-    project = file[next(iter(file))]
-    if not isinstance(project, h5py.Group):
-        raise ValueError(f"{project.name}: expected an HDF5 group.")  # noqa: TRY004
-    return project
+project_group = _hdf5.project_group
 
 
 def stored_visibility(

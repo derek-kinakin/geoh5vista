@@ -1,5 +1,17 @@
 # Release notes
 
+## 0.12.0 - 2026-11-04
+
+- Reorganized file discovery, reading, and persistence into `geoh5vista.io`,
+  and entity conversion, dispatch, array transfer, and metadata bridging into
+  `geoh5vista.converters`. Existing package-level and top-level module imports
+  remain supported through compatibility re-exports; conversion and reader
+  behavior is unchanged.
+- Added detached, immutable native hierarchy records in `geoh5vista.models`.
+  Full and selective readers share hierarchy lookup and relationships without
+  making generated PyVista nesting the source hierarchy. Metadata discovery
+  remains independent of PyVista/VTK imports and geometry/observation payloads.
+
 ## 0.11.0 - 2026-11-02
 
 - Support workspaces without a stored `/Root` link by resolving an indexed

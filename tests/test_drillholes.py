@@ -16,7 +16,7 @@ from geoh5vista.drillholes import (
 )
 from geoh5vista.wrapper import geoh5wrap, read_geoh5, write_geoh5
 from geoh5vista.data import add_drillhole_interval_data_to_vtk
-from geoh5vista import drillholes
+from geoh5vista.converters import drillholes
 
 
 def make_hole(ws, group, name="DH-01", **kwargs):

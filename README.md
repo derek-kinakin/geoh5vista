@@ -30,6 +30,72 @@ From Github
 pip install git+https://github.com/derek-kinakin/geoh5vista.git
 ```
 
+Library Organization
+-------------------
+
+The library separates native file discovery/loading from conversion to
+PyVista. The package-level API remains the recommended starting point:
+
+```python
+from geoh5vista import catalog_geoh5, geoh5wrap, read_geoh5, read_geoh5_entities, write_geoh5
+```
+
+For lower-level operations, use these canonical modules:
+
+| Module | Responsibility |
+|--------|----------------|
+| `geoh5vista.io.catalog` | Metadata-only entity catalog |
+| `geoh5vista.io.hierarchy` | Shared native hierarchy discovery and detached snapshots |
+| `geoh5vista.io.readers` | Full-workspace reading |
+| `geoh5vista.io.selective` | Selected payload loading and native entity reconstruction |
+| `geoh5vista.io.writers` | Geoh5 export orchestration |
+| `geoh5vista.io.drillhole_vtm` | Drillhole composite VTM persistence |
+| `geoh5vista.converters.dispatch` | `geoh5wrap`, `vtkwrap`, and visualization block assembly |
+| `geoh5vista.converters.registry` | Lightweight conversion capabilities |
+| `geoh5vista.converters.<entity>` | Per-entity geometry and conversion, such as `points` or `blockmodel` |
+| `geoh5vista.converters.arrays` | Array transfer, associations, and value maps |
+| `geoh5vista.converters.metadata` | PyVista source/display metadata attachment and restoration |
+| `geoh5vista.models` | Detached catalog and native hierarchy records |
+
+Existing imports from `geoh5vista.wrapper`, `geoh5vista.data`,
+`geoh5vista.catalog`, `geoh5vista.hierarchy`, `geoh5vista.selective`, and
+the top-level entity modules remain supported as compatibility re-exports.
+Public function names, defaults, conversion results, visibility policy, and
+drillhole nesting are unchanged. New internal code imports the canonical
+modules rather than compatibility modules.
+
+Importing `geoh5vista.io`, `geoh5vista.converters`, or metadata-discovery
+modules does not import PyVista/VTK. Converter exports at the package root
+remain lazy; importing a concrete conversion or payload-loading module loads
+the required backend.
+
+Native Hierarchy Foundation
+-------------------
+
+Native hierarchy discovery remains the single authority for source membership
+and immediate parentage. It retains root-alias handling, rootless forests,
+UID-sorted depth-first ordering, concatenated objects, and rejection of cycles
+or conflicting parents.
+
+`geoh5vista.io.hierarchy.read_hierarchy(project)` returns internal,
+handle-backed discovery records while an HDF5 file is open.
+`snapshot_hierarchy(version, nodes)` creates an immutable `WorkspaceHierarchy`
+whose `HierarchyEntity` records contain only detached identity/type/name and
+parent metadata. The snapshot supplies `by_uid`, `root_uid`, `top_level_uids`,
+`node(uid)`, `children(uid)`, `descendants(uid, include_self=False)`, and
+`select(uids)` for deduplicated branch expansion in discovery order.
+Organizational groups and unsupported objects are retained; data channels and
+property-group reference relationships are not represented yet.
+
+Full-workspace reading uses detached snapshots for membership and parent
+provenance. Selective reading uses the same model for descendant selection and
+ordering, keeping source handles private to loading. This is a foundation for
+future hierarchy-aware development, not a new nested-file-reading API.
+`catalog_geoh5()` remains its existing filtered catalog, and readers retain
+their existing MultiBlock layouts. Native hierarchy and visualization nesting
+are separate: drillhole collar, trace, and sampling-table components are
+generated representations, not additional native hierarchy entities.
+
 Current Status of Supported Geoh5 Entities
 -------------------
 
@@ -138,7 +204,7 @@ is visible. Visibility resolution never rewrites source attributes or view
 records. The general-purpose `normalize_visibility` utility retains its legacy
 behavior, but does not define entity-level visibility.
 
-`geoh5vista.data.restore_entity_metadata(entity, mesh, name=None)` restores
+`geoh5vista.converters.metadata.restore_entity_metadata(entity, mesh, name=None)` restores
 the display fields onto an already-created geoh5 entity. An explicit `name`
 overrides the stored name. Missing metadata or display fields leave the
 entity unchanged for those fields; invalid recognized values or unsupported
@@ -336,7 +402,7 @@ Drillhole Representation
 
 Drillhole imports now return nested `MultiBlock` objects instead of a single
 merged `PolyData`. `geoh5wrap(hole)` or
-`geoh5vista.drillholes.drillhole_to_vtk(hole)` converts one hole;
+`geoh5vista.converters.drillholes.drillhole_to_vtk(hole)` converts one hole;
 `drillholes_to_vtk(group)` converts a group. Modern concatenated drillholes and
 legacy drillholes are supported. Workspace loading includes each hole once,
 inside its drillhole group, and applies `load_only_visible` to both groups and
@@ -398,7 +464,7 @@ transliterated or discarded. JSON source/display metadata can retain Unicode.
 ```python
 import pyvista as pv
 import geoh5vista
-from geoh5vista.drillholes import save_drillholes, read_drillholes
+from geoh5vista.io.drillhole_vtm import save_drillholes, read_drillholes
 
 project = geoh5vista.read_geoh5("project.geoh5")
 hole = project["Drillholes"]["DH-001"]

@@ -1,5 +1,7 @@
 """Constants used in geoh5vista."""
 
+from .converters.registry import CONVERTERS, SUPPORTED
+
 __all__ = [
     "CONVERTERS",
     "DATASKIP",
@@ -7,22 +9,6 @@ __all__ = [
     "SUPPORTED"
 ]
 
-
-CONVERTERS: dict[str, tuple[str, str]] = {
-    "Points": ("points", "points_to_vtk"),
-    "Curve": ("curve", "curve_to_vtk"),
-    "Surface": ("surface", "surface_to_vtk"),
-    "Grid2D": ("grid2d", "grid2d_to_vtk"),
-    "BlockModel": ("blockmodel", "blockmodel_to_vtk"),
-    "Drillhole": ("drillholes", "drillhole_to_vtk"),
-    "DrillholeGroup": ("drillholes", "drillholes_to_vtk"),
-    "ConcatenatorDrillholeGroup": ("drillholes", "drillholes_to_vtk"),
-    "ConcatenatedDrillhole": ("drillholes", "drillhole_to_vtk"),
-    "Slicer": ("slicer", "slicer_to_vtk_plane"),
-    "Label": ("label", "label_to_vtk"),
-}
-
-SUPPORTED = list(CONVERTERS)
 
 GEOH5SKIP = [
     "ReferencedData",

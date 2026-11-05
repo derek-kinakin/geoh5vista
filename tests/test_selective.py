@@ -440,7 +440,7 @@ def test_concatenated_geometry_only_and_conversion_failure(tmp_path, monkeypatch
         raise RuntimeError("Injected concatenated conversion failure")
 
     monkeypatch.setattr(h5py.File, "__init__", track)
-    monkeypatch.setattr("geoh5vista.selective.entities_to_vtk", fail)
+    monkeypatch.setattr("geoh5vista.io.selective.entities_to_vtk", fail)
     with pytest.raises(RuntimeError, match="Injected concatenated"):
         read_geoh5_entities(path, hole_uid)
     assert handles and all(not file.id.valid for file in handles)
@@ -508,8 +508,8 @@ def test_input_errors_and_cleanup_on_failure(tmp_path, monkeypatch, failure_phas
 
     monkeypatch.setattr(h5py.File, "__init__", track)
     target = (
-        "geoh5vista.selective.entities_to_vtk" if failure_phase == "conversion"
-        else "geoh5vista.selective.H5Reader.fetch_attributes"
+        "geoh5vista.io.selective.entities_to_vtk" if failure_phase == "conversion"
+        else "geoh5vista.io.selective.H5Reader.fetch_attributes"
     )
     monkeypatch.setattr(target, fail if failure_phase == "conversion" else fail_source)
     with pytest.raises(RuntimeError, match="Injected failure"):

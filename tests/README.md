@@ -4,7 +4,16 @@ This directory contains unit tests for the geoh5vista library.
 
 ## Structure
 
-Tests are organized as flat modules following the pytest convention:
+Tests remain organized as flat modules following the pytest convention.
+Entity conversion tests cover the canonical `geoh5vista.converters` modules
+through their backwards-compatible imports; file-reading tests cover
+`geoh5vista.io` through the public API.
+
+- `test_imports.py` - Canonical package boundaries, lightweight imports, and compatibility re-exports
+- `test_models.py` - Detached hierarchy records, lookup, traversal, and validation
+- `test_catalog.py` - Metadata-only discovery and its no-payload/no-VTK contract
+- `test_hierarchy.py` - Shared native hierarchy, root aliases, and rootless forests
+- `test_selective.py` - Selected payload loading and resource ownership
 - `test_blockmodel.py` - Tests for blockmodel module
 - `test_curve.py` - Tests for curve module
 - `test_data.py` - Tests for data module
@@ -36,8 +45,7 @@ pytest --cov=src/geoh5vista --cov-report=html
 
 ## Writing Tests
 
-The blockmodel, curve, points, and surface modules contain conversion tests;
-the remaining modules currently have placeholder tests. Follow these guidelines:
+Follow these guidelines:
 
 1. **Use descriptive test names** - Start with `test_` prefix
 2. **Group related tests** - Keep related conversion cases together

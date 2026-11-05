@@ -574,6 +574,12 @@ from geoh5vista import EntityMetadata, catalog_geoh5
 assert len(catalog_geoh5(sys.argv[1])) == 6
 assert 'geoh5vista.wrapper' not in sys.modules
 assert 'geoh5vista.data' not in sys.modules
+assert 'geoh5vista.converters.dispatch' not in sys.modules
+assert 'geoh5vista.converters.arrays' not in sys.modules
+assert 'geoh5vista.converters.metadata' not in sys.modules
+assert 'geoh5vista.io.readers' not in sys.modules
+assert 'geoh5vista.io.selective' not in sys.modules
+assert 'geoh5vista.io.writers' not in sys.modules
 """
     environment = dict(os.environ, PYTHONPATH=str(Path(__file__).parents[1] / "src"))
     result = subprocess.run(

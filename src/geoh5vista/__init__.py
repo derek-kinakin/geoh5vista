@@ -1,15 +1,19 @@
 """``geoh5vista``: 3D visualization and geometry processing for Geoh5 format (geoh5) objects.
 """
 
+from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING
 
-from .catalog import EntityMetadata, catalog_geoh5
 from .compat import patch_missing_concatenated_data
+from .io.catalog import catalog_geoh5
+from .models import EntityMetadata
 
 if TYPE_CHECKING:
-    from .selective import read_geoh5_entities
-    from .wrapper import geoh5wrap, read_geoh5, vtkwrap, write_geoh5
+    from .converters.dispatch import geoh5wrap, vtkwrap
+    from .io.readers import read_geoh5
+    from .io.selective import read_geoh5_entities
+    from .io.writers import write_geoh5
 
 patch_missing_concatenated_data()
 
@@ -31,16 +35,18 @@ __all__ = (
 )
 
 
+_LAZY_EXPORTS = {
+    "geoh5wrap": ".converters.dispatch",
+    "read_geoh5": ".io.readers",
+    "read_geoh5_entities": ".io.selective",
+    "vtkwrap": ".converters.dispatch",
+    "write_geoh5": ".io.writers",
+}
+
+
 def __getattr__(name: str):
-    if name == "read_geoh5_entities":
-        from .selective import read_geoh5_entities
-
-        globals()[name] = read_geoh5_entities
-        return read_geoh5_entities
-    if name in ("geoh5wrap", "read_geoh5", "vtkwrap", "write_geoh5"):
-        from . import wrapper
-
-        value = getattr(wrapper, name)
+    if name in _LAZY_EXPORTS:
+        value = getattr(import_module(_LAZY_EXPORTS[name], __name__), name)
         globals()[name] = value
         return value
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

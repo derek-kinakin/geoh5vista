@@ -7,10 +7,13 @@ import h5py
 import numpy as np
 import pytest
 from geoh5py.groups import ContainerGroup, DrillholeGroup
-from geoh5py.objects import Drillhole, Points, Surface
+from geoh5py.objects import Drillhole, Octree, Points, Surface
 from geoh5py.workspace import Workspace
 
-from geoh5vista import catalog_geoh5, read_geoh5_entities, selective
+from geoh5vista import catalog_geoh5, read_geoh5_entities
+from geoh5vista.io import selective
+from geoh5vista.io._hdf5 import project_group
+from geoh5vista.io.hierarchy import read_hierarchy, snapshot_hierarchy
 
 
 def key(uid):
@@ -94,6 +97,106 @@ def instrument(monkeypatch, path):
     monkeypatch.setattr(h5py.File, "__init__", tracked)
     monkeypatch.setattr(Workspace, "__init__", no_source)
     return allowed, reads, handles, modes
+
+
+@pytest.mark.parametrize("rootless", [False, True])
+def test_native_hierarchy_snapshot_is_detached(root_fixture, monkeypatch, rootless):
+    path, root_uid, first_uid, second_uid, orphan_uid, _ = root_fixture
+    if rootless:
+        with h5py.File(path, "r+") as source:
+            project = project_group(source)
+            del project["Root"]
+            del project["Groups"][key(root_uid)]
+    before = hashlib.sha256(path.read_bytes()).digest()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Hierarchy snapshots must not read payloads or create entities.")
+
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", forbidden)
+    monkeypatch.setattr(h5py.Dataset, "read_direct", forbidden)
+    monkeypatch.setattr(Workspace, "__init__", forbidden)
+    with h5py.File(path, "r") as source:
+        version, nodes = read_hierarchy(project_group(source))
+        snapshot = snapshot_hierarchy(version, nodes)
+    assert hashlib.sha256(path.read_bytes()).digest() == before
+    path.unlink()
+
+    expected = [first_uid, second_uid, orphan_uid] if rootless else [root_uid, first_uid, second_uid]
+    assert [node.uid for node in snapshot.nodes] == list(map(str, expected))
+    assert snapshot.root_uid == (None if rootless else str(root_uid))
+    assert snapshot.node(first_uid).name == "catalog_only"
+    assert snapshot.node(first_uid).parent_uid == (None if rootless else str(root_uid))
+    assert all(not hasattr(node, "group") for node in snapshot.nodes)
+    if rootless:
+        assert snapshot.top_level_uids == tuple(map(str, expected))
+    else:
+        assert [node.uid for node in snapshot.children(root_uid)] == list(map(str, expected[1:]))
+        assert list(snapshot.descendants(root_uid)) == list(snapshot.nodes[1:])
+
+
+def test_snapshot_keeps_organizational_groups_and_unsupported_objects(tmp_path, monkeypatch):
+    path = tmp_path / "hierarchy.geoh5"
+    with Workspace.create(path) as workspace:
+        root_uid = workspace.root.uid
+        folder = ContainerGroup.create(workspace, uid=UUID(int=10), name="same")
+        points = Points.create(
+            workspace, uid=UUID(int=1), parent=folder, name="same", vertices=[[0., 0., 0.]],
+        )
+        nested = ContainerGroup.create(
+            workspace, uid=UUID(int=20), parent=folder, name="same",
+        )
+        unsupported = Octree.create(
+            workspace, uid=UUID(int=2), parent=nested, name="same",
+        )
+        empty = ContainerGroup.create(workspace, uid=UUID(int=30), name="empty")
+        expected = [root_uid, folder.uid, points.uid, nested.uid, unsupported.uid, empty.uid]
+        folder_uid, nested_uid, unsupported_uid, empty_uid = (
+            folder.uid, nested.uid, unsupported.uid, empty.uid,
+        )
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Hierarchy snapshots must not read payloads or create entities.")
+
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", forbidden)
+    monkeypatch.setattr(h5py.Dataset, "read_direct", forbidden)
+    monkeypatch.setattr(Workspace, "__init__", forbidden)
+    with h5py.File(path, "r") as source:
+        version, nodes = read_hierarchy(project_group(source))
+        snapshot = snapshot_hierarchy(version, nodes)
+    path.unlink()
+
+    assert [node.uid for node in snapshot.nodes] == list(map(str, expected))
+    assert snapshot.node(folder_uid).is_object is False
+    assert snapshot.node(unsupported_uid).is_object is True
+    assert snapshot.node(unsupported_uid).conversion_supported is False
+    assert snapshot.node(unsupported_uid).parent_uid == str(nested_uid)
+    assert [node.uid for node in snapshot.descendants(folder_uid)] == list(map(str, expected[2:5]))
+    assert snapshot.children(empty_uid) == ()
+    assert all(node.name == "same" for node in snapshot.nodes[1:5])
+
+
+@pytest.mark.parametrize("version", [1.0, 2.0, 2.1])
+def test_snapshot_keeps_native_drillhole_identity_not_generated_components(tmp_path, version):
+    path = tmp_path / "drillhole-hierarchy.geoh5"
+    with Workspace.create(path, version=version) as workspace:
+        group = DrillholeGroup.create(workspace, name="Drillholes")
+        hole = Drillhole.create(
+            workspace, parent=group, name="DH/001", collar=[0., 0., 0.],
+        )
+        group_uid, hole_uid = group.uid, hole.uid
+    with h5py.File(path, "r") as source:
+        stored_version, nodes = read_hierarchy(project_group(source))
+        snapshot = snapshot_hierarchy(stored_version, nodes)
+    path.unlink()
+
+    assert snapshot.version == version
+    assert len(snapshot.nodes) == 3
+    node = snapshot.node(hole_uid)
+    assert node.name == "DH/001"
+    assert node.parent_uid == str(group_uid)
+    assert node.entity_type == ("Drillhole" if version == 1.0 else "ConcatenatedDrillhole")
+    assert snapshot.children(group_uid) == (node,)
+    assert snapshot.children(hole_uid) == ()
 
 
 @pytest.mark.parametrize("layout", [
